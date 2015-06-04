@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='pySOT',
     version='0.1.0',
-    packages=['pySOT'],
+    packages=['pySOT','pySOT.test'],
     url='http://pypi.python.org/pypi/pySOT/',
     license='LICENSE.txt',
     author='David Bindel, David Eriksson',
