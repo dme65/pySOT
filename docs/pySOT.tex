@@ -247,6 +247,17 @@ python ./pySOT/test/test.py
 \end{enumerate}
 \ \newline \textbf{Optional: } If you want to use MARS you need to install the py-earth toolbox (http://github.com/jcrudy/py-earth)  
 
+\section{Sphinx documentation}
+The necessary files to build the Sphinx documentation are provided in the docs subdirectory. We use the napoleon extension so you need to make sure you have this package. This can be done through pip
+\begin{python}
+pip install sphinxcontrib-napoleon
+\end{python}
+To build the documentation run the command:
+\begin{python}
+make html
+\end{python}
+
+
 \section{Options}
 These are the the components and the supported options:
 \subsection{Experimental design} The experimental design generates the initial points to be evaluated. A well-chosen experimental design is critical in order to fit a Surrogate model that captures the behavior of the underlying objective function. The following experimental designs are supported:
@@ -503,6 +514,50 @@ if __name__ == "__main__":
                             experimental_design=ed, search_strategies=ss,
                             constraint_handler=ch)
 \end{python}
+
+\section{Calling an external objective function}
+Say that we want to evaluate an black-box objective function at a point \\ $x=(x_1,x_2,\ldots,x_n) \in \Rb^n$. We assume that the black-box objective function is an executable file that takes its input of the form \textquotesingle $x_1, \,x_2, \, \ldots, \, x_n$\textquotesingle, i.e., the point where we evaluate is given as a comma separated string of variables. We also assume that the black box objective function returns the value to us by printing it to the terminal, so that we can parse the value of the objective function from the output. We modify the Ackley objective function in our previous example to a script that we refer to AckleyExectuable that has the following form:
+\begin{python}
+import numpy as np
+import sys
+
+x = np.fromstring(sys.argv[1], sep=',')
+n = float(len(x))
+print(str(-20.0 * np.exp(-0.2*np.sqrt(sum(x**2)/n)) - \
+np.exp(sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)))
+\end{python}
+This script can be compiled to an executable and will serve as our black-box objective function. The Ackley class can then take the following form:
+\begin{python}
+import numpy as np
+from subprocess32 import Popen, PIPE
+
+class Ackley:
+    def __init__(self, dim=10):
+        self.xlow = -15 * np.ones(dim)
+        self.xup = 20 * np.ones(dim)
+        self.dim = dim
+        self.info = str(dim)+"-dimensional Ackley function \n" +\
+                             "Global optimum: f(0,0,...,0) = 0"
+        self.min = 0
+        self.integer = []
+        self.continuous = np.arange(0, dim)
+        self.constraints = False
+
+    def objfunction(self, x):
+        if len(x) != self.dim:
+            raise ValueError('Dimension mismatch')
+
+        process = Popen(['/PATH/AckleyExecutable', array2str(x)], 
+        		stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        return float(stdout)
+\end{python}
+where /PATH/ is the path of the executable and array2str is a help function that converts a numpy array to the form we described earlier:
+\begin{python}
+def array2str(x):
+    return ",".join(np.char.mod('%f', x))
+\end{python}
+\textbf{Note:} If your black-box objective function is only being optimized over a subset of the variables or reads its input from an external file the example above will have to be modified appropriately for such a case.
 
 \section{Future changes}
 \begin{itemize}
