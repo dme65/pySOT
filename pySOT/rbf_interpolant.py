@@ -2,45 +2,53 @@
 .. module:: rbf_interpolant
    :synopsis: Basic radial basis function interpolation
 .. moduleauthor:: David Bindel <bindel@cornell.edu>
+
+:Module: rbf_interpolant
+:Author: David Bindel <bindel@cornell.edu>
 """
 
 import numpy as np
 import numpy.linalg as la
 import scipy.spatial as scp
 
+
 class RBFInterpolant(object):
-    """Compute and evaluate RBF interpolants.
+    """
+    Compute and evaluate RBF interpolant.
 
     Manages an expansion of the form
-    .. math::
 
-      f(x) = \\sum_j c_j \\phi(\\|x-x_j\\|) + \\sum_j \\lambda_j p_j(x)
+    .. math::
+        f(x) = \\sum_j c_j \\phi(\\|x-x_j\\|) + \\sum_j \\lambda_j p_j(x)
 
     where the functions :math:`p_j(x)` are low-degree polynomials.
     The fitting equations are
+
     .. math::
-       :nowrap:
 
-       \\begin{bmatrix} \\eta I & P^T \\\\ P & \\Phi+\\eta I \\end{bmatrix}
-       \\begin{bmatrix} \\lambda \\\\ c \\end{bmatrix} =
-       \\begin{bmatrix} 0 \\\\ f \\end{bmatrix}
+        \\begin{bmatrix} \\eta I & P^T \\\\ P & \\Phi+\\eta I \\end{bmatrix}
+        \\begin{bmatrix} \\lambda \\\\ c \\end{bmatrix} =
+        \\begin{bmatrix} 0 \\\\ f \\end{bmatrix}
 
-    where :math:`P_{ij} = p_j(x_i)` and :math:`\\Phi_{ij}(\\|x_i-x_j\\|)`.
+    where :math:`P_{ij} = p_j(x_i)` and
+    :math:`\\Phi_{ij}=\\phi(\\|x_i-x_j\\|)`.
     The regularization parameter :math:`\\eta` allows us to avoid problems
     with potential poor conditioning of the system.
 
-    Attributes:
-        phi: Kernel function
-        P: Tail functions
-        dphi: Derivative of kernel function
-        dP: Gradient of tail functions
-        eta: Regularization parameter
-        ntail: Number of tail functions
-        nump: Current number of points
-        maxp: Initial maximum number of points (can grow)
-        A: Interpolation system matrix
-        rhs: Right hand side for interpolation system
-        x: Interpolation points
+    :ivar phi: Kernel function
+    :ivar P: Tail functions
+    :ivar dphi: Derivative of kernel function
+    :ivar dP: Gradient of tail functions
+    :ivar eta: Regularization parameter
+    :ivar ntail: Number of tail functions
+    :ivar nump: Current number of points
+    :ivar maxp: Initial maximum number of points (can grow)
+    :ivar A: Interpolation system matrix
+    :ivar rhs: Right hand side for interpolation system
+    :ivar x: Interpolation points
+    :ivar c: Expansion coefficients
+    :ivar dim: Number of dimensions
+    :ivar ntail: Number of tail functions
     """
 
     def __init__(self, phi, P, dphi=None, dP=None, eta=1e-8, maxp=100):
@@ -69,7 +77,12 @@ class RBFInterpolant(object):
         self.c = None
 
     def _alloc(self, dim, ntail):
-        """Allocate storage for x, fx, rhs, and A."""
+        """
+        Allocate storage for x, fx, rhs, and A.
+
+        :param dim: Number of dimensions
+        :param ntail: Number of tail functions
+        """
         maxp = self.maxp
         self.dim = dim
         self.ntail = ntail
@@ -81,7 +94,13 @@ class RBFInterpolant(object):
             self.A[i, i] = self.eta
 
     def _realloc(self, dim, ntail, extra=1):
-        """Expand allocation to accomodate more points (if needed)."""
+        """
+        Expand allocation to accommodate more points (if needed)
+
+        :param dim: Number of dimensions
+        :param ntail: Number of tail functions
+        :param extra: Number of additional points to accommodate
+        """
         if self.nump == 0:
             self._alloc(dim, ntail)
         elif self.nump+extra > self.maxp:
@@ -94,22 +113,39 @@ class RBFInterpolant(object):
             self.A[:A0.shape[0], :A0.shape[1]] = A0
 
     def coeffs(self):
-        """Compute the expansion coefficients."""
+        """
+        Compute the expansion coefficients
+
+        :return: Expansion coefficients
+        """
         if self.c is None:
             nact = self.ntail + self.nump
             self.c = la.solve(self.A[:nact, :nact], self.rhs[:nact])
         return self.c
 
     def get_x(self):
-        """Get the list of data points."""
+        """
+        Get the list of data points
+
+        :return: List of data points
+        """
         return self.x[:self.nump, :]
 
     def get_fx(self):
-        """Get the list of data points."""
+        """
+        Get the list of function values for the data points.
+
+        :return: List of function values
+        """
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
-        """Add a new function evaluation."""
+        """
+        Add a new function evaluation
+
+        :param xx: Point to add
+        :param fx: The function value of the point to add
+        """
         px = self.P(xx)
         dim = len(xx)
         ntail = len(px)
@@ -131,12 +167,21 @@ class RBFInterpolant(object):
         self.c = None
 
     def transform_fx(self, fx):
-        """Replace f with transformed function values for the fitting."""
+        """
+        Replace f with transformed function values for the fitting
+
+        :param fx: Transformed function value
+        """
         self.rhs[self.ntail:self.ntail+self.nump] = fx
         self.c = None
 
     def eval(self, xx):
-        """Evaluate the interpolant at x."""
+        """
+        Evaluate the rbf interpolant at the point xx
+
+        :param xx: Point where to evaluate
+        :return: Value of the rbf interpolant at x
+        """
         px = self.P(xx)
         ntail = self.ntail
         c = self.coeffs()
@@ -149,7 +194,12 @@ class RBFInterpolant(object):
         return fx
 
     def evals(self, xx):
-        """Evaluate the interpolant at xx points."""
+        """
+        Evaluate the rbf interpolant at the points xx
+
+        :param xx: Points where to evaluate
+        :return: Values of the rbf interpolant at x
+        """
         ntail = self.ntail
         c = np.asmatrix(self.coeffs())
         ds = scp.distance.cdist(xx, self.x[:self.nump, :])
@@ -157,7 +207,12 @@ class RBFInterpolant(object):
         return fx
 
     def deriv(self, x):
-        """Evaluate the derivative of the interpolant at x."""
+        """
+        Evaluate the derivative of the rbf interpolant at x
+
+        :param x: Data point
+        :return: Derivative of the rbf interpolant at x
+        """
         dpx = self.dP(x)
         ntail = self.ntail
         c = self.coeffs()
@@ -175,39 +230,74 @@ class RBFInterpolant(object):
 
 
 def phi_linear(r):
-    """Linear RBF"""
+    """
+    Linear RBF interpolant
+
+    :param r: Data point
+    :return: Value of the linear rbf interpolant
+    """
     return r
 
 
 def phi_cubic(r):
-    """Cubic RBF"""
+    """
+    Cubic RBF interpolant
+
+    :param r: Data point
+    :return: Value of the cubic rbf interpolant
+    """
     return r*r*r
 
 
 def phi_plate(r):
-    """Thin plate RBF"""
+    """
+    Thin plate RBF interpolant
+
+    :param r: Data point
+    :return: Value of the thin plate rbf interpolant
+    """
     eps = np.finfo(np.double).tiny
     return r*r * np.log(r+eps)
 
 
 def dphi_linear(r):
-    """Linear RBF derivative"""
+    """
+    Derivative of linear RBF interpolant
+
+    :param r: Data point
+    :return: Derivative of the linear rbf interpolant
+    """
     return r*0+1
 
 
 def dphi_cubic(r):
-    """Cubic RBF derivative"""
+    """
+    Derivative of cubic RBF interpolant
+
+    :param r: Data point
+    :return: Derivative of the cubic rbf interpolant
+    """
     return 3*r*r
 
 
 def dphi_plate(r):
-    """Thin plate RBF derivative"""
+    """
+    Derivative of thin plate RBF interpolant
+
+    :param r: Data point
+    :return: Derivative of the thin plate rbf interpolant
+    """
     eps = np.finfo(np.double).tiny
     return (1+2*np.log(r+eps))*r
 
 
 def const_tail(x):
-    """Constant polynomial tail"""
+    """
+    Constant polynomial tail
+
+    :param x: Data point
+    :return: Value the constant tail
+    """
     if len(x.shape) == 1:
         px = np.ones(1)
     else:
@@ -216,7 +306,12 @@ def const_tail(x):
 
 
 def linear_tail(x):
-    """Linear polynomial tail"""
+    """
+    Linear polynomial tail
+
+    :param x: Data point
+    :return: Value the linear tail
+    """
     if len(x.shape) == 1:
         px = np.zeros(x.shape[0]+1)
         px[0] = 1
@@ -228,12 +323,22 @@ def linear_tail(x):
 
 
 def dconst_tail(x):
-    """Derivatives for constant tail"""
+    """
+    Derivative of constant polynomial tail
+
+    :param x: Data point
+    :return: Derivative of constant tail
+    """
     return np.zeros((x.shape[0], 1))
 
 
 def dlinear_tail(x):
-    """Derivatives for linear tail"""
+    """
+    Derivative of linear polynomial tail
+
+    :param x: Data point
+    :return: Derivative of linear tail
+    """
     dpx = np.zeros((x.shape[0]+1, x.shape[0]))
     dpx[1:, :] = np.eye(x.shape[0])
     return dpx
@@ -241,7 +346,7 @@ def dlinear_tail(x):
 # ====================================================================
 
 
-def main():
+def _main():
     """Main test routine"""
 
     def test_f(x):
@@ -276,4 +381,4 @@ def main():
                                          la.norm(dfx-dfhx)/la.norm(dfx)))
 
 if __name__ == "__main__":
-    main()
+    _main()

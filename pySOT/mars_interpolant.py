@@ -1,23 +1,27 @@
 #!/usr/bin/env python
 """
-.. module:: earth_interpolant
-   :synopsis: eartch model interpolation
+.. module:: mars_interpolant
+   :synopsis: MARS model interpolation
 .. moduleauthor:: Yi Shen <ys623@cornell.edu>
+
+:Module: mars_interpolant
+:Author: Yi Shen <ys623@cornell.edu>
 """
 
 import numpy as np
 import numpy.linalg as la
 from pyearth import Earth
-import math
+
 
 class MARSInterpolant(Earth):
-    """Compute and evaluate Earth interpolants.
+    """Compute and evaluate a MARS interpolant
 
-    Attributes:
-        nump: Current number of points
-        maxp: Initial maximum number of points (can grow)
-        x: Interpolation points
-        fx: Function evaluations of interpolation points
+    :ivar nump: Current number of points
+    :ivar maxp: Initial maximum number of points (can grow)
+    :ivar x: Interpolation points
+    :ivar fx: Function evaluations of interpolation points
+    :ivar dim: Number of dimensions
+    :ivar model: MARS interpolaion model
     """
 
     def __init__(self, maxp=100):
@@ -26,23 +30,32 @@ class MARSInterpolant(Earth):
         self.x = None     # pylint: disable=invalid-name
         self.fx = None
         self.dim = None
-        self.model= Earth()
+        self.model = Earth()
 
     def reset(self):
-        "Re-set the interpolation."
+        """ Reset the interpolation."""
         self.nump = 0
         self.x = None
         self.fx = None
 
     def _alloc(self, dim):
-        "Allocate storage for x, fx and rhs."
+        """
+        Allocate storage for x, fx, rhs, and A.
+
+        :param dim: Number of dimensions
+        """
         maxp = self.maxp
         self.dim = dim
         self.x = np.zeros((maxp, dim))
         self.fx = np.zeros((maxp, 1))
 
     def _realloc(self, dim, extra=1):
-        "Expand allocation to accomodate more points (if needed)."
+        """
+        Expand allocation to accommodate more points (if needed)
+
+        :param dim: Number of dimensions
+        :param extra: Number of additional points to accommodate
+        """
         if self.nump == 0:
             self._alloc(dim)
         elif self.nump+extra > self.maxp:
@@ -51,15 +64,28 @@ class MARSInterpolant(Earth):
             self.fx.resize((self.maxp, 1))
 
     def get_x(self):
-        "Get the list of data points."
+        """
+        Get the list of data points
+
+        :return: List of data points
+        """
         return self.x[:self.nump, :]
 
     def get_fx(self):
-        "Get the list of data points."
+        """
+        Get the list of function values for the data points.
+
+        :return: List of function values
+        """
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
-        "Add a new function evaluation."
+        """
+        Add a new function evaluation
+
+        :param xx: Point to add
+        :param fx: The function value of the point to add
+        """
         dim = len(xx)
         self._realloc(dim)
         self.x[self.nump, :] = xx
@@ -68,44 +94,61 @@ class MARSInterpolant(Earth):
         self.nump += 1
 
     def eval(self, xx):
-        "Evaluate the interpolant at x."
+        """
+        Evaluate the MARS interpolant at the point xx
+
+        :param xx: Point where to evaluate
+        :return: Value of the MARS interpolant at x
+        """
         xx = np.expand_dims(xx, axis=0)
         fx = self.model.predict(xx)
         return fx[0]
-        
+
     def evals(self, xx):
-        "Evaluate the interpolant at xx points."
+        """
+        Evaluate the MARS interpolant at the points xx
+
+        :param xx: Points where to evaluate
+        :return: Values of the MARS interpolant at x
+        """
         fx = self.model.predict(xx)
         return fx
 
     def deriv(self, x):
-        "Evaluate the derivative of the interpolant at x."
+        """
+        Evaluate the derivative of the MARS interpolant at x
+
+        :param x: Data point
+        :return: Derivative of the MARS interpolant at x
+        """
         x = np.expand_dims(x, axis=0)
         dfx = self.model.predict_deriv(x, variables=None)
         return dfx[0]
 
 # ====================================================================
-def main():
-    "Main test routine"
+
+
+def _main():
+    """ Main test routine"""
 
     def test_f(x):
-        "Test function"
-        fx = x[1]*math.sin(x[0]) + x[0]*math.cos(x[1])
+        """ Test function"""
+        fx = x[1]*np.sin(x[0]) + x[0]*np.cos(x[1])
         return fx
 
     def test_df(x):
-        "Derivative of test function"
-        dfx = np.array([x[1]*math.cos(x[0])+math.cos(x[1]),
-                        math.sin(x[0])-x[0]*math.sin(x[1])])
+        """ Derivative of test function"""
+        dfx = np.array([x[1]*np.cos(x[0]) + np.cos(x[1]),
+                        np.sin(x[0]) - x[0]*np.sin(x[1])])
         return dfx
 
     # Set up Earth model
-    fhat = EarthInterpolant(20)
+    fhat = MARSInterpolant(20)
 
     # Set up initial points to train the Earth model
     xs = np.random.rand(15, 2)
     for x in xs:
-        fhat.add_point(x,test_f(x))
+        fhat.add_point(x, test_f(x))
 
     x = np.random.rand(10, 2)
     fhx = fhat.evals(x)
@@ -127,4 +170,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

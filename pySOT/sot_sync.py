@@ -1,7 +1,12 @@
 """
-.. module:: srbf_sync
-   :synopsis: Parallel synchronous SRBF optimization strategy
-.. moduleauthor:: David Bindel <bindel@cornell.edu>
+.. module:: sot_sync
+   :synopsis: Parallel synchronous optimization strategy
+.. moduleauthor:: David Bindel <bindel@cornell.edu>,
+    David Eriksson <dme65@cornell.edu>
+
+:Module: sot_sync
+:Author: David Bindel <bindel@cornell.edu>,
+    David Eriksson <dme65@cornell.edu>
 """
 
 import sys
@@ -13,8 +18,9 @@ from poap.strategy import Proposal, RetryStrategy
 
 feasvec = ["Infeasible", "Feasible"]
 
-class SynchronousSRBFStrategy(object):
-    """Parallel synchronous SRBF optimization strategy.
+
+class SynchronousStrategy(object):
+    """Parallel synchronous optimization strategy.
 
     This class implements the parallel synchronous SRBF strategy
     described by Regis and Shoemaker.  After the initial experimental
@@ -35,16 +41,21 @@ class SynchronousSRBFStrategy(object):
     def __init__(self, worker_id, data, fhat, maxeval, nsamples,
                  exp_design=None, search_procedure=None,
                  constraint_handler=None, graphics_handle=None):
-        """Initialize the SRBF optimization.
-
-        Args:
-            worker_id: Start ID in a multistart setting
-            data: Problem parameter data structure
-            fhat: Surrogate model object
-            maxeval: Function evaluation budget
-            nsamples: Number of simultaneous fevals allowed
-            design: Experimental design (f(ndim, npts))
         """
+        Initialize the optimization strategy.
+
+        :param worker_id: Start ID in a multistart setting
+        :param data: Problem parameter data structure
+        :param fhat: Surrogate model object
+        :param maxeval: Function evaluation budget
+        :param nsamples: Number of simultaneous fevals allowed
+        :param exp_design: Experimental design
+        :param search_procedure: Search procedure for finding
+            points to evaluate
+        :param constraint_handler: Method for handling non-linear constraints
+        :param graphics_handle: Access to a GUI (will be supported soon)
+        """
+
         self.worker_id = worker_id
         self.data = data
         self.fhat = fhat
@@ -84,19 +95,23 @@ class SynchronousSRBFStrategy(object):
         self.sample_initial()
 
     def log(self, message):
-        """Record a message string to the log."""
+        """
+        Record a message string to the log.
+
+        :param message: Message to be printed to the logfile
+        """
         print(message)
         sys.stdout.flush()
 
     def adjust_step(self):
-        """Adjust the sampling radius sigma.
+        """
+        Adjust the sampling radius sigma.
 
         After succtol successful steps, we cut the sampling radius;
         after failtol failed steps, we double the sampling radius.
 
-        Args:
-            Fnew: Best function value in new step
-            fbest: Previous best function evaluation
+        :ivar Fnew: Best function value in new step
+        :ivar fbest: Previous best function evaluation
         """
         # Initialize if this is the first adaptive step
         if self.fbest_old is None:
@@ -121,7 +136,9 @@ class SynchronousSRBFStrategy(object):
             self.log("Increasing sigma")
 
     def sample_initial(self):
-        """Generate and queue an initial experimental design."""
+        """
+        Generate and queue an initial experimental design.
+        """
         self.log("=== Restart ===")
         self.fhat.reset()  # FIXME, evaluations should be saved
         self.sigma = self.sigma_max
@@ -131,13 +148,16 @@ class SynchronousSRBFStrategy(object):
         self.fhat.reset()
         start_sample = self.design.generate_points()
         start_sample = np.asarray(self.data.xlow) + start_sample * self.xrange
-        start_sample = round_vars(self.data, start_sample)  # FIXME, rounding should be moved to experimental design
+        # FIXME, rounding should be moved to experimental design
+        start_sample = round_vars(self.data, start_sample)
         for j in range(min(start_sample.shape[0], self.maxeval-self.numeval)):
             self.resubmitter.append(start_sample[j, :])
         self.search.init(self.fhat, start_sample)
 
     def sample_adapt(self):
-        """Generate and queue samples from a local SRBF search."""
+        """
+        Generate and queue samples from the search strategy
+        """
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval-self.numeval)
         self.search.make_points(self.xbest, self.sigma, self.maxeval, True)
@@ -145,14 +165,18 @@ class SynchronousSRBFStrategy(object):
             self.resubmitter.append(np.ravel(self.search.next()))
 
     def start_batch(self):
-        """Generate and queue a new batch of points."""
+        """
+        Generate and queue a new batch of points
+        """
         if self.sigma < self.sigma_min:
             self.sample_initial()
         else:
             self.sample_adapt()
 
     def propose_action(self):
-        """Propose an action."""
+        """
+        Propose an action
+        """
         if self.numeval == self.maxeval:
             return Proposal('terminate')
         elif self.resubmitter.num_outstanding() == 0:
@@ -160,17 +184,29 @@ class SynchronousSRBFStrategy(object):
         return self.resubmitter.propose_action()
 
     def on_complete(self, record):
+        """
+        When a function evaluation is completed we need to ask the constraint
+        handler if the function value should be modified which is the case for
+        say a penalty method. We also need to print the information to the
+        logfile, update the best value found so far and notify the GUI that
+        an evaluation has completed.
 
+        :param record: Evaluation record
+        """
+        xstr = np.array2string(record.params[0]).replace('\n', '')
         if self.data.constraints and self.constraint_handler is not None:
+            isfeas = feasvec[self.constraint_handler.feasible(
+                self.data, record.params[0])]
             self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval, record.value,
-                                                   feasvec[self.constraint_handler.feasible(
-                                                           self.data, record.params[0])
-                                                           ],
-                                                   np.array2string(record.params[0]).replace('\n', '')))
-            record.value = self.constraint_handler.eval(self.data, record.params[0], record.value)
+                                                    isfeas, xstr))
+            # Give the constraint handler a chance to update the value
+            record.value = self.constraint_handler.eval(self.data,
+                                                        record.params[0],
+                                                        record.value)
         else:
-            self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval, record.value, "Feasible",
-                                                    np.array2string(record.params[0]).replace('\n', '')))
+            self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval,
+                                                    record.value,
+                                                    "Feasible", xstr))
 
         """Process a completed function evaluation"""
         self.numeval += 1
@@ -182,6 +218,7 @@ class SynchronousSRBFStrategy(object):
             self.fbest = record.value
         # Update GUI (if there is one)
         if self.graphics_handle is not None:
-            self.graphics_handle.update(self.fbest, self.numeval, self.xbest, self.sigma)
+            self.graphics_handle.update(self.fbest, self.numeval,
+                                        self.xbest, self.sigma)
             if self.graphics_handle.stop:
                 raise KeyboardInterrupt
