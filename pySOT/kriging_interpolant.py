@@ -11,14 +11,11 @@
 import numpy as np
 from pyKriging.krige import kriging
 
-
-class KrigingInterpolant(kriging):
+class KrigingInterpolant:
     """Compute and evaluate Kriging interpolant.
 
     :ivar nump: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
-    :ivar initp: Number of initial point for setting up Kriging model
-    :ivar setup: Flag that indicates whether a Kriging model is created or not
     :ivar x: Interpolation points
     :ivar fx: Function evaluations of interpolation points
     :ivar k: Kriging model instance
@@ -26,15 +23,14 @@ class KrigingInterpolant(kriging):
         model is up-to-date or not
     """
 
-    def __init__(self, initp=10, maxp=100):
+    def __init__(self, maxp=100):
         self.nump = 0
         self.maxp = maxp
-        self.initp = initp
         self.x = None
         self.fx = None
         self.dim = None
         self.k = None
-        self.updated = None
+        self.updated = False
 
     def reset(self):
         """
@@ -43,6 +39,7 @@ class KrigingInterpolant(kriging):
         self.nump = 0
         self.x = None
         self.fx = None
+        self.updated = False
 
     def _alloc(self, dim):
         """
@@ -68,14 +65,6 @@ class KrigingInterpolant(kriging):
             self.maxp = max(self.maxp*2, self.maxp+extra)
             self.x.resize((self.maxp, dim))
             self.fx.resize((self.maxp, 1))
-
-    def _model(self):
-        """
-        Create Kriging model
-        """
-        self.k = kriging(self.x[:self.nump+1, :],
-                         self.fx[:self.nump+1, :], self.maxp)
-        self.k.train()
 
     def get_x(self):
         """
@@ -105,18 +94,15 @@ class KrigingInterpolant(kriging):
         self.x[self.nump, :] = xx
         self.fx[self.nump, :] = fx
         self.nump += 1
-        if self.nump < self.initp:
-            # print('collecting initial points for setup')
-            pass
-        elif self.nump == self.initp:
-            # set up initial Kriging model
-            # print('using initial points for setup')
-            self._model()
-        else:
-            # add point to kriging model
-            # print('adding a point to Kriging model!')
-            self.k.addPoint(xx, fx)
-            self.updated = True
+
+        if self.k is None:
+            self.k = kriging(self.x[:self.nump+1, :],
+                             self.fx[:self.nump+1, :], self.maxp)
+            self.k.train()
+
+        # add point to kriging model
+        self.k.addPoint(xx, fx)
+        self.updated = False
 
     def eval(self, xx):
         """
@@ -125,9 +111,10 @@ class KrigingInterpolant(kriging):
         :param xx: Point where to evaluate
         :return: Value of the Kriging interpolant at x
         """
-        if self.updated:
+        if self.updated is False:
             self.k.train()
-        self.updated = False
+        self.updated = True
+
         fx = self.k.predict(xx.ravel())
         return fx
 
@@ -138,11 +125,15 @@ class KrigingInterpolant(kriging):
         :param xx: Points where to evaluate
         :return: Values of the Kriging interpolant at x
         """
+        if self.updated is False:
+            self.k.train()
+        self.updated = True
+
         length = xx.shape[0]
-        fx = np.zeros(shape=(1, length))
+        fx = np.zeros(shape=(length, 1))
         for i in range(length):
-            fx[0, i] = self.eval(np.asarray(xx[i]))
-        return fx.ravel()
+            fx[i, 0] = self.eval(np.asarray(xx[i]))
+        return fx
 
     def deriv(self, x):
         """
@@ -165,8 +156,8 @@ def _main():
         fx = x[1]*np.sin(x[0]) + x[0]*np.cos(x[1])
         return fx
 
-    fhat = KrigingInterpolant(20, 50)
-    print("fhat.initp: %i , fhat.maxp: %i" % (fhat.initp, fhat.maxp))
+    fhat = KrigingInterpolant(50)
+    print("fhat.maxp: %i" % fhat.maxp)
 
     # Set up more points
     xs = np.random.rand(50, 2)

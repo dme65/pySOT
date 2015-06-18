@@ -31,12 +31,14 @@ class MARSInterpolant(Earth):
         self.fx = None
         self.dim = None
         self.model = Earth()
+        self.updated = False
 
     def reset(self):
         """ Reset the interpolation."""
         self.nump = 0
         self.x = None
         self.fx = None
+        self.updated = False
 
     def _alloc(self, dim):
         """
@@ -90,8 +92,8 @@ class MARSInterpolant(Earth):
         self._realloc(dim)
         self.x[self.nump, :] = xx
         self.fx[self.nump, :] = fx
-        self.model.fit(self.x, self.fx)
         self.nump += 1
+        self.updated = False
 
     def eval(self, xx):
         """
@@ -100,6 +102,10 @@ class MARSInterpolant(Earth):
         :param xx: Point where to evaluate
         :return: Value of the MARS interpolant at x
         """
+        if self.updated is False:
+            self.model.fit(self.x, self.fx)
+        self.updated = True
+
         xx = np.expand_dims(xx, axis=0)
         fx = self.model.predict(xx)
         return fx[0]
@@ -111,7 +117,12 @@ class MARSInterpolant(Earth):
         :param xx: Points where to evaluate
         :return: Values of the MARS interpolant at x
         """
-        fx = self.model.predict(xx)
+        if self.updated is False:
+            self.model.fit(self.x, self.fx)
+        self.updated = True
+
+        fx = np.zeros(shape=(xx.shape[0], 1))
+        fx[:, 0] = self.model.predict(xx)
         return fx
 
     def deriv(self, x):
@@ -121,6 +132,11 @@ class MARSInterpolant(Earth):
         :param x: Data point
         :return: Derivative of the MARS interpolant at x
         """
+
+        if self.updated is False:
+            self.model.fit(self.x, self.fx)
+        self.updated = True
+
         x = np.expand_dims(x, axis=0)
         dfx = self.model.predict_deriv(x, variables=None)
         return dfx[0]
@@ -145,14 +161,13 @@ def _main():
     # Set up Earth model
     fhat = MARSInterpolant(20)
 
-    # Set up initial points to train the Earth model
+    # Set up initial points to train the MARS model
     xs = np.random.rand(15, 2)
     for x in xs:
         fhat.add_point(x, test_f(x))
 
     x = np.random.rand(10, 2)
     fhx = fhat.evals(x)
-
     print(" \n------ (fx - fhx)/|fx| ----- ")
     for i in range(10):
         fx = test_f(x[i, :])

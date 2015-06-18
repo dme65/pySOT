@@ -95,7 +95,7 @@ class Hartman3:
 
     Details: http://www.sfu.ca/~ssurjano/hart3.html
 
-    Global optimum: f(0.114614,0.555649,0.852547)=-3.86278
+    Global optimum: :math:`f(0.114614,0.555649,0.852547)=-3.86278`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -160,7 +160,7 @@ class Rastrigin:
     .. math::
         -5.12 \\leq x_i \\leq 5.12
 
-    Global optimum: f(0,0,...,0)=0
+    Global optimum: :math:`f(0,0,...,0)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -209,7 +209,7 @@ class Ackley:
     .. math::
         -15 \\leq x_i \\leq 20
 
-    Global optimum: f(0,0,...,0)=0
+    Global optimum: :math:`f(0,0,...,0)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -259,7 +259,7 @@ class Griewank:
     .. math::
         -512 \\leq x_i \\leq 512
 
-    Global optimum: f(0,0,...,0)=0
+    Global optimum: :math:`f(0,0,...,0)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -310,7 +310,7 @@ class Rosenbrock:
     .. math::
         -2.048 \\leq x_i \\leq 2.048
 
-    Global optimum: f(1,1,...,1)=0
+    Global optimum: :math:`f(1,1,...,1)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -361,7 +361,7 @@ class Schwefel:
     .. math::
         -512 \\leq x_i \\leq 512
 
-    Global optimum: f(420.968746,420.968746,...,420.968746)=0
+    Global optimum: :math:`f(420.968746,420.968746,...,420.968746)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -409,7 +409,7 @@ class Sphere:
     .. math::
         -5.12 \\leq x_i \\leq 5.12
 
-    Global optimum: f(0,0,...,0)=0
+    Global optimum: :math:`f(0,0,...,0)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -456,7 +456,7 @@ class Exponential:
     .. math::
         -5.12 \\leq x_i \\leq 5.12
 
-    Global optimum: f(0,0,...,0)=0
+    Global optimum: :math:`f(0,0,...,0)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -507,7 +507,8 @@ class StyblinskiTang:
     .. math::
         -5 \\leq x_i \\leq 5
 
-    Global optimum: f(-2.903534,-2.903534,...,-2.903534)=-39.16599n
+    Global optimum: :math:`f(-2.903534,-2.903534,...,-2.903534)=\
+    -39.16599 \\cdot n`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -555,7 +556,7 @@ class Quartic:
     .. math::
         -1.28 \\leq x_i \\leq 1.28
 
-    Global optimum: f(0,0,...,0)=0+noise
+    Global optimum: :math:`f(0,0,...,0)=0+noise`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -609,7 +610,7 @@ class Whitley:
     .. math::
         -10.24 \\leq x_i \\leq 10.24
 
-    Global optimum: f(1,1,...,1)=0
+    Global optimum: :math:`f(1,1,...,1)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -667,7 +668,7 @@ class SchafferF7:
     .. math::
         -100 \\leq x_i \\leq 100
 
-    Global optimum: f(0,0,...,0)=0
+    Global optimum: :math:`f(0,0,...,0)=0`
 
     :ivar dim: Number of dimensions
     :ivar xlow: Lower bound constraints
@@ -836,7 +837,7 @@ class LinearMI:
     There are 5 variables, the first 3 are discrete and the last 2
     are continuous.
 
-    Global optimum: f(1,0,0,0,0) = -1
+    Global optimum: :math:`f(1,0,0,0,0) = -1`
     """
     def __init__(self):
         self.xlow = np.zeros(5)

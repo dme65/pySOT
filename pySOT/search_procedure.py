@@ -238,6 +238,8 @@ class CandidateSRBF(object):
         since the last restart
     """
 
+    usecand = True
+
     def __init__(self, data, numcand=None, constraint_handler=None):
         """Initialize the multi-search strategy
 
@@ -245,7 +247,6 @@ class CandidateSRBF(object):
         :param numcand: Number of candidate points to generate
         :param constraint_handler: Method for handling non-bound constraints
         """
-        self.usecand = True
         self.data = data
         self.fhat = None
         self.avoid = None
