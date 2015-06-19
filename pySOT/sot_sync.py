@@ -40,9 +40,8 @@ class SynchronousStrategy(object):
 
     def __init__(self, worker_id, data, fhat, maxeval, nsamples,
                  exp_design=None, search_procedure=None,
-                 constraint_handler=None, graphics_handle=None):
-        """
-        Initialize the optimization strategy.
+                 constraint_handler=None):
+        """Initialize the optimization strategy.
 
         :param worker_id: Start ID in a multistart setting
         :param data: Problem parameter data structure
@@ -53,7 +52,6 @@ class SynchronousStrategy(object):
         :param search_procedure: Search procedure for finding
             points to evaluate
         :param constraint_handler: Method for handling non-linear constraints
-        :param graphics_handle: Access to a GUI (will be supported soon)
         """
 
         self.worker_id = worker_id
@@ -84,7 +82,6 @@ class SynchronousStrategy(object):
         self.fbest_old = None
 
         self.constraint_handler = constraint_handler
-        self.graphics_handle = graphics_handle
 
         # Set up search procedures and initialize
         self.search = search_procedure
@@ -95,17 +92,29 @@ class SynchronousStrategy(object):
         self.sample_initial()
 
     def log(self, message):
-        """
-        Record a message string to the log.
+        """Record a message string to the log.
 
         :param message: Message to be printed to the logfile
         """
         print(message)
         sys.stdout.flush()
 
-    def adjust_step(self):
+    def log_completion(self, record):
+        """Record a completed evaluation to the log.
+
+        :param record: Record of the function evaluation
         """
-        Adjust the sampling radius sigma.
+        xstr = np.array2string(record.params[0]).replace('\n', '')
+        if self.data.constraints and self.constraint_handler is not None:
+            isfeas = feasvec[self.constraint_handler.feasible(
+                self.data, record.params[0])]
+        else:
+            isfeas = "Feasible"
+        self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval, record.value,
+                                                isfeas, xstr))
+
+    def adjust_step(self):
+        """Adjust the sampling radius sigma.
 
         After succtol successful steps, we cut the sampling radius;
         after failtol failed steps, we double the sampling radius.
@@ -136,8 +145,7 @@ class SynchronousStrategy(object):
             self.log("Increasing sigma")
 
     def sample_initial(self):
-        """
-        Generate and queue an initial experimental design.
+        """Generate and queue an initial experimental design.
         """
         self.log("=== Restart ===")
         self.fhat.reset()  # FIXME, evaluations should be saved
@@ -155,8 +163,7 @@ class SynchronousStrategy(object):
         self.search.init(self.fhat, start_sample)
 
     def sample_adapt(self):
-        """
-        Generate and queue samples from the search strategy
+        """Generate and queue samples from the search strategy
         """
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval-self.numeval)
@@ -165,8 +172,7 @@ class SynchronousStrategy(object):
             self.resubmitter.append(np.ravel(self.search.next()))
 
     def start_batch(self):
-        """
-        Generate and queue a new batch of points
+        """Generate and queue a new batch of points
         """
         if self.sigma < self.sigma_min:
             self.sample_initial()
@@ -174,8 +180,7 @@ class SynchronousStrategy(object):
             self.sample_adapt()
 
     def propose_action(self):
-        """
-        Propose an action
+        """Propose an action
         """
         if self.numeval == self.maxeval:
             return Proposal('terminate')
@@ -184,7 +189,8 @@ class SynchronousStrategy(object):
         return self.resubmitter.propose_action()
 
     def on_complete(self, record):
-        """
+        """Handle completed function evaluation.
+
         When a function evaluation is completed we need to ask the constraint
         handler if the function value should be modified which is the case for
         say a penalty method. We also need to print the information to the
@@ -193,22 +199,13 @@ class SynchronousStrategy(object):
 
         :param record: Evaluation record
         """
-        xstr = np.array2string(record.params[0]).replace('\n', '')
+        log_complete(self, record)
+        
+        # Give the constraint handler a chance to update the value
         if self.data.constraints and self.constraint_handler is not None:
-            isfeas = feasvec[self.constraint_handler.feasible(
-                self.data, record.params[0])]
-            self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval, record.value,
-                                                    isfeas, xstr))
-            # Give the constraint handler a chance to update the value
             record.value = self.constraint_handler.eval(self.data,
                                                         record.params[0],
                                                         record.value)
-        else:
-            self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval,
-                                                    record.value,
-                                                    "Feasible", xstr))
-
-        """Process a completed function evaluation"""
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
@@ -216,9 +213,3 @@ class SynchronousStrategy(object):
         if record.value < self.fbest:
             self.xbest = record.params[0]
             self.fbest = record.value
-        # Update GUI (if there is one)
-        if self.graphics_handle is not None:
-            self.graphics_handle.update(self.fbest, self.numeval,
-                                        self.xbest, self.sigma)
-            if self.graphics_handle.stop:
-                raise KeyboardInterrupt
