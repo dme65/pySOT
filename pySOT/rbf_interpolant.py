@@ -13,8 +13,7 @@ import scipy.spatial as scp
 
 
 class RBFInterpolant(object):
-    """
-    Compute and evaluate RBF interpolant.
+    """Compute and evaluate RBF interpolant.
 
     Manages an expansion of the form
 
@@ -77,8 +76,7 @@ class RBFInterpolant(object):
         self.c = None
 
     def _alloc(self, dim, ntail):
-        """
-        Allocate storage for x, fx, rhs, and A.
+        """Allocate storage for x, fx, rhs, and A.
 
         :param dim: Number of dimensions
         :param ntail: Number of tail functions
@@ -94,8 +92,7 @@ class RBFInterpolant(object):
             self.A[i, i] = self.eta
 
     def _realloc(self, dim, ntail, extra=1):
-        """
-        Expand allocation to accommodate more points (if needed)
+        """Expand allocation to accommodate more points (if needed)
 
         :param dim: Number of dimensions
         :param ntail: Number of tail functions
@@ -113,8 +110,7 @@ class RBFInterpolant(object):
             self.A[:A0.shape[0], :A0.shape[1]] = A0
 
     def coeffs(self):
-        """
-        Compute the expansion coefficients
+        """Compute the expansion coefficients
 
         :return: Expansion coefficients
         """
@@ -124,24 +120,21 @@ class RBFInterpolant(object):
         return self.c
 
     def get_x(self):
-        """
-        Get the list of data points
+        """Get the list of data points
 
         :return: List of data points
         """
         return self.x[:self.nump, :]
 
     def get_fx(self):
-        """
-        Get the list of function values for the data points.
+        """Get the list of function values for the data points.
 
         :return: List of function values
         """
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
-        """
-        Add a new function evaluation
+        """Add a new function evaluation
 
         :param xx: Point to add
         :param fx: The function value of the point to add
@@ -167,8 +160,7 @@ class RBFInterpolant(object):
         self.c = None
 
     def transform_fx(self, fx):
-        """
-        Replace f with transformed function values for the fitting
+        """Replace f with transformed function values for the fitting
 
         :param fx: Transformed function value
         """
@@ -176,8 +168,7 @@ class RBFInterpolant(object):
         self.c = None
 
     def eval(self, xx):
-        """
-        Evaluate the rbf interpolant at the point xx
+        """Evaluate the rbf interpolant at the point xx
 
         :param xx: Point where to evaluate
         :return: Value of the rbf interpolant at x
@@ -194,8 +185,7 @@ class RBFInterpolant(object):
         return fx
 
     def evals(self, xx):
-        """
-        Evaluate the rbf interpolant at the points xx
+        """Evaluate the rbf interpolant at the points xx
 
         :param xx: Points where to evaluate
         :return: Values of the rbf interpolant at x
@@ -207,8 +197,7 @@ class RBFInterpolant(object):
         return fx
 
     def deriv(self, x):
-        """
-        Evaluate the derivative of the rbf interpolant at x
+        """Evaluate the derivative of the rbf interpolant at x
 
         :param x: Data point
         :return: Derivative of the rbf interpolant at x
@@ -230,8 +219,7 @@ class RBFInterpolant(object):
 
 
 def phi_linear(r):
-    """
-    Linear RBF interpolant
+    """Linear RBF interpolant
 
     :param r: Data point
     :return: Value of the linear rbf interpolant
@@ -240,8 +228,7 @@ def phi_linear(r):
 
 
 def phi_cubic(r):
-    """
-    Cubic RBF interpolant
+    """Cubic RBF interpolant
 
     :param r: Data point
     :return: Value of the cubic rbf interpolant
@@ -250,8 +237,7 @@ def phi_cubic(r):
 
 
 def phi_plate(r):
-    """
-    Thin plate RBF interpolant
+    """Thin plate RBF interpolant
 
     :param r: Data point
     :return: Value of the thin plate rbf interpolant
@@ -261,8 +247,7 @@ def phi_plate(r):
 
 
 def dphi_linear(r):
-    """
-    Derivative of linear RBF interpolant
+    """Derivative of linear RBF interpolant
 
     :param r: Data point
     :return: Derivative of the linear rbf interpolant
@@ -271,8 +256,7 @@ def dphi_linear(r):
 
 
 def dphi_cubic(r):
-    """
-    Derivative of cubic RBF interpolant
+    """Derivative of cubic RBF interpolant
 
     :param r: Data point
     :return: Derivative of the cubic rbf interpolant
@@ -281,8 +265,7 @@ def dphi_cubic(r):
 
 
 def dphi_plate(r):
-    """
-    Derivative of thin plate RBF interpolant
+    """Derivative of thin plate RBF interpolant
 
     :param r: Data point
     :return: Derivative of the thin plate rbf interpolant
@@ -292,8 +275,7 @@ def dphi_plate(r):
 
 
 def const_tail(x):
-    """
-    Constant polynomial tail
+    """Constant polynomial tail
 
     :param x: Data point
     :return: Value the constant tail
@@ -306,8 +288,7 @@ def const_tail(x):
 
 
 def linear_tail(x):
-    """
-    Linear polynomial tail
+    """Linear polynomial tail
 
     :param x: Data point
     :return: Value the linear tail
@@ -323,8 +304,7 @@ def linear_tail(x):
 
 
 def dconst_tail(x):
-    """
-    Derivative of constant polynomial tail
+    """Derivative of constant polynomial tail
 
     :param x: Data point
     :return: Derivative of constant tail
@@ -333,8 +313,7 @@ def dconst_tail(x):
 
 
 def dlinear_tail(x):
-    """
-    Derivative of linear polynomial tail
+    """Derivative of linear polynomial tail
 
     :param x: Data point
     :return: Derivative of linear tail
@@ -368,6 +347,7 @@ def _main():
         fx = test_f(xx)
         fhat.add_point(xx, fx)
     fhx = fhat.evals(xs[:5, :])
+    print fhx.shape
     for i in range(5):
         fx = test_f(xs[i, :])
         print("Err: %e" % (abs(fx-fhx[i])/abs(fx)))

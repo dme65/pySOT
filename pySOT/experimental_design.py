@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 .. module:: experimental_design
   :synopsis: Methods for generating an experimental design.
@@ -15,8 +14,7 @@ import pyDOE as pydoe
 
 
 class LatinHypercube(object):
-    """
-    Latin Hypercube experimental design
+    """Latin Hypercube experimental design
 
     :ivar dim: Number of dimensions
     :ivar npts: Number of desired sampling points
@@ -39,8 +37,7 @@ class LatinHypercube(object):
         self.criterion = criterion
 
     def generate_points(self):
-        """
-        Generate a matrix with the initial sample points,
+        """Generate a matrix with the initial sample points,
         scaled to the unit cube
 
         :return: Latin hypercube design in the unit cube
@@ -49,8 +46,7 @@ class LatinHypercube(object):
 
 
 class SymmetricLatinHypercube(object):
-    """
-    Symmetric Latin Hypercube experimental design
+    """Symmetric Latin Hypercube experimental design
 
     :ivar dim: Number of dimensions
     :ivar npts: Number of desired sampling points
@@ -89,8 +85,7 @@ class SymmetricLatinHypercube(object):
         return points/self.npts
 
     def generate_points(self):
-        """
-        Generate a matrix no rank deficiency with the initial
+        """Generate a matrix no rank deficiency with the initial
         sample points, scaled to the unit cube
 
         :return: Symmetric Latin hypercube design in the unit cube

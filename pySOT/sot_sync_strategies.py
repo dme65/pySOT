@@ -9,18 +9,19 @@
     David Eriksson <dme65@cornell.edu>
 """
 
+from __future__ import print_function
 import sys
 import numpy as np
 import math
-from experimental_design import SymmetricLatinHypercube
+from experimental_design import LatinHypercube
 from search_procedure import round_vars, CandidateDyCORS
 from poap.strategy import Proposal, RetryStrategy
+from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
+    dlinear_tail, RBFInterpolant
 
-feasvec = ["Infeasible", "Feasible"]
 
-
-class SynchronousStrategy(object):
-    """Parallel synchronous optimization strategy.
+class SyncStrategyNoConstraints(object):
+    """Parallel synchronous optimization strategy with non-bound constraints.
 
     This class implements the parallel synchronous SRBF strategy
     described by Regis and Shoemaker.  After the initial experimental
@@ -38,32 +39,38 @@ class SynchronousStrategy(object):
     decreases below a threshold.
     """
 
-    def __init__(self, worker_id, data, fhat, maxeval, nsamples,
-                 exp_design=None, search_procedure=None,
-                 constraint_handler=None):
+    def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
+                 exp_design=None, search_procedure=None, extra=None,
+                 quiet=False, stream=sys.stdout):
         """Initialize the optimization strategy.
 
         :param worker_id: Start ID in a multistart setting
         :param data: Problem parameter data structure
-        :param fhat: Surrogate model object
+        :param response_surface: Surrogate model object
         :param maxeval: Function evaluation budget
         :param nsamples: Number of simultaneous fevals allowed
         :param exp_design: Experimental design
         :param search_procedure: Search procedure for finding
             points to evaluate
-        :param constraint_handler: Method for handling non-linear constraints
         """
 
         self.worker_id = worker_id
+        self.quiet = quiet
+        self.stream = stream
         self.data = data
-        self.fhat = fhat
+        self.fhat = response_surface
+        if self.fhat is None:
+            self.fhat = RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                       dphi=dphi_cubic, dP=dlinear_tail,
+                                       eta=1e-8, maxp=maxeval)
         self.maxeval = maxeval
         self.nsamples = nsamples
+        self.extra = extra
 
         # Default to generate sampling points using Symmetric Latin Hypercube
         self.design = exp_design
         if self.design is None:
-            self.design = SymmetricLatinHypercube(data.dim, 2*data.dim+1)
+            self.design = LatinHypercube(data.dim, 2*data.dim+1)
 
         self.xrange = np.asarray(data.xup - data.xlow)
 
@@ -81,8 +88,6 @@ class SynchronousStrategy(object):
         self.fbest = np.inf
         self.fbest_old = None
 
-        self.constraint_handler = constraint_handler
-
         # Set up search procedures and initialize
         self.search = search_procedure
         if self.search is None:
@@ -96,22 +101,19 @@ class SynchronousStrategy(object):
 
         :param message: Message to be printed to the logfile
         """
-        print(message)
-        sys.stdout.flush()
+        if not self.quiet:
+            print(message, file=self.stream)
+            self.stream.flush()
 
     def log_completion(self, record):
         """Record a completed evaluation to the log.
 
         :param record: Record of the function evaluation
         """
-        xstr = np.array2string(record.params[0]).replace('\n', '')
-        if self.data.constraints and self.constraint_handler is not None:
-            isfeas = feasvec[self.constraint_handler.feasible(
-                self.data, record.params[0])]
-        else:
-            isfeas = "Feasible"
-        self.log("{0}:\t{1}\t{2}\n\t{3}".format(self.numeval, record.value,
-                                                isfeas, xstr))
+        xstr = np.array_str(record.params[0], max_line_width=np.inf,
+                            precision=5, suppress_small=True)
+        self.log("{0}:\t{1}\t{2}\n\t{3}".format(
+            self.numeval, record.value, "Feasible", xstr))
 
     def adjust_step(self):
         """Adjust the sampling radius sigma.
@@ -148,26 +150,32 @@ class SynchronousStrategy(object):
         """Generate and queue an initial experimental design.
         """
         self.log("=== Restart ===")
-        self.fhat.reset()  # FIXME, evaluations should be saved
+        self.fhat.reset()
         self.sigma = self.sigma_max
         self.status = 0
+        self.xbest = None
         self.fbest_old = None
         self.fbest = np.inf
         self.fhat.reset()
         start_sample = self.design.generate_points()
         start_sample = np.asarray(self.data.xlow) + start_sample * self.xrange
-        # FIXME, rounding should be moved to experimental design
+        # Add extra evaluation points provided by the user
+        if self.extra is not None:
+            start_sample = np.vstack((start_sample, self.extra))
+
         start_sample = round_vars(self.data, start_sample)
         for j in range(min(start_sample.shape[0], self.maxeval-self.numeval)):
             self.resubmitter.append(start_sample[j, :])
-        self.search.init(self.fhat, start_sample)
+
+        self.search.init(start_sample)
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy
         """
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval-self.numeval)
-        self.search.make_points(self.xbest, self.sigma, self.maxeval, True)
+        self.search.make_points(self.xbest, self.sigma,
+                                self.fhat.evals, self.maxeval, True)
         for _ in range(nsamples):
             self.resubmitter.append(np.ravel(self.search.next()))
 
@@ -199,13 +207,7 @@ class SynchronousStrategy(object):
 
         :param record: Evaluation record
         """
-        log_complete(self, record)
-        
-        # Give the constraint handler a chance to update the value
-        if self.data.constraints and self.constraint_handler is not None:
-            record.value = self.constraint_handler.eval(self.data,
-                                                        record.params[0],
-                                                        record.value)
+        self.log_completion(record)
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
@@ -213,3 +215,88 @@ class SynchronousStrategy(object):
         if record.value < self.fbest:
             self.xbest = record.params[0]
             self.fbest = record.value
+
+
+class SyncStrategyPenalty(SyncStrategyNoConstraints):
+    """Parallel synchronous optimization strategy with non-bound constraints.
+
+    This is an extension of SyncStrategyNoConstraints that also works with
+    bound constraints.
+    """
+
+    def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
+                 exp_design=None, search_procedure=None, extra=None,
+                 quiet=False, stream=sys.stdout, penalty=1.0E6):
+        SyncStrategyNoConstraints.__init__(self,  worker_id, data,
+                                           response_surface, maxeval,
+                                           nsamples, exp_design,
+                                           search_procedure, extra,
+                                           quiet, stream)
+        self.penalty = penalty
+
+    def penalty_fun(self, xx):
+            # Get the constraint violations
+            vec = np.array(self.data.eval_ineq_constraints(xx))
+            # Now apply the penalty for the constraint violation
+            vec[np.where(vec < 0.0)] = 0.0
+            vec **= 2
+            # Surrogate + penalty
+            return self.penalty * np.asmatrix(np.sum(vec, axis=1)).T
+
+    def evals(self, xx):
+        penalty = self.penalty_fun(xx)
+        vals = self.fhat.evals(xx)
+        ind = (np.where(penalty <= 0.0)[0]).T
+        if ind.shape[0] > 1:
+            ind2 = (np.where(penalty > 0.0)[0]).T
+            ind3 = np.argmax(np.squeeze(vals[ind]))
+            vals[ind2] = vals[ind3]
+            return vals
+        else:
+            return vals + penalty
+
+    def sample_adapt(self):
+        """Generate and queue samples from the search strategy"""
+        self.adjust_step()
+        nsamples = min(self.nsamples, self.maxeval-self.numeval)
+        self.search.make_points(self.xbest, self.sigma,
+                                self.evals, self.maxeval, True)
+        for _ in range(nsamples):
+            self.resubmitter.append(np.ravel(self.search.next()))
+
+    def log_completion(self, record, penalty):
+        """Record a completed evaluation to the log.
+
+        :param record: Record of the function evaluation
+        """
+        xstr = np.array_str(record.params[0], max_line_width=np.inf,
+                            precision=5, suppress_small=True)
+        feas = "Feasible"
+        if penalty > 0.0:
+            feas = "Infeasible"
+        self.log("{0}:\t{1}\t{2}\n\t{3}".format(
+            self.numeval, record.value, feas, xstr))
+
+    def on_complete(self, record):
+        """Handle completed function evaluation.
+
+        When a function evaluation is completed we need to ask the constraint
+        handler if the function value should be modified which is the case for
+        say a penalty method. We also need to print the information to the
+        logfile, update the best value found so far and notify the GUI that
+        an evaluation has completed.
+
+        :param record: Evaluation record
+        """
+        x = np.zeros((1, record.params[0].shape[0]))
+        x[0, :] = record.params[0]
+        penalty = self.penalty_fun(x)[0, 0]
+        self.log_completion(record, penalty)
+        self.numeval += 1
+        record.worker_id = self.worker_id
+        record.worker_numeval = self.numeval
+        self.fhat.add_point(record.params[0], record.value)
+        # Check if the penalty function is a new best
+        if record.value + penalty < self.fbest:
+            self.xbest = record.params[0]
+            self.fbest = record.value + penalty

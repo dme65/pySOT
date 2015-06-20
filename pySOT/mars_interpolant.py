@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 .. module:: mars_interpolant
    :synopsis: MARS model interpolation
@@ -34,15 +33,14 @@ class MARSInterpolant(Earth):
         self.updated = False
 
     def reset(self):
-        """ Reset the interpolation."""
+        """Reset the interpolation."""
         self.nump = 0
         self.x = None
         self.fx = None
         self.updated = False
 
     def _alloc(self, dim):
-        """
-        Allocate storage for x, fx, rhs, and A.
+        """Allocate storage for x, fx, rhs, and A.
 
         :param dim: Number of dimensions
         """
@@ -52,8 +50,7 @@ class MARSInterpolant(Earth):
         self.fx = np.zeros((maxp, 1))
 
     def _realloc(self, dim, extra=1):
-        """
-        Expand allocation to accommodate more points (if needed)
+        """Expand allocation to accommodate more points (if needed)
 
         :param dim: Number of dimensions
         :param extra: Number of additional points to accommodate
@@ -66,24 +63,21 @@ class MARSInterpolant(Earth):
             self.fx.resize((self.maxp, 1))
 
     def get_x(self):
-        """
-        Get the list of data points
+        """Get the list of data points
 
         :return: List of data points
         """
         return self.x[:self.nump, :]
 
     def get_fx(self):
-        """
-        Get the list of function values for the data points.
+        """Get the list of function values for the data points.
 
         :return: List of function values
         """
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
-        """
-        Add a new function evaluation
+        """Add a new function evaluation
 
         :param xx: Point to add
         :param fx: The function value of the point to add
@@ -96,8 +90,7 @@ class MARSInterpolant(Earth):
         self.updated = False
 
     def eval(self, xx):
-        """
-        Evaluate the MARS interpolant at the point xx
+        """Evaluate the MARS interpolant at the point xx
 
         :param xx: Point where to evaluate
         :return: Value of the MARS interpolant at x
@@ -111,8 +104,7 @@ class MARSInterpolant(Earth):
         return fx[0]
 
     def evals(self, xx):
-        """
-        Evaluate the MARS interpolant at the points xx
+        """Evaluate the MARS interpolant at the points xx
 
         :param xx: Points where to evaluate
         :return: Values of the MARS interpolant at x
@@ -126,8 +118,7 @@ class MARSInterpolant(Earth):
         return fx
 
     def deriv(self, x):
-        """
-        Evaluate the derivative of the MARS interpolant at x
+        """Evaluate the derivative of the MARS interpolant at x
 
         :param x: Data point
         :return: Derivative of the MARS interpolant at x
@@ -145,7 +136,7 @@ class MARSInterpolant(Earth):
 
 
 def _main():
-    """ Main test routine"""
+    """Main test routine"""
 
     def test_f(x):
         """ Test function"""
@@ -182,7 +173,6 @@ def _main():
         dfhx = fhat.deriv(xx)
         print("Err (interp): %e : %e" % (abs(fx-fhx)/abs(fx),
                                          la.norm(dfx-dfhx)/la.norm(dfx)))
-
 
 if __name__ == "__main__":
     _main()

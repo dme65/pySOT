@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 .. module:: test_problems
   :synopsis: Test problems for multi-modal and
@@ -17,8 +16,7 @@ import numpy as np
 
 
 def validate(obj):
-    """
-    Routine for checking that an implementation of an objective function
+    """Routine for checking that an implementation of an objective function
     follows the standard. This method checks everything, but can't make
     sure that the objective function and constraint methods return values
     of the correct type since this would involve actually evaluating the
@@ -55,15 +53,8 @@ def validate(obj):
         assert isinstance(obj.continuous, np.ndarray) or \
             isinstance(obj.continuous, list), \
             "Continuous variables must be specified"
-    assert hasattr(obj, "constraints"), \
-        "Existence of constraints must be specified"
-    assert isinstance(obj.constraints, bool), \
-        "Constraint existence must be bool"
     assert hasattr(obj, "objfunction"), \
         "Method 'objfunction' is not implemented"
-    if obj.constraints:
-        assert hasattr(obj, "eval_ineq_constraints"), \
-            "Method 'eval_ineq_constraints' is not implemented"
 
     # Check for logical errors
     assert isinstance(obj.dim, int) and obj.dim > 0, \
@@ -78,9 +69,10 @@ def validate(obj):
             "Integer variable index can't exceed " \
             "number of dimensions or be negative"
     if len(obj.continuous) > 0:
-        assert np.amax(obj.continuous) < obj.dim and np.amin(obj.continuous) >= 0, \
-            "Continuous variable index can't exceed " \
-            "number of dimensions or be negative"
+        assert np.amax(obj.continuous) < obj.dim and \
+               np.amin(obj.continuous) >= 0, \
+               "Continuous variable index can't exceed " \
+               "number of dimensions or be negative"
     assert len(np.intersect1d(obj.continuous, obj.integer)) == 0, \
         "A variable can't be both an integer and continuous"
     assert len(obj.continuous)+len(obj.integer) == obj.dim, \
@@ -90,8 +82,7 @@ def validate(obj):
 
 
 class Hartman3:
-    """
-    Hartman 3 function
+    """Hartman 3 function
 
     Details: http://www.sfu.ca/~ssurjano/hart3.html
 
@@ -115,12 +106,10 @@ class Hartman3:
         self.min = -3.86278
         self.integer = []
         self.continuous = np.arange(0, 3)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Hartman 3 function  at x
+        """Evaluate the Hartman 3 function  at x
 
         :param x: Data point
         :return: Value at x
@@ -149,8 +138,7 @@ class Hartman3:
 
 
 class Rastrigin:
-    """
-    Rastrigin function
+    """Rastrigin function
 
     .. math::
         f(x_1,\\ldots,x_n)=10n-\\sum_{i=1}^n (x_i^2 - 10 \\cos(2 \\pi x_i))
@@ -180,12 +168,10 @@ class Rastrigin:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Rastrigin function  at x
+        """Evaluate the Rastrigin function  at x
 
         :param x: Data point
         :return: Value at x
@@ -196,8 +182,7 @@ class Rastrigin:
 
 
 class Ackley:
-    """
-    Ackley function
+    """Ackley function
 
     .. math::
         f(x_1,\\ldots,x_n) = -20\\exp\\left( -0.2 \\sqrt{\\frac{1}{n} \
@@ -229,12 +214,10 @@ class Ackley:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Ackley function  at x
+        """Evaluate the Ackley function  at x
 
         :param x: Data point
         :return: Value at x
@@ -247,8 +230,7 @@ class Ackley:
 
 
 class Griewank:
-    """
-    Griewank function
+    """Griewank function
 
     .. math::
         f(x_1,\\ldots,x_n) = 1 + \\frac{1}{4000} \\sum_{j=1}^n x_j^2 - \
@@ -279,12 +261,10 @@ class Griewank:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Griewank function  at x
+        """Evaluate the Griewank function  at x
 
         :param x: Data point
         :return: Value at x
@@ -298,8 +278,7 @@ class Griewank:
 
 
 class Rosenbrock:
-    """
-    Rosenbrock function
+    """Rosenbrock function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\sum_{j=1}^{n-1} \
@@ -330,12 +309,10 @@ class Rosenbrock:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Rosenbrock function  at x
+        """Evaluate the Rosenbrock function  at x
 
         :param x: Data point
         :return: Value at x
@@ -349,8 +326,7 @@ class Rosenbrock:
 
 
 class Schwefel:
-    """
-    Schwefel function
+    """Schwefel function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\sum_{j=1}^{n} \
@@ -381,12 +357,10 @@ class Schwefel:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Schwefel function  at x
+        """Evaluate the Schwefel function  at x
 
         :param x: Data point
         :return: Value at x
@@ -398,8 +372,7 @@ class Schwefel:
 
 
 class Sphere:
-    """
-    Sphere function
+    """Sphere function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\sum_{j=1}^n x_j^2
@@ -429,12 +402,10 @@ class Sphere:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Sphere function  at x
+        """Evaluate the Sphere function  at x
 
         :param x: Data point
         :return: Value at x
@@ -445,8 +416,7 @@ class Sphere:
 
 
 class Exponential:
-    """
-    Exponential function
+    """Exponential function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\sum_{j=1}^n e^{jx_j} - \\sum_{j=1} e^{-5.12 j}
@@ -476,12 +446,10 @@ class Exponential:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Exponential function  at x
+        """Evaluate the Exponential function  at x
 
         :param x: Data point
         :return: Value at x
@@ -495,8 +463,7 @@ class Exponential:
 
 
 class StyblinskiTang:
-    """
-    StyblinskiTang function
+    """StyblinskiTang function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\frac{1}{2} \\sum_{j=1}^n  \
@@ -524,17 +491,15 @@ class StyblinskiTang:
         self.xup = 5 * np.ones(dim)
         self.dim = dim
         self.info = str(dim)+"-dimensional Styblinski-Tang function \n" +\
-                             "Global optimum: f(-2.903534,...,-2.903534) = " + \
+                             "Global optimum: f(-2.903534,...,-2.903534) = " +\
                              str(-39.16599*dim)
         self.min = -39.16599*dim
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the StyblinskiTang function  at x
+        """Evaluate the StyblinskiTang function  at x
 
         :param x: Data point
         :return: Value at x
@@ -545,8 +510,7 @@ class StyblinskiTang:
 
 
 class Quartic:
-    """
-    Quartic function
+    """Quartic function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\sum_{j=1}^n j x_j^4 + random[0,1)
@@ -578,12 +542,10 @@ class Quartic:
         self.continuous = np.arange(0, dim)
         self.prng = random.Random()
         self.prng.seed(time())
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Quartic function  at x
+        """Evaluate the Quartic function  at x
 
         :param x: Data point
         :return: Value at x
@@ -597,8 +559,7 @@ class Quartic:
 
 
 class Whitley:
-    """
-    Quartic function
+    """Quartic function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\sum_{i=1}^n \\sum_{j=1}^n \
@@ -630,12 +591,10 @@ class Whitley:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the Whitley function  at x
+        """Evaluate the Whitley function  at x
 
         :param x: Data point
         :return: Value at x
@@ -651,8 +610,7 @@ class Whitley:
 
 
 class SchafferF7:
-    """
-    SchafferF7 function
+    """SchafferF7 function
 
     .. math::
         f(x_1,\\ldots,x_n) = \\left[\\frac{1}{n-1}\\sqrt{s_i} \
@@ -688,12 +646,10 @@ class SchafferF7:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        self.constraints = False
         validate(self)
 
     def objfunction(self, x):
-        """
-        Evaluate the SchafferF7 function  at x
+        """Evaluate the SchafferF7 function  at x
 
         :param x: Data point
         :return: Value at x
@@ -711,8 +667,7 @@ class SchafferF7:
 
 
 class Keane:
-    """
-    Keane's "bump" function
+    """Keane's "bump" function
 
     .. math::
         f(x_1,\\ldots,x_n) = -\\left| \\frac{\\sum_{j=1}^n \\cos^4(x_j) - \
@@ -750,20 +705,18 @@ class Keane:
         self.continuous = np.arange(0, dim)
         self.info = str(dim)+"-dimensional Keane bump function \n" +\
                              "Global optimum: -0.835 for large n"
-        self.constraints = True
         validate(self)
 
     # Return a list with the constraint function at the given point
     def eval_ineq_constraints(self, x):
-        vec = np.zeros((2,))
-        vec[0] = 0.75 - np.prod(x)
-        vec[1] = sum(x) - 7.5 * self.dim
+        vec = np.zeros((x.shape[0], 2))
+        vec[:, 0] = 0.75 - np.prod(x)
+        vec[:, 1] = np.sum(x) - 7.5 * self.dim
         return vec
 
     # Evaluate the objective function for a single data point
     def objfunction(self, x):
-        """
-        Evaluate the Keane function  at x
+        """Evaluate the Keane function  at x
 
         :param x: Data point
         :return: Value at x
@@ -775,64 +728,8 @@ class Keane:
                     max([1E-10, np.sqrt(np.dot(1+np.arange(n), x**2))]))
 
 
-class LargestPolygon:
-    """
-    The Largest Polygon problems is described as follows:
-
-    Find the polygon of maximal area, among polygons with n sides and
-    diameter :math:`d \\leq 1` There are 2n variables, the radius :math:`r_i`
-    and angle :math:`\\theta_i` for each point, so the number of variables must
-    be even. One vertex is fixed at the origin so there are n/2+1 corners in
-    the polygon we are trying to fit. There are at least (n/2+1)! local minima
-
-    The global minimum approaches -0.7854 when n gets large
-    """
-    def __init__(self, dim=10):
-        assert dim % 2 == 0, "dim was odd, should be even"
-        self.xlow = np.zeros(dim)
-        self.xup = np.hstack((np.ones(dim/2), np.pi * np.ones(dim/2)))
-        self.dim = dim
-        self.min = -0.7854
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-        self.info = str(self.dim)+"-dimensional Largest Polygon \n" +\
-                                  "Global optimum: approaches -0.7854\n"
-        self.constraints = True
-        validate(self)
-
-    def eval_ineq_constraints(self, x):
-        vec = np.zeros(((self.dim/2)**2 + self.dim/2-1,))
-
-        for i in range(self.dim/2):
-            for j in range(self.dim/2):
-                vec[i*self.dim/2+j] = x[i]**2 + x[j]**2 - \
-                    2.0 * x[i] * x[j] * np.cos(x[self.dim/2 + i] -
-                                               x[self.dim/2 + j]) - 1
-
-        for i in range(self.dim/2-1):
-            vec[(self.dim/2)**2+i] = x[self.dim/2 + i] - x[self.dim/2 + i + 1]
-
-        return vec
-
-    def objfunction(self, x):
-        """
-        Evaluate the LargestPolygon function  at x
-
-        :param x: Data point
-        :return: Value at x
-        """
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
-        val = 0
-        for i in range(self.dim/2 - 1):
-            val -= 0.5 * x[i+1] * x[i] * \
-                np.sin(x[self.dim/2 + i + 1] - x[self.dim/2 + i])
-        return val
-
-
 class LinearMI:
-    """
-    This is a linear mixed integer problem with non-bound constraints
+    """This is a linear mixed integer problem with non-bound constraints
 
     There are 5 variables, the first 3 are discrete and the last 2
     are continuous.
@@ -849,19 +746,17 @@ class LinearMI:
         self.info = str(self.dim)+"-dimensional Linear MI \n" +\
                                   "Global optimum: f(1,0,0,0,0) = -1\n" +\
                                   str(len(self.integer)) + " integer variables"
-        self.constraints = True
         validate(self)
 
     def eval_ineq_constraints(self, x):
-        vec = np.zeros((3,))
-        vec[0] = x[0] + x[2] - 1.6
-        vec[1] = 1.333 * x[1] + x[3] - 3
-        vec[2] = - x[2] - x[3] + x[4]
+        vec = np.zeros((x.shape[0], 3))
+        vec[:, 0] = x[:, 0] + x[:, 2] - 1.6
+        vec[:, 1] = 1.333 * x[:, 1] + x[:, 3] - 3
+        vec[:, 2] = - x[:, 2] - x[:, 3] + x[:, 4]
         return vec
 
     def objfunction(self, x):
-        """
-        Evaluate the LinearMI function  at x
+        """Evaluate the LinearMI function  at x
 
         :param x: Data point
         :return: Value at x
@@ -869,6 +764,7 @@ class LinearMI:
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return - x[0] + 3 * x[1] + 1.5 * x[2] + 2 * x[3] - 0.5 * x[4]
+
 
 if __name__ == "__main__":
     print("\n========================= Hartman3 =======================")
@@ -959,12 +855,5 @@ if __name__ == "__main__":
     print(fun.info)
     print("Linear_MI(1,1,1,1,1) = " +
           str(fun.objfunction(np.array([1, 1, 1, 1, 1]))))
-    print("Continuous variables: " + str(fun.continuous))
-    print("Integer variables: " + str(fun.integer))
-
-    print("\n====================== Largest Polygon =====================")
-    fun = LargestPolygon(dim=4)
-    print(fun.info)
-    print("LargestPolygon(1,1,1,1) = " + str(fun.objfunction(np.ones(4))))
     print("Continuous variables: " + str(fun.continuous))
     print("Integer variables: " + str(fun.integer))

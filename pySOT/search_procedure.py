@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 .. module:: search_procedure
   :synopsis: ways of finding the next point to evaluate
@@ -43,8 +42,7 @@ import scipy.spatial as scp
 
 
 def unit_rescale(xx):
-    """
-    Shift and rescale elements of a vector to the unit interval
+    """Shift and rescale elements of a vector to the unit interval
     """
     xmax = np.amax(xx)
     xmin = np.amin(xx)
@@ -55,23 +53,20 @@ def unit_rescale(xx):
 
 
 def point_set_dist(x, xx):
-    """
-    Compute the distance from a point to a set
+    """Compute the distance from a point to a set
     """
     return np.sqrt(np.min(np.sum((xx - x)**2, axis=1)))
 
 
 def closest_point(x, xx):
-    """
-    Find point in xx closest to x
+    """Find point in xx closest to x
     """
     ind = np.argmin(np.sum((xx - x)**2, axis=1))
     return xx[ind, :]
 
 
 def round_vars(data, x):
-    """
-    Round integer variables to closest integer
+    """Round integer variables to closest integer
     """
     if len(data.integer) > 0:
         x[:, data.integer] = np.round(x[:, data.integer])
@@ -115,27 +110,22 @@ class MultiSearchStrategy(object):
         self.currentWeight = 0
         self.proposed_points = None
         self.data = strategy_list[0].data
-        self.fhat = None
         self.avoid = None
 
-    def init(self, fhat, start_sample, avoid=None):
-        """
-        Initialize the multi-search strategy
+    def init(self, start_sample, avoid=None):
+        """Initialize the multi-search strategy
 
-        :param fhat: Original response surface object.
         :param start_sample: Points in the initial design that
             will be evaluated before the adaptive sampling starts
         :param avoid: Points to avoid
         """
-        self.fhat = fhat
         self.avoid = avoid
         self.proposed_points = np.copy(start_sample)
         for i in range(len(self.search_strategies)):
-            self.search_strategies[i].init(fhat, self.proposed_points, avoid)
+            self.search_strategies[i].init(self.proposed_points, avoid)
 
     def remove_point(self, x):
-        """
-        Remove x from proposed_points. Useful if x was never evaluated.
+        """Remove x from proposed_points. Useful if x was never evaluated.
 
         :param x: Point to remove
         """
@@ -144,9 +134,8 @@ class MultiSearchStrategy(object):
         for i in range(len(self.search_strategies)):
             self.search_strategies[i].proposed_points = self.proposed_points
 
-    def make_points(self, xbest, sigma, maxeval, issync):
-        """
-        Create new candidate points. This call is ignored by the optimization
+    def make_points(self, xbest, sigma, evals, maxeval, issync):
+        """Create new candidate points. This call is ignored by the optimization
         based search strategies.
 
 
@@ -161,14 +150,15 @@ class MultiSearchStrategy(object):
         """
         if issync:
             for i in range(len(self.search_strategies)):
-                self.search_strategies[i].make_points(xbest, sigma, maxeval)
+                self.search_strategies[i].make_points(xbest, sigma,
+                                                      evals, maxeval)
         else:
             weight = self.weights[self.currentWeight]
-            self.search_strategies[weight].make_points(xbest, sigma, maxeval)
+            self.search_strategies[weight].make_points(xbest, sigma,
+                                                       evals, maxeval)
 
     def next(self):
-        """
-        Generate the next proposed point from the current search strategy,
+        """Generate the next proposed point from the current search strategy,
         update the list of proposed points and move the counter forward to
         the next search strategy
 
@@ -197,8 +187,7 @@ class MultiSearchStrategy(object):
 # ====================== Candidate based search methods =====================
 
 def candidate_merit_weighted_distance(cand):
-    """
-    Weighted distance merit functions for the candidate points based methods
+    """Weighted distance merit functions for the candidate points based methods
     """
     ii = cand.nextWeight
     if cand.xsample:
@@ -222,15 +211,13 @@ def candidate_merit_weighted_distance(cand):
 
 
 class CandidateSRBF(object):
-    """
-    This is an implementation of the candidate points method that is
+    """This is an implementation of the candidate points method that is
     proposed in the first SRBF paper. Candidate points are generated
     by making normally distributed perturbations with stdDev sigma
     around the best solution
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
@@ -240,15 +227,13 @@ class CandidateSRBF(object):
 
     usecand = True
 
-    def __init__(self, data, numcand=None, constraint_handler=None):
+    def __init__(self, data, numcand=None, ):
         """Initialize the multi-search strategy
 
         :param data: Optimization object
         :param numcand: Number of candidate points to generate
-        :param constraint_handler: Method for handling non-bound constraints
         """
         self.data = data
-        self.fhat = None
         self.avoid = None
         self.xrange = np.asarray(data.xup-data.xlow)
         minxrange = np.amin(self.xrange)
@@ -263,23 +248,18 @@ class CandidateSRBF(object):
         self.numcand = numcand
         if self.numcand is None:
             self.numcand = min([5000, 100*data.dim])
-        self.constraint_handler = constraint_handler
 
-    def init(self, fhat, startsample, avoid=None):
-        """
-        Add response surface, experimental design and points to avoid
+    def init(self, startsample, avoid=None):
+        """Add response surface, experimental design and points to avoid
 
-        :param fhat: Original response surface object.
         :param startsample:  Points generated by the experimental design
         :param avoid: Points to avoid
         """
         self.proposed_points = startsample
-        self.fhat = fhat
         self.avoid = avoid
 
     def remove_point(self, x):
-        """
-        Remove x from the list of proposed points.
+        """Remove x from the list of proposed points.
         Useful if x was never evaluated.
 
         :param x: Point to be removed
@@ -288,8 +268,7 @@ class CandidateSRBF(object):
         self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
 
     def next(self):
-        """
-        Propose a new point to evaluate and update list of proposed points
+        """Propose a new point to evaluate and update list of proposed points
 
         :return: Next point to evaluate
         """
@@ -298,10 +277,9 @@ class CandidateSRBF(object):
                                           np.asarray(xnew)))
         return xnew
 
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
-        """
-        Create new candidate points based on the best
+        """Create new candidate points based on the best
         solution and the current value of sigma.
 
         :param xbest: Best solution found so far
@@ -333,18 +311,16 @@ class CandidateSRBF(object):
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
-        fhvals = self.fhat.evals(self.xcand)
+        fhvals = evals(self.xcand)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
 
 
 class CandidateUniform(CandidateSRBF):
-    """
-    Create Candidate points by sampling uniformly in the domain
+    """Create Candidate points by sampling uniformly in the domain
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
@@ -352,10 +328,9 @@ class CandidateUniform(CandidateSRBF):
         since the last restart
     """
 
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
-        """
-        Create new candidate points based on the best solution and the current
+        """Create new candidate points based on the best solution and the current
         value of sigma.
 
         :param xbest: Ignored by this method
@@ -376,14 +351,13 @@ class CandidateUniform(CandidateSRBF):
         self.xcand = round_vars(data, xcand)
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
-        fhvals = self.fhat.evals(self.xcand)
+        fhvals = evals(self.xcand)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
 
 
 class CandidateDyCORS(CandidateSRBF):
-    """
-    This is an implementation of DyCORS method to generate
+    """This is an implementation of DyCORS method to generate
     candidate points. The DyCORS method uses the DDS algorithm
     which only perturbs a subset of the dimensions when
     perturbing the best solution. The probability for a
@@ -393,29 +367,25 @@ class CandidateDyCORS(CandidateSRBF):
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def __init__(self, data, numcand=None, constraint_handler=None):
-        """
-        Initialize the DyCORS strategy
+    def __init__(self, data, numcand=None):
+        """Initialize the DyCORS strategy
 
         :param data: Optimization object
         :param numcand:  Number of candidate points to generate
         :param constraint_handler: Object for handling non-bound constraints
         """
-        CandidateSRBF.__init__(self, data, numcand=numcand,
-                               constraint_handler=None)
+        CandidateSRBF.__init__(self, data, numcand=numcand)
         self.minprob = np.min([1, 3/self.data.dim])
 
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
-        """
-        Create new candidate points based on the best
+        """Create new candidate points based on the best
         solution and the current value of sigma.
 
         :param xbest: Best solution found so far
@@ -480,148 +450,137 @@ class CandidateDyCORS(CandidateSRBF):
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
-        fhvals = self.fhat.evals(self.xcand)
+        fhvals = evals(self.xcand)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
 
 
 class CandidateSRBF_INT(CandidateSRBF):
-    """
-    Candidate points are generated by perturbing
+    """Candidate points are generated by perturbing
     ONLY the discrete variables using the SRBF strategy
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         if len(self.data.integer) > 0:
-            CandidateSRBF.make_points(self, xbest, sigma, maxeval=maxeval,
-                                      issync=issync, subset=self.data.integer)
+            CandidateSRBF.make_points(self, xbest, sigma, evals,
+                                      maxeval=maxeval, issync=issync,
+                                      subset=self.data.integer)
         else:
-            CandidateSRBF.make_points(self, xbest, sigma, maxeval=maxeval,
-                                      issync=issync,
+            CandidateSRBF.make_points(self, xbest, sigma, evals,
+                                      maxeval=maxeval, issync=issync,
                                       subset=self.data.continuous)
 
 
 class CandidateDyCORS_INT(CandidateDyCORS):
-    """
-    Candidate points are generated by perturbing ONLY the discrete
+    """Candidate points are generated by perturbing ONLY the discrete
     variables using the DyCORS strategy
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         if len(self.data.integer) > 0:
-            CandidateDyCORS.make_points(self, xbest, sigma, maxeval=maxeval,
-                                        issync=issync,
+            CandidateDyCORS.make_points(self, xbest, sigma, evals,
+                                        maxeval=maxeval, issync=issync,
                                         subset=self.data.integer)
         else:
-            CandidateDyCORS.make_points(self, xbest, sigma, maxeval=maxeval,
-                                        issync=issync,
+            CandidateDyCORS.make_points(self, xbest, sigma, evals,
+                                        maxeval=maxeval, issync=issync,
                                         subset=self.data.continuous)
 
 
 class CandidateUniform_INT(CandidateUniform):
-    """
-    Candidate points are generated by perturbing ONLY
+    """Candidate points are generated by perturbing ONLY
     the discrete variables using the uniform perturbations
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         if len(self.data.integer) > 0:
-            CandidateUniform.make_points(self, xbest, sigma, maxeval=maxeval,
-                                         issync=issync,
+            CandidateUniform.make_points(self, xbest, sigma, evals,
+                                         maxeval=maxeval, issync=issync,
                                          subset=self.data.integer)
         else:
-            CandidateUniform.make_points(self, xbest, sigma, maxeval=maxeval,
-                                         issync=issync,
+            CandidateUniform.make_points(self, xbest, sigma, evals,
+                                         maxeval=maxeval, issync=issync,
                                          subset=self.data.continuous)
 
 
 class CandidateSRBF_CONT(CandidateSRBF):
-    """
-    Candidate points are generated by perturbing ONLY
+    """Candidate points are generated by perturbing ONLY
     the continuous variables using the SRBF strategy
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         if len(self.data.continuous) > 0:
-            CandidateSRBF.make_points(self, xbest, sigma, maxeval=maxeval,
-                                      issync=issync,
+            CandidateSRBF.make_points(self, xbest, sigma, evals,
+                                      maxeval=maxeval, issync=issync,
                                       subset=self.data.continuous)
         else:
-            CandidateSRBF.make_points(self, xbest, sigma, maxeval=maxeval,
-                                      issync=issync,
+            CandidateSRBF.make_points(self, xbest, sigma, evals,
+                                      maxeval=maxeval, issync=issync,
                                       subset=self.data.integer)
 
 
 class CandidateDyCORS_CONT(CandidateDyCORS):
-    """
-    Candidate points are generated by perturbing ONLY
+    """Candidate points are generated by perturbing ONLY
     the continuous variables using the DyCORS strategy
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         if len(self.data.continuous) > 0:
-            CandidateDyCORS.make_points(self, xbest, sigma, maxeval=maxeval,
-                                        issync=issync,
+            CandidateDyCORS.make_points(self, xbest, sigma, evals,
+                                        maxeval=maxeval, issync=issync,
                                         subset=self.data.continuous)
         else:
-            CandidateDyCORS.make_points(self, xbest, sigma, maxeval=maxeval,
-                                        issync=issync,
+            CandidateDyCORS.make_points(self, xbest, sigma, evals,
+                                        maxeval=maxeval, issync=issync,
                                         subset=self.data.integer)
 
 
 class CandidateUniform_CONT(CandidateUniform):
-    """
-    Candidate points are generated by perturbing ONLY
+    """Candidate points are generated by perturbing ONLY
     the continuous variables using uniform perturbations
 
     :ivar usecand: Indicates that this method is candidate based
     :ivar data: Optimization object
-    :ivar fhat: Original response surface object.
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
     :ivar xsample: The proposed evaluations since
@@ -629,13 +588,13 @@ class CandidateUniform_CONT(CandidateUniform):
         since the last restart
     """
 
-    def make_points(self, xbest, sigma, maxeval=None,
+    def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         if len(self.data.continuous) > 0:
-            CandidateUniform.make_points(self, xbest, sigma, maxeval=maxeval,
-                                         issync=issync,
+            CandidateUniform.make_points(self, xbest, sigma, evals,
+                                         maxeval=maxeval, issync=issync,
                                          subset=self.data.continuous)
         else:
-            CandidateUniform.make_points(self, xbest, sigma, maxeval=maxeval,
-                                         issync=issync,
+            CandidateUniform.make_points(self, xbest, sigma, evals,
+                                         maxeval=maxeval, issync=issync,
                                          subset=self.data.integer)

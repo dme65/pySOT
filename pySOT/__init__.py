@@ -3,16 +3,20 @@ try:
 except ImportError:
     from io import StringIO
 
-from constraint_method import *
 from experimental_design import *
-from kriging_interpolant import *
 from rbf_interpolant import *
 from rs_capped import *
 from search_procedure import *
 from test_problems import *
-from surrogate_optimizer import *
+from sot_sync_strategies import *
+from ensemble_surrogate import EnsembleSurrogate
 
 try:
-    from mars_interpolant import *
+    from mars_interpolant import MARSInterpolant
+except ImportError:
+    pass
+
+try:
+    from kriging_interpolant import KrigingInterpolant
 except ImportError:
     pass
