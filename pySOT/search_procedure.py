@@ -89,13 +89,16 @@ class MultiSearchStrategy(object):
         to all proposed evaluations. This list has to be reset each time
         the optimization algorithm restarts.
 
-        :ivar strategy_list: List of search strategies
-        :ivar weight_strategy: List of integer weights that will be iterated in
+        :ivar search_strategies: List of search strategies
+        :ivar weights: List of integer weights that will be iterated in
             order to determine what search strategy to use next.
             If for example the weights [0 0 1] are used, then
             search strategy 0 will be used two times, then
             strategy 1 is used after which the cycling restarts.
         :ivar proposed_points: List of all points proposed by this strategy
+        :ivar currentWeight: Current weights
+        :ivar data: Optimization problem object
+        :ivar avoid: Points to avoid
     """
     def __init__(self, strategy_list, weight_strategy):
         # Check so that the weights are correct
@@ -141,6 +144,7 @@ class MultiSearchStrategy(object):
 
         :param xbest: Best solution found
         :param sigma: Current stdDev used to generate candidate points
+        :param evals: Routine for predicting function values
         :param maxeval: Evaluation budget
         :param issync: Flag that indicates if the run is synchronous or not.
             If we are running a synchronous strategy we generate
@@ -335,6 +339,7 @@ class CandidateUniform(CandidateSRBF):
 
         :param xbest: Ignored by this method
         :param sigma: Ignored by this method
+        :param evals: Routine for predicting function values
         :param maxeval: Ignored by this method
         :param issync: Ignored by this method
         :param subset: Dimensions that will be perturbed
@@ -391,6 +396,7 @@ class CandidateDyCORS(CandidateSRBF):
         :param xbest: Best solution found so far
         :param sigma: Current radius, i.e. stdDev used
             to generate candidate points
+        :param evals: Routine for predicting function values
         :param maxeval: Evaluation budget, used to calculate
             the DDS probability
         :param issync: Ignored by this method

@@ -1,12 +1,14 @@
 """
-.. module:: sot_sync
+.. module:: sot_sync_strategies
    :synopsis: Parallel synchronous optimization strategy
 .. moduleauthor:: David Bindel <bindel@cornell.edu>,
     David Eriksson <dme65@cornell.edu>
 
-:Module: sot_sync
+:Module: sot_sync_strategies
 :Author: David Bindel <bindel@cornell.edu>,
     David Eriksson <dme65@cornell.edu>
+
+Synchronous strategies for Stochastic RBF
 """
 
 from __future__ import print_function
@@ -21,7 +23,7 @@ from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
 
 
 class SyncStrategyNoConstraints(object):
-    """Parallel synchronous optimization strategy with non-bound constraints.
+    """Parallel synchronous optimization strategy without non-bound constraints.
 
     This class implements the parallel synchronous SRBF strategy
     described by Regis and Shoemaker.  After the initial experimental
@@ -52,6 +54,9 @@ class SyncStrategyNoConstraints(object):
         :param exp_design: Experimental design
         :param search_procedure: Search procedure for finding
             points to evaluate
+        :param extra: Points to be added to the experimental design
+        :param quiet: If True, nothing is printed to the stream
+        :param stream: Where progress should be printed, sys.stdout is default
         """
 
         self.worker_id = worker_id
@@ -221,12 +226,46 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
     """Parallel synchronous optimization strategy with non-bound constraints.
 
     This is an extension of SyncStrategyNoConstraints that also works with
-    bound constraints.
+    bound constraints. We currently only allow inequality constraints, since
+    the candidate based methods don't work well with equality constraints.
+    We also assume that the constraints are cheap to evaluate, i.e., so that
+    it is easy to check if a given point is feasible. More strategies that
+    can handle expensive constraints will be added.
+
+    We use a penalty method in the sense that we try to minimize:
+
+    .. math::
+        f(x) + \\mu \\sum_j (\\max(0, g_j(x))^2
+
+    where :math:`g_j(x) \\leq 0` are cheap inequality constraints. As a
+    measure of promising function values we let all infeasible points have
+    the value of the feasible candidate point with the worst function value,
+    since large penalties makes it impossible to distinguish between feasible
+    points.
+
+    When it comes to the value of :math:`\\mu`, just choose a very large value.
+
+
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, search_procedure=None, extra=None,
                  quiet=False, stream=sys.stdout, penalty=1.0E6):
+        """Initialize the optimization strategy.
+
+        :param worker_id: Start ID in a multistart setting
+        :param data: Problem parameter data structure
+        :param response_surface: Surrogate model object
+        :param maxeval: Function evaluation budget
+        :param nsamples: Number of simultaneous fevals allowed
+        :param exp_design: Experimental design
+        :param search_procedure: Search procedure for finding
+            points to evaluate
+        :param extra: Points to be added to the experimental design
+        :param quiet: If True, nothing is printed to the stream
+        :param stream: Where progress should be printed, sys.stdout is default
+        :param penalty: Penalty for violating constraints
+        """
         SyncStrategyNoConstraints.__init__(self,  worker_id, data,
                                            response_surface, maxeval,
                                            nsamples, exp_design,
@@ -235,15 +274,30 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.penalty = penalty
 
     def penalty_fun(self, xx):
-            # Get the constraint violations
-            vec = np.array(self.data.eval_ineq_constraints(xx))
-            # Now apply the penalty for the constraint violation
-            vec[np.where(vec < 0.0)] = 0.0
-            vec **= 2
-            # Surrogate + penalty
-            return self.penalty * np.asmatrix(np.sum(vec, axis=1)).T
+        """Computes the penalty for constraints violation
+
+        :param xx: Points to compute the penalty for
+        :return: Penalty for constraint violations
+        """
+        # Get the constraint violations
+        vec = np.array(self.data.eval_ineq_constraints(xx))
+        # Now apply the penalty for the constraint violation
+        vec[np.where(vec < 0.0)] = 0.0
+        vec **= 2
+        # Surrogate + penalty
+        return self.penalty * np.asmatrix(np.sum(vec, axis=1)).T
 
     def evals(self, xx):
+        """Predict function values
+
+        As a measure of promising function values we let all infeasible points
+        have the value of the feasible candidate point with the worst function
+        value, since large penalties makes it impossible to distinguish
+        between feasible points.
+
+        :param xx: Data points
+        :return: Predicted function values
+        """
         penalty = self.penalty_fun(xx)
         vals = self.fhat.evals(xx)
         ind = (np.where(penalty <= 0.0)[0]).T
@@ -268,6 +322,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         """Record a completed evaluation to the log.
 
         :param record: Record of the function evaluation
+        :param penalty: Penalty for the given point
         """
         xstr = np.array_str(record.params[0], max_line_width=np.inf,
                             precision=5, suppress_small=True)

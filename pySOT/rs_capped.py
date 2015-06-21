@@ -34,16 +34,14 @@ class RSCapped(object):
         self.nump = 0
 
     def reset(self):
-        """
-        Reset the capped response surface
+        """Reset the capped response surface
         """
         self.fhat.reset()
         self.fvalues[:] = 0
         self.nump = 0
 
     def add_point(self, xx, fx):
-        """
-        Add a new function evaluation
+        """Add a new function evaluation
 
         :param xx: Point to add
         :param fx: The function value of the point to add
@@ -56,24 +54,21 @@ class RSCapped(object):
         self.fhat.add_point(xx, fx)
 
     def get_x(self):
-        """
-        Get the list of data points
+        """Get the list of data points
 
         :return: List of data points
         """
         return self.fhat.get_x()
 
     def get_fx(self):
-        """
-        Get the list of function values for the data points.
+        """Get the list of function values for the data points.
 
         :return: List of function values
         """
         return self.fhat.get_fx()
 
     def eval(self, xx):
-        """
-        Evaluate the capped rbf interpolant at the point xx
+        """Evaluate the capped rbf interpolant at the point xx
 
         :param xx: Point where to evaluate
         :return: Value of the capped rbf interpolant at x
@@ -82,8 +77,7 @@ class RSCapped(object):
         return self.fhat.eval(xx)
 
     def evals(self, xx):
-        """
-        Evaluate the capped rbf interpolant at the points xx
+        """Evaluate the capped rbf interpolant at the points xx
 
         :param xx: Points where to evaluate
         :return: Values of the capped rbf interpolant at x
@@ -92,8 +86,7 @@ class RSCapped(object):
         return self.fhat.evals(xx)
 
     def deriv(self, xx):
-        """
-        Evaluate the derivative of the rbf interpolant at x
+        """Evaluate the derivative of the rbf interpolant at x
 
         :param x: Data point
         :return: Derivative of the rbf interpolant at x
@@ -102,8 +95,7 @@ class RSCapped(object):
         return self.fhat.deriv(xx)
 
     def _apply_cap(self):
-        """
-        Apply the cap to the function values.
+        """ Apply the cap to the function values.
         """
         fvalues = np.copy(self.fvalues[0:self.nump])
         medf = np.median(fvalues)

@@ -16,6 +16,22 @@ import numpy.linalg as la
 
 
 class EnsembleSurrogate:
+    """Compute and evaluate an ensemble of interpolants.
+
+    Maintains a list of surrogates and decides how to weights them
+    by using Dempster-Shafer theory to assign pignistic probabilities
+    based on statistics computed using LOOCV.
+
+    :ivar nump: Current number of points
+    :ivar maxp: Initial maximum number of points (can grow)
+    :ivar rhs: Right hand side for interpolation system
+    :ivar x: Interpolation points
+    :ivar fx: Values at interpolation points
+    :ivar dim: Number of dimensions
+    :ivar model_list: List of surrogate models
+    :ivar weights: Weight for each surrogate model
+    :ivar surrogate_list: List of internal surrogate models for LOOCV
+    """
     def __init__(self, model_list, maxp=100):
         self.nump = 0
         self.maxp = maxp
@@ -26,13 +42,12 @@ class EnsembleSurrogate:
         self.model_list = model_list
         self.M = len(model_list)
         for i in range(self.M):
-            self.model_list[i].reset()
+            self.model_list[i].reset()  # Models must be empty
         self.weights = None
         self.surrogate_list = None
-        self.k = None
 
     def reset(self):
-        """ Reset the interpolation."""
+        """Reset the interpolation."""
         self.nump = 0
         self.x = None
         self.fx = None
@@ -42,7 +57,7 @@ class EnsembleSurrogate:
         self.weights = None
 
     def _alloc(self, dim):
-        """Allocate storage for x, fx, rhs, and A.
+        """Allocate storage for x, fx, surrogate_list
 
         :param dim: Number of dimensions
         """
@@ -72,12 +87,33 @@ class EnsembleSurrogate:
                     [None for _ in range(self.maxp - oldmaxp)])
 
     def _prob_to_mass(self, prob):
+        """Internal method for building a mass function from probabilities
+
+        :param prob: List of probabilities
+
+        :return: Mass function
+        """
         dictlist = []
         for i in range(len(prob)):
             dictlist.append([str(i+1), prob[i]])
         return MassFunction(dict(dictlist))
 
     def compute_weights(self):
+        """Compute mode weights
+
+        Given n observations we use n surrogates built with n-1 of the points
+        in order to predict the value at the removed point. Based on these n
+        predictions we calculate three different statistics:
+            - Correlation coefficient with true function values
+            - Root mean square deviation
+            - Mean absolute error
+
+        Based on these three statistics we compute the model weights by
+        applying Dempster-Shafer theory to first compute the pignistic
+        probabilities, which are taken as model weights.
+
+        :return: Model weights
+        """
         # Do the leave-one-out experiments
         loocv = np.zeros((self.M, self.nump))
         for i in range(self.M):
@@ -102,8 +138,10 @@ class EnsembleSurrogate:
 
         # Make sure no correlations are negative
         corr_coeff[np.where(corr_coeff < 0.0)] = 0.0
+        if np.max(corr_coeff) == 0.0:
+            corr_coeff += 1.0
 
-        # Normalize
+        # Normalize the test statistics
         corr_coeff /= np.sum(corr_coeff)
         root_mean_sq_err /= np.sum(root_mean_sq_err)
         mean_abs_err /= np.sum(mean_abs_err)
@@ -136,9 +174,16 @@ class EnsembleSurrogate:
     def add_point(self, xx, fx):
         """Add a new function evaluation
 
+        This function also updates the list of LOOCV surrogate models by cleverly
+        just adding one point to n of the models. The scheme in which new models
+        are built is illustrated below:
+
         2           1           1,2
+
         2,3         1,3         1,2         1,2,3
+
         2,3,4       1,3,4       1,2,4       1,2,3       1,2,3,4
+
         2,3,4,5     1,3,4,5     1,2,4,5     1,2,3,5     1,2,3,4     1,2,3,4,5
 
         :param xx: Point to add
@@ -176,6 +221,7 @@ class EnsembleSurrogate:
         """Evaluate the interpolant at the point xx
 
         :param xx: Point where to evaluate
+
         :return: Value of the MARS interpolant at x
         """
         if self.weights is None:
@@ -190,6 +236,7 @@ class EnsembleSurrogate:
         """Evaluate the MARS interpolant at the points xx
 
         :param xx: Points where to evaluate
+
         :return: Values of the MARS interpolant at x
         """
         if self.weights is None:
@@ -205,6 +252,7 @@ class EnsembleSurrogate:
         """Evaluate the derivative of the MARS interpolant at x
 
         :param x: Data point
+
         :return: Derivative of the MARS interpolant at x
         """
         if self.weights is None:

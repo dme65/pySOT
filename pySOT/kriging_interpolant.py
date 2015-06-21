@@ -17,7 +17,7 @@ class KrigingInterpolant:
     :ivar nump: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar x: Interpolation points
-    :ivar fx: Function evaluations of interpolation points
+    :ivar fx: Function values at interpolation points
     :ivar k: Kriging model instance
     :ivar updated: Flag that indicates whether a Kriging
         model is up-to-date or not
