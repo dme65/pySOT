@@ -6,21 +6,15 @@
 
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
-from poap.strategy import MultiStartStrategy
 import numpy as np
 
-#  FIXME, Remove when POAP handles feasibility
-def get_best_feas(controller, data):
-    # Extract the best feasible solution
-    best = np.inf * np.ones(1)
-    xbest = np.zeros((1, data.dim))
-    for record in controller.fevals:
-        x = np.zeros((1, record.params[0].shape[0]))
-        x[0, :] = record.params[0]
-        if record.value < best[record.worker_id] and np.max(data.eval_ineq_constraints(x)) <= 0.0:
-            best[record.worker_id] = record.value
-            xbest[record.worker_id, :] = record.params[0]
-    return best[0], xbest
+
+def feasible_merit(record, data):
+    x = record.params[0].reshape((1, record.params[0].shape[0]))
+    if np.max(data.eval_ineq_constraints(x) > 0):
+        return np.inf
+    return record.value
+
 
 def main():
     print("Number of threads: 4")
@@ -36,34 +30,31 @@ def main():
     data = Keane(dim=30)
     print(data.info)
 
-    exp_design = LatinHypercube(dim=data.dim, npts=2*data.dim+1)
-    response_surface = RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                      dphi=dphi_cubic, dP=dlinear_tail,
-                                      eta=1e-8, maxp=maxeval)
-
-    # Use a multi-search strategy for candidate points
-    search_proc = CandidateDyCORS(data=data, numcand=5000)
-
     # Create a strategy and a controller
     controller = ThreadController()
-    strategy = [SyncStrategyPenalty(worker_id=0, data=data,
-                                    response_surface=response_surface,
-                                    maxeval=maxeval, nsamples=nsamples,
-                                    exp_design=exp_design,
-                                    search_procedure=search_proc,
-                                    quiet=True)]
-    strategy = MultiStartStrategy(controller, strategy)
-    controller.strategy = strategy
+    controller.strategy = \
+        SyncStrategyPenalty(
+            worker_id=0, data=data,
+            maxeval=maxeval, nsamples=nsamples, quiet=True,
+            response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                            dphi=dphi_cubic, dP=dlinear_tail,
+                                            eta=1e-8, maxp=maxeval),
+            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+            search_procedure=CandidateDyCORS(data=data, numcand=5000))
 
     # Launch the threads
     for _ in range(nthreads):
-        controller.launch_worker(BasicWorkerThread(controller, data.objfunction))
+        worker = BasicWorkerThread(controller, data.objfunction)
+        controller.launch_worker(worker)
 
-    controller.run()
-    best, xbest = get_best_feas(controller, data)
+    result = controller.run(merit=lambda r: feasible_merit(r, data))
+    best, xbest = result.value, result.params[0]
 
-    print('Best value: ' + str(best))
-    print('Best solution: ' + np.array_str(xbest[0, :], max_line_width=np.inf, precision=5, suppress_small=True))
+    print('Best value: {0}'.format(best))
+    print('Best solution: {0}'.format(
+        np.array_str(xbest, max_line_width=np.inf,
+                     precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     main()

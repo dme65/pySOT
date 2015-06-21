@@ -6,12 +6,13 @@
 
 from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
-from poap.strategy import MultiStartStrategy
 import numpy as np
 from subprocess import Popen, PIPE
 
+
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
+
 
 class SphereExt:
     def __init__(self, dim=10):
@@ -37,6 +38,7 @@ class DummySim(ProcessWorkerThread):
         except:
             self.finish_failure(record)
 
+
 def main():
     print("Number of threads: 4")
     print("Maximum number of evaluations: 200")
@@ -51,22 +53,18 @@ def main():
     data = SphereExt(dim=3)
     print(data.info)
 
-    exp_design = LatinHypercube(dim=data.dim, npts=2*data.dim+1)
-    response_surface = RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                      dphi=dphi_cubic, dP=dlinear_tail,
-                                      eta=1e-8, maxp=maxeval)
-    search_proc = CandidateDyCORS(data=data, numcand=200*data.dim)
-
     # Create a strategy and a controller
     controller = ThreadController()
-    strategy = [SyncStrategyNoConstraints(worker_id=0, data=data,
-                                          response_surface=response_surface,
-                                          maxeval=maxeval, nsamples=nsamples,
-                                          exp_design=exp_design,
-                                          search_procedure=search_proc,
-                                          quiet=False)]
-    strategy = MultiStartStrategy(controller, strategy)
-    controller.strategy = strategy
+    controller.strategy = \
+        SyncStrategyNoConstraints(
+            worker_id=0, data=data,
+            maxeval=maxeval, nsamples=nsamples,
+            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+            search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
+            response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                            dphi=dphi_cubic, dP=dlinear_tail,
+                                            eta=1e-8, maxp=maxeval),
+            quiet=False)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
@@ -75,9 +73,11 @@ def main():
     # Run the optimization strategy
     result = controller.run()
 
-    print('Best value found: ' + str(result.value))
-    print('Best solution found: ' + np.array_str(result.params[0], max_line_width=np.inf,
-                                                 precision=5, suppress_small=True))
+    print('Best value found: {0}'.format(result.value))
+    print('Best solution found: {0}'.format(
+        np.array_str(result.params[0], max_line_width=np.inf,
+                     precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     main()

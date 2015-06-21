@@ -6,21 +6,15 @@
 
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
-from poap.strategy import MultiStartStrategy
 import numpy as np
 
-#  FIXME, Remove when POAP handles feasibility
-def get_best_feas(controller, data):
-    # Extract the best feasible solution
-    best = np.inf * np.ones(1)
-    xbest = np.zeros((1, data.dim))
-    for record in controller.fevals:
-        x = np.zeros((1, record.params[0].shape[0]))
-        x[0, :] = record.params[0]
-        if record.value < best[record.worker_id] and np.max(data.eval_ineq_constraints(x)) <= 0.0:
-            best[record.worker_id] = record.value
-            xbest[record.worker_id, :] = record.params[0]
-    return best[0], xbest
+
+def feasible_merit(record, data):
+    x = record.params[0].reshape((1, record.params[0].shape[0]))
+    if np.max(data.eval_ineq_constraints(x) > 0):
+        return np.inf
+    return record.value
+
 
 def main():
     print("Number of threads: 4")
@@ -43,32 +37,37 @@ def main():
                                       eta=1e-8, maxp=maxeval)
 
     # Use a multi-search strategy for candidate points
-    sp1 = CandidateDyCORS(data=data, numcand=200*data.dim)
-    sp2 = CandidateUniform(data=data, numcand=200*data.dim)
-    sp3 = CandidateDyCORS_INT(data=data, numcand=200*data.dim)
-    sp4 = CandidateDyCORS_CONT(data=data, numcand=200*data.dim)
-    search_proc = MultiSearchStrategy([sp1, sp2, sp3, sp4], [0, 1, 2, 3])
+    search_proc = MultiSearchStrategy(
+        [CandidateDyCORS(data=data, numcand=200*data.dim),
+         CandidateUniform(data=data, numcand=200*data.dim),
+         CandidateDyCORS_INT(data=data, numcand=200*data.dim),
+         CandidateDyCORS_CONT(data=data, numcand=200*data.dim)],
+        [0, 1, 2, 3])
 
     # Create a strategy and a controller
     controller = ThreadController()
-    strategy = [SyncStrategyPenalty(worker_id=0, data=data,
-                                    response_surface=response_surface,
-                                    maxeval=maxeval, nsamples=nsamples,
-                                    exp_design=exp_design,
-                                    search_procedure=search_proc,
-                                    quiet=True)]
-    strategy = MultiStartStrategy(controller, strategy)
-    controller.strategy = strategy
+    controller.strategy = \
+        SyncStrategyPenalty(
+            worker_id=0, data=data,
+            response_surface=response_surface,
+            maxeval=maxeval, nsamples=nsamples,
+            exp_design=exp_design,
+            search_procedure=search_proc,
+            quiet=True)
 
     # Launch the threads
     for _ in range(nthreads):
-        controller.launch_worker(BasicWorkerThread(controller, data.objfunction))
+        worker = BasicWorkerThread(controller, data.objfunction)
+        controller.launch_worker(worker)
 
-    controller.run()
-    best, xbest = get_best_feas(controller, data)
+    result = controller.run(merit=lambda r: feasible_merit(r, data))
+    best, xbest = result.value, result.params[0]
 
-    print('Best value: ' + str(best))
-    print('Best solution: ' + np.array_str(xbest[0, :], max_line_width=np.inf, precision=5, suppress_small=True))
+    print('Best value: {0}'.format(best))
+    print('Best solution: {0}'.format(
+        np.array_str(xbest, max_line_width=np.inf,
+                     precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     main()
