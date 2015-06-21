@@ -15,12 +15,12 @@ import numpy as np
 import math
 from experimental_design import LatinHypercube
 from search_procedure import round_vars, CandidateDyCORS
-from poap.strategy import Proposal, RetryStrategy
+from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
     dlinear_tail, RBFInterpolant
 
 
-class SyncStrategyNoConstraints(object):
+class SyncStrategyNoConstraints(BaseStrategy):
     """Parallel synchronous optimization strategy with non-bound constraints.
 
     This class implements the parallel synchronous SRBF strategy
@@ -83,7 +83,7 @@ class SyncStrategyNoConstraints(object):
         self.numeval = 0
         self.status = 0
         self.sigma = 0
-        self.resubmitter = RetryStrategy(self)
+        self.resubmitter = RetryStrategy()
         self.xbest = None
         self.fbest = np.inf
         self.fbest_old = None
@@ -165,7 +165,8 @@ class SyncStrategyNoConstraints(object):
 
         start_sample = round_vars(self.data, start_sample)
         for j in range(min(start_sample.shape[0], self.maxeval-self.numeval)):
-            self.resubmitter.append(start_sample[j, :])
+            proposal = self.propose_eval(start_sample[j, :])
+            self.resubmitter.rput(proposal)
 
         self.search.init(start_sample)
 
@@ -177,7 +178,8 @@ class SyncStrategyNoConstraints(object):
         self.search.make_points(self.xbest, self.sigma,
                                 self.fhat.evals, self.maxeval, True)
         for _ in range(nsamples):
-            self.resubmitter.append(np.ravel(self.search.next()))
+            proposal = self.propose_eval(np.ravel(self.search.next()))
+            self.resubmitter.rput(proposal)
 
     def start_batch(self):
         """Generate and queue a new batch of points
@@ -191,10 +193,10 @@ class SyncStrategyNoConstraints(object):
         """Propose an action
         """
         if self.numeval == self.maxeval:
-            return Proposal('terminate')
-        elif self.resubmitter.num_outstanding() == 0:
+            return self.propose_terminate()
+        elif self.resubmitter.num_eval_outstanding == 0:
             self.start_batch()
-        return self.resubmitter.propose_action()
+        return self.resubmitter.get()
 
     def on_complete(self, record):
         """Handle completed function evaluation.
@@ -262,7 +264,8 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.search.make_points(self.xbest, self.sigma,
                                 self.evals, self.maxeval, True)
         for _ in range(nsamples):
-            self.resubmitter.append(np.ravel(self.search.next()))
+            proposal = self.propose_eval(np.ravel(self.search.next()))
+            self.resubmitter.rput(proposal)
 
     def log_completion(self, record, penalty):
         """Record a completed evaluation to the log.
