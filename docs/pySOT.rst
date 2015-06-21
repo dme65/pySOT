@@ -11,10 +11,10 @@ Subpackages
 Submodules
 ----------
 
-pySOT.constraint_method module
+pySOT.ensemble_surrogate module
 ------------------------------
 
-.. automodule:: pySOT.constraint_method
+.. automodule:: pySOT.ensemble_surrogate
     :members:
     :undoc-members:
     :show-inheritance:
@@ -67,18 +67,10 @@ pySOT.search_procedure module
     :undoc-members:
     :show-inheritance:
 
-pySOT.sot_sync module
+pySOT.sot_sync_strategies module
 ---------------------
 
-.. automodule:: pySOT.sot_sync
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pySOT.surrogate_optimizer module
---------------------------------
-
-.. automodule:: pySOT.surrogate_optimizer
+.. automodule:: pySOT.sot_sync_strategies
     :members:
     :undoc-members:
     :show-inheritance:

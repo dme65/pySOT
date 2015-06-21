@@ -45,6 +45,7 @@ class RBFInterpolant(object):
     :ivar A: Interpolation system matrix
     :ivar rhs: Right hand side for interpolation system
     :ivar x: Interpolation points
+    :ivar fx: Values at interpolation points
     :ivar c: Expansion coefficients
     :ivar dim: Number of dimensions
     :ivar ntail: Number of tail functions
