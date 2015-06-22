@@ -9,13 +9,6 @@ from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 
 
-def feasible_merit(record, data):
-    x = record.params[0].reshape((1, record.params[0].shape[0]))
-    if np.max(data.eval_ineq_constraints(x) > 0):
-        return np.inf
-    return record.value
-
-
 def main():
     print("Number of threads: 4")
     print("Maximum number of evaluations: 1000")
@@ -29,6 +22,13 @@ def main():
 
     data = Keane(dim=30)
     print(data.info)
+
+    def feasible_merit(record):
+        "Merit function for ordering final answers -- kill infeasible x"
+        x = record.params[0].reshape((1, record.params[0].shape[0]))
+        if np.max(data.eval_ineq_constraints(x)) > 0:
+            return np.inf
+        return record.value
 
     # Create a strategy and a controller
     controller = ThreadController()
@@ -47,7 +47,7 @@ def main():
         worker = BasicWorkerThread(controller, data.objfunction)
         controller.launch_worker(worker)
 
-    result = controller.run(merit=lambda r: feasible_merit(r, data))
+    result = controller.run(merit=feasible_merit)
     best, xbest = result.value, result.params[0]
 
     print('Best value: {0}'.format(best))
