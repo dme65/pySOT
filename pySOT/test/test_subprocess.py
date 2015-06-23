@@ -4,11 +4,13 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
+import logging
 from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
 from subprocess import Popen, PIPE
 import os.path
+
 
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
@@ -36,11 +38,13 @@ class DummySim(ProcessWorkerThread):
             val = float(out)  # This raises ValueError if out is not a float
             self.finish_success(record, val)
         except ValueError:
-            print "Function evaluation crashed/failed"
+            logging.info("Function evaluation crashed/failed")
             self.finish_failure(record)
 
 
 def main():
+    logging.basicConfig(format="%(message)s", level=logging.INFO)
+
     print("Number of threads: 4")
     print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DyCORS")
@@ -65,8 +69,7 @@ def main():
             search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
             response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
                                             dphi=dphi_cubic, dP=dlinear_tail,
-                                            eta=1e-8, maxp=maxeval),
-            quiet=True)
+                                            eta=1e-8, maxp=maxeval))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

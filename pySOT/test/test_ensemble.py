@@ -4,12 +4,16 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
+import logging
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 
 
 def main():
+    logging.basicConfig(filename="./surrogate_optimizer.log",
+                        level=logging.INFO)
+
     print("Number of threads: 4")
     print("Maximum number of evaluations: 50")
     print("Search strategy: Candidate SRBF")
@@ -40,9 +44,6 @@ def main():
     # experimental design
     extra = np.atleast_2d([0.1, 0.5, 0.8])
 
-    # Print all info to the following file (instead of stdout)
-    stream = open("./surrogate_optimizer.log", 'w')
-
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
@@ -52,7 +53,7 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
             search_procedure=CandidateSRBF(data=data, numcand=200*data.dim),
-            stream=stream, extra=extra)
+            extra=extra)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

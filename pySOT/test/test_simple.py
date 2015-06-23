@@ -33,8 +33,7 @@ def main():
             response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
                                             dphi=dphi_cubic, dP=dlinear_tail,
                                             eta=1e-8, maxp=maxeval),
-            search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
-            quiet=True)
+            search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

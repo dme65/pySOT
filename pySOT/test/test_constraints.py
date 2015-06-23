@@ -4,6 +4,7 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
+import logging
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
@@ -35,7 +36,7 @@ def main():
     controller.strategy = \
         SyncStrategyPenalty(
             worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples, quiet=True,
+            maxeval=maxeval, nsamples=nsamples,
             response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
                                             dphi=dphi_cubic, dP=dlinear_tail,
                                             eta=1e-8, maxp=maxeval),

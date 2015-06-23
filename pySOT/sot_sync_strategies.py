@@ -15,11 +15,16 @@ from __future__ import print_function
 import sys
 import numpy as np
 import math
+import logging
 from experimental_design import LatinHypercube
 from search_procedure import round_vars, CandidateDyCORS
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
     dlinear_tail, RBFInterpolant
+
+
+# Get module-level logger
+logger = logging.getLogger(__name__)
 
 
 class SyncStrategyNoConstraints(BaseStrategy):
@@ -42,8 +47,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
-                 exp_design=None, search_procedure=None, extra=None,
-                 quiet=False, stream=sys.stdout):
+                 exp_design=None, search_procedure=None, extra=None):
         """Initialize the optimization strategy.
 
         :param worker_id: Start ID in a multistart setting
@@ -55,13 +59,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param search_procedure: Search procedure for finding
             points to evaluate
         :param extra: Points to be added to the experimental design
-        :param quiet: If True, nothing is printed to the stream
-        :param stream: Where progress should be printed, sys.stdout is default
         """
 
         self.worker_id = worker_id
-        self.quiet = quiet
-        self.stream = stream
         self.data = data
         self.fhat = response_surface
         if self.fhat is None:
@@ -101,15 +101,6 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Start with first experimental design
         self.sample_initial()
 
-    def log(self, message):
-        """Record a message string to the log.
-
-        :param message: Message to be printed to the logfile
-        """
-        if not self.quiet:
-            print(message, file=self.stream)
-            self.stream.flush()
-
     def log_completion(self, record):
         """Record a completed evaluation to the log.
 
@@ -117,8 +108,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         """
         xstr = np.array_str(record.params[0], max_line_width=np.inf,
                             precision=5, suppress_small=True)
-        self.log("{0}:\t{1}\t{2}\n\t{3}".format(
-            self.numeval, record.value, "Feasible", xstr))
+        logger.info("Feasible {:.3e} @ {}".format(record.value, xstr))
 
     def adjust_step(self):
         """Adjust the sampling radius sigma.
@@ -145,16 +135,16 @@ class SyncStrategyNoConstraints(BaseStrategy):
         if self.status <= -self.failtol:
             self.status = 0
             self.sigma /= 2
-            self.log("Reducing sigma")
+            logger.info("Reducing sigma")
         if self.status >= self.succtol:
             self.status = 0
             self.sigma = min(2 * self.sigma, self.sigma_max)
-            self.log("Increasing sigma")
+            logger.info("Increasing sigma")
 
     def sample_initial(self):
         """Generate and queue an initial experimental design.
         """
-        self.log("=== Restart ===")
+        logger.info("=== Restart ===")
         self.fhat.reset()
         self.sigma = self.sigma_max
         self.status = 0
@@ -252,7 +242,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, search_procedure=None, extra=None,
-                 quiet=False, stream=sys.stdout, penalty=1.0E6):
+                 penalty=1.0E6):
         """Initialize the optimization strategy.
 
         :param worker_id: Start ID in a multistart setting
@@ -264,15 +254,12 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :param search_procedure: Search procedure for finding
             points to evaluate
         :param extra: Points to be added to the experimental design
-        :param quiet: If True, nothing is printed to the stream
-        :param stream: Where progress should be printed, sys.stdout is default
         :param penalty: Penalty for violating constraints
         """
         SyncStrategyNoConstraints.__init__(self,  worker_id, data,
                                            response_surface, maxeval,
                                            nsamples, exp_design,
-                                           search_procedure, extra,
-                                           quiet, stream)
+                                           search_procedure, extra)
         self.penalty = penalty
 
     def penalty_fun(self, xx):
@@ -332,8 +319,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         feas = "Feasible"
         if penalty > 0.0:
             feas = "Infeasible"
-        self.log("{0}:\t{1}\t{2}\n\t{3}".format(
-            self.numeval, record.value, feas, xstr))
+        logger.info("{} {:.3e} @ {}".format(feas, record.value, xstr))
 
     def on_complete(self, record):
         """Handle completed function evaluation.

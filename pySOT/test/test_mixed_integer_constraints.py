@@ -52,8 +52,7 @@ def main():
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=exp_design,
-            search_procedure=search_proc,
-            quiet=True)
+            search_procedure=search_proc)
 
     # Launch the threads
     for _ in range(nthreads):
