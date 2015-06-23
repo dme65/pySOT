@@ -8,7 +8,7 @@ from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
 from subprocess import Popen, PIPE
-
+import os.path
 
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
@@ -33,9 +33,10 @@ class DummySim(ProcessWorkerThread):
                              stdout=PIPE)
         out = self.process.communicate()[0]
         try:
-            val = float(out)
+            val = float(out)  # This raises ValueError if out is not a float
             self.finish_success(record, val)
-        except:
+        except ValueError:
+            print "Function evaluation crashed/failed"
             self.finish_failure(record)
 
 
@@ -46,11 +47,12 @@ def main():
     print("Experimental design: Latin Hypercube")
     print("Ensemble surrogates: Cubic RBF")
 
+    assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
     nthreads = 4
     maxeval = 200
     nsamples = nthreads
 
-    data = SphereExt(dim=3)
+    data = SphereExt(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
@@ -64,7 +66,7 @@ def main():
             response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
                                             dphi=dphi_cubic, dP=dlinear_tail,
                                             eta=1e-8, maxp=maxeval),
-            quiet=False)
+            quiet=True)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
@@ -77,7 +79,6 @@ def main():
     print('Best solution found: {0}'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
-
 
 if __name__ == '__main__':
     main()

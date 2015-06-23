@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pySOT',
-    version='0.2.0',
+    version='0.1.1',
     packages=['pySOT', 'pySOT.test'],
     url='http://pypi.python.org/pypi/pySOT/',
     license='LICENSE.txt',

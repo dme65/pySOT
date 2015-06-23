@@ -14,7 +14,7 @@ def main():
     print("Maximum number of evaluations: 50")
     print("Search strategy: Candidate SRBF")
     print("Experimental design: Latin Hypercube + point [0.1, 0.5, 0.8]")
-    print("Surrogate: Cubic RBF")
+    print("Surrogate: Cubic RBF, Linear RBF, Thin-plate RBF, MARS")
 
     nthreads = 4
     maxeval = 50

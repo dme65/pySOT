@@ -35,6 +35,7 @@
 \usepackage{color}
 %\usepackage{listings}
 \usepackage{setspace}
+\usepackage{xcolor}
 
 \usepackage{color}
 \usepackage[procnames]{listings}
@@ -94,8 +95,6 @@ rulesepcolor=\color{blue},#1
 }}{}
 
 
-
-
 %%%%% Titling
 \usepackage[compact]{titlesec}
 \newcommand{\overbar}[1]{\mkern 1.5mu\overline{\mkern-1.5mu#1\mkern-1.5mu}\mkern 1.5mu}
@@ -115,7 +114,7 @@ rulesepcolor=\color{blue},#1
 	\pagestyle{fancy}
 	\fancyhead{}
 	\fancyfoot{}
-	\fancyhead[C]{Surrogate Optimization Toolbox (pySOT) - 0.1.0 $\bullet$ Tutorial $\bullet$ David Eriksson $\bullet$ \today}
+	\fancyhead[C]{Surrogate Optimization Toolbox in Python (pySOT) - 0.1.1 $\bullet$ Tutorial $\bullet$ David Eriksson, David Bindel, Christine Shoemaker $\bullet$ \today}
 	\fancyfoot[RO,LE]{\thepage}
 
 %%% ---- MATLAB CODE ---- %%%
@@ -158,10 +157,12 @@ rulesepcolor=\color{blue},#1
 %%%% Title
 \title{\vspace{-15mm}%
 	\fontsize{18pt}{10pt}\selectfont
-	\textbf{Surrogate Optimization Toolbox (pySOT) - 0.1.0 \\ Tutorial}
+	\textbf{Surrogate Optimization Toolbox (pySOT) - 0.1.1 \\ Tutorial}
 	}	
 \author{%
 	\Large\textsc{David Eriksson} \\[2mm]
+	\Large\textsc{David Bindel} \\[2mm]
+	\Large\textsc{Christine Shoemaker} \\[2mm]
 		\normalsize	Cornell University \\
 	\normalsize Center for Applied Mathematics \\
 	\normalsize	dme65@cornell.edu \\ 
@@ -239,10 +240,7 @@ pip install -r ./requirements.txt
 \begin{python}
 python setup.py install
 \end{python} 
-\item Run a 30 dimensional test problem of the Ackley objective function with 4 threads and 1000 evaluations: 
-\begin{python}
-python ./pySOT/test/test.py
-\end{python}
+\item Several test problems are available at ./pySOT/test
 \end{enumerate}
 \end{enumerate}
 \ \newline \textbf{Optional: } If you want to use MARS you need to install the py-earth toolbox (http://github.com/jcrudy/py-earth)  
@@ -260,7 +258,9 @@ make html
 
 \section{Options}
 These are the the components and the supported options:
-\subsection{Experimental design} The experimental design generates the initial points to be evaluated. A well-chosen experimental design is critical in order to fit a Surrogate model that captures the behavior of the underlying objective function. The following experimental designs are supported:
+\subsection{Experimental design} 
+\label{expdes}
+The experimental design generates the initial points to be evaluated. A well-chosen experimental design is critical in order to fit a Surrogate model that captures the behavior of the underlying objective function. The following experimental designs are supported:
 \begin{itemize}
 \item \textbf{LatinHypercube}. Arguments:
 \begin{itemize}
@@ -270,7 +270,7 @@ These are the the components and the supported options:
 \ \newline Example: 
 \begin{python}
 from pySOT import LatinHypercube
-LatinHypercube(dim=3, npts=10)
+exp_des = LatinHypercube(dim=3, npts=10)
 \end{python}
 creates a Latin hypercube design with 10 points in 3 dimensions
 \item \textbf{SymmetricLatinHypercube} Arguments:
@@ -281,13 +281,15 @@ creates a Latin hypercube design with 10 points in 3 dimensions
 \ \newline Example: 
 \begin{python}
 from pySOT import SymmetricLatinHypercube
-SymmetricLatinHypercube(dim=3, npts=10)
+exp_des = SymmetricLatinHypercube(dim=3, npts=10)
 \end{python}
 creates a symmetric Latin hypercube design with 10 points in 3 dimensions
 
 \end{itemize}
 
-\subsection{Surrogate model} The surrogate model approximates the underlying objective function given all of the points that have been evaluated. The following surrogate models are supported:
+\subsection{Surrogate model} 
+\label{surrogate}
+The surrogate model approximates the underlying objective function given all of the points that have been evaluated. The following surrogate models are supported:
 \begin{itemize}
 \item \textbf{RBFInterpolant}. A radial basis function interpolant. Arguments:
 \begin{itemize}
@@ -320,21 +322,20 @@ creates a symmetric Latin hypercube design with 10 points in 3 dimensions
 \begin{python}
 from pySOT import RBFInterpolant, phi_cubic, linear_tail, \
 	          dphi_cubic, dlinear_tail
-RBFInterpolant(phi=phi_cubic, P=linear_tail, dphi=dphi_cubic, 
+fhat = RBFInterpolant(phi=phi_cubic, P=linear_tail, dphi=dphi_cubic, 
                dP=dlinear_tail, eta=1e-8, maxp=500)
 \end{python}
 creates a cubic RBF with a linear tail with a capacity for 500 points.
 \item \textbf{KrigingInterpolant:} A Kriging interpolant. Arguments:
 \begin{itemize}
-\item \textbf{initp:} Number of initial points for setting up Kriging model. Use the same number of points that you generate from the experimental design. The Kriging model is not used before all points in the experimental design have been evaluated.
 \item \textbf{maxp:} Maximum number of points (can grow). Default is 100
 \end{itemize}
 \ \newline Example:
 \begin{python}
 from pySOT import KrigingInterpolant
-KrigingInterpolant(initp=20, maxp=500)
+fhat = KrigingInterpolant(maxp=500)
 \end{python}
-generates a Kriging interpolant that needs 20 initial points and a capacity of 500 points.
+creates a Kriging interpolant with a capacity of 500 points.
 \item \textbf{MARSInterpolant:} Generate a Multivariate Adaptive Regression Splines (MARS) model. Arguments:
 \begin{itemize}
 \item \textbf{maxp:} Maximum number of points (can grow). Default is 100
@@ -342,48 +343,57 @@ generates a Kriging interpolant that needs 20 initial points and a capacity of 5
 \ \newline Example: 
 \begin{python}
 from pySOT import MARSInterpolant
-MARSInterpolant(maxp=500)
+fhat = MARSInterpolant(maxp=500)
 \end{python}
-generates a MARS interpolant with a capacity of 500 points.
+creates a MARS interpolant with a capacity of 500 points.
+\item \textbf{EnsembleSurrogate:} We also provide the option of using multiple surrogates for the same problem. Suppose we have $M$ surrogate models, then the ensemble surrogate takes the form
+\begin{equation*}
+s(x) = \sum_{j=1}^M w_j s_j(x)
+\end{equation*}
+where $w_j$ are non-negative weights that sum to 1. Hence the value of the ensemble surrogate is the weighted prediction of the $M$ surrogate models. We use leave-one-out for each surrogate model to predict the function value at the removed point and then compute several statistics such as correlation with the true function values, RMSE, etc.  Based on these statistics we use Dempster-Shafer Theory to compute the pignistic probability for each model, and take this probability as the weight. Surrogate models that does a good job predicting the removed points will generally be given a large weight. The arguments are:
+\begin{itemize}
+\item \textbf{model\_list:} A list of surrogate model objects to be used.
+\item \textbf{maxp:} Maximum number of points (can grow). Default is 100
+\end{itemize}
+\ \newline Example: 
+\begin{python}
+from pySOT import RBFInterpolant, phi_cubic, dphi_cubic, linear_tail, \
+        dlinear_tail, MARSInterpolant
+
+fhat1 = RBFInterpolant(phi_cubic, linear_tail,
+                       dphi_cubic, dlinear_tail, 1e-8, 500)
+fhat2 = MARSInterpolant(500)
+models = [fhat1, fhat2]
+fhat = EnsembleSurrogate(models, 500)
+\end{python}
+creates an ensemble surrogate with two surrogate models, namely a Cubic RBF and a MARS interpolant.
 \end{itemize}
 \textbf{Note:} The user is responsible for resetting the response surface after each experiment and this is done by calling the reset() method.
 
-\subsection{Capped RBF model} Functions with exponential behaviors can cause the fitted surface to oscillate wildly. In the case of the RBFInterpolant we therefore provide a capping strategy that replaces every value above the median by the median value. This adapter takes an existing response surface and replaces it with a modified version in which any function values above the median are replaced by the median value. \\
+\subsection{Capped RBF model} Functions with very large function values can cause the fitted surface to oscillate wildly. In the case of the RBFInterpolant we therefore provide a capped version that replaces every value above the median by the median value. This adapter takes an existing response surface and replaces it with a modified version in which any function values above the median are replaced by the median value. \\
 \ \newline Example: 
 \begin{python}
 from pySOT import RSCapped, RBFInterpolant, phi_cubic, linear_tail, \
 	          dphi_cubic, dlinear_tail
-RSCapped(RBFInterpolant(phi=phi_cubic, P=linear_tail, dphi=dphi_cubic, 
-                        dP=dlinear_tail, eta=1e-8, maxp=500))
+fhat = RSCapped(RBFInterpolant(phi=phi_cubic, P=linear_tail, dphi=dphi_cubic, 
+                               dP=dlinear_tail, eta=1e-8, maxp=500))
 \end{python}
 creates a cubic RBF with a linear tail with a capacity for 500 points with capping.
 
-\subsection{Constraint Method} In order to handle general inequality constraints we have implemented a simple penalty method that starts with a penalty $\mu$ set by the user and then solves the box-constrained optimization problem 
-\begin{align*}
-\underset{x}{\operatorname{minimize}} \qquad &f(x)+\mu \sum_{i=1}^M \max(0,g_i(x))^2 \\
-\operatorname{subject\;to:} \qquad &-\infty<\ell_i \leq x_i \leq u_i<\infty, \quad i = 1,\ldots,n \\
-\end{align*}
-where $x \in \Rb^n$ and there are $M$ inequality constraints of the form $g_i(x) \leq 0,$ for $i=1,\ldots,M$. If the best solution found is infeasible the penalty is multiplied by 10 and the algorithm restarts. This is carried out until the best solution found is feasible.
-\ \newline \ \newline Example: 
-\begin{python}
-from pySOT import PenaltyMethod
-PenaltyMethod(penalty=1.0)
-\end{python}
-\ \newline \noindent \textbf{Note:} The user is responsible for resetting the constraint handler after each experiment and this is done by calling the reset() method. The constraint handler is not reset to make the penalty that gave a feasible solution accessible for the user, so that this value can guide the penalty for the next experiment.
-
-\subsection{Objective function} The objective function is its own object and must have certain attributes and methods in order to work with the framework. We start by giving an example of a mixed-integer optimization problem with constraints. The following attributes must always be specified in the objective function class:
+\subsection{Objective function} 
+\label{objfun}
+The objective function is its own object and must have certain attributes and methods in order to work with the framework. We start by giving an example of a mixed-integer optimization problem with constraints. The following attributes must always be specified in the objective function class:
 \begin{itemize}
 \item \textbf{xlow:} Lower bounds for the variables.
 \item \textbf{xup:} Upper bounds for the variables.
 \item \textbf{dim:} Number of dimensions
 \item \textbf{integer:} Specifies the integer variables. If no variables have integer constraints, set to [\,]
 \item \textbf{continuous:} Specifies the continuous variables. If no variables are continuous, set to [\,]
-\item \textbf{constraints:} Set to True if there are inequality constraints in addition to \\ the bound constraints. Set to False otherwise
 \end{itemize}
 \ \newline The following methods must also exist.
 \begin{itemize}
-\item \textbf{objfunction:} Takes one input in the form of an numpy.ndarray, which corresponds to one point in dim dimensions. Returns the value of the objective function
-\item \textbf{eval\_ineq\_constraints:}  Only necessary if the attribute constraints is true. Takes one input in the form of an numpy.ndarray, which corresponds to one point in dim dimensions. Returns a numpy.matrixlib.defmatrix.matrix of size $1 \times M$ where $M$ is the number of inequality constraints that are not bound constraints. 
+\item \textbf{objfunction:} Takes one input in the form of an numpy.ndarray with shape (1, dim), which corresponds to one point in dim dimensions. Returns the value (a scalar) of the objective function at this point.
+\item \textbf{eval\_ineq\_constraints:}  Only necessary if there are non-constraints. All constraints must be inequality constraints and the must be written in the form $g_i(x) \leq 0$. The function takes one input in the form of an numpy.ndarray of shape (n, dim), which corresponds to $n$ points in dim dimensions. Returns an numpy.ndarray of size $n \times M$ where $M$ is the number of inequality constraints.
 \end{itemize}
 \ \newline \noindent What follows is an example of an objective function in 5 dimensions with 3 integer and 2 continuous variables. There are also 3 inequality constraints that are not bound constraints which means that we need to implement the eval\_ineq\_constraints method.
 \begin{python}
@@ -397,13 +407,12 @@ class LinearMI:
         self.min = -1
         self.integer = np.arange(0, 3)
         self.continuous = np.arange(3, 5)
-        self.constraints = True
 
     def eval_ineq_constraints(self, x):
-        vec = np.zeros((3,))
-        vec[0] = x[0] + x[2] - 1.6
-        vec[1] = 1.333 * x[1] + x[3] - 3
-        vec[2] = - x[2] - x[3] + x[4]
+        vec = np.zeros((x.shape[0], 3))
+        vec[:, 0] = x[:, 0] + x[:, 2] - 1.6
+        vec[:, 1] = 1.333 * x[:, 1] + x[:, 3] - 3
+        vec[:, 2] = - x[:, 2] - x[:, 3] + x[:, 4]
         return vec
 
     def objfunction(self, x):
@@ -411,15 +420,16 @@ class LinearMI:
             raise ValueError('Dimension mismatch')
         return - x[0] + 3 * x[1] + 1.5 * x[2] + 2 * x[3] - 0.5 * x[4]
 \end{python}
-\textbf{Note:} The method validate in test\_problems.py is helpful in order to test that the objective function is compatible with the framework. \newline
+\textbf{Note:} The method \textit{validate} which is available in pySOT is helpful in order to test that the objective function is compatible with the framework. \newline
 
-
-\subsection{Generation of next point to evaluate} We provide several different methods for selecting the next point to evaluate. All methods in this version are based in generating candidate points by perturbing the best solution found so far or in some cases just choose a random point. We also provide the option of using many different strategies in the same experiment and how to cycle between the different strategies. We start by listing all the different options and describe shortly how they work.
+\subsection{Generation of next point to evaluate} 
+\label{search}
+We provide several different methods for selecting the next point to evaluate. All methods in this version are based in generating candidate points by perturbing the best solution found so far or in some cases just choose a random point. We also provide the option of using many different strategies in the same experiment and how to cycle between the different strategies. We start by listing all the different options and describe shortly how they work.
 \begin{itemize}
 \item \textbf{CandidateSRBF:} Generate perturbations around the best solution found so far
 \item \textbf{CandidateSRBF\_INT:} Uses CandidateSRBF but only perturbs the integer variables
 \item \textbf{CandidateSRBF\_CONT:} Uses CandidateSRBF but only perturbs the continuous variables
-\item \textbf{DyCORS} Uses a DDS strategy which perturbs each coordinate with some iteration dependent probability. This probability is a monotonically decreasing function with the number of iteration.
+\item \textbf{CandidateDyCORS} Uses a DDS strategy which perturbs each coordinate with some iteration dependent probability. This probability is a monotonically decreasing function with the number of iteration.
 \item \textbf{CandidateDyCORS\_CONT:} Uses CandidateDyCORS but only perturbs the continuous variables
 \item \textbf{CandidateDyCORS\_INT:} Uses CandidateDyCORS but only perturbs the integer variables
 \item \textbf{CandidateUniform:} Chooses a new point uniformly from the box-constrained domain
@@ -441,131 +451,437 @@ weights = [0, 1, 2, 3]
 search_strategy = MultiSearchStrategy(search_strategies, weights)
 \end{python}
 
-\subsection{Surrogate optimizer} 
-We provide a synchronous parallel framework for solving the optimization problem. The method of interest is called optimize and is available in \textit{surrogate\_optimizer.py}. It takes the following input arguments:
+\section{POAP}
+pySOT uses POAP, which an event-driven framework for building and combining asynchronous optimization strategies. There are two main components in POAP, namely controllers and strategies. The controller is  capable of asking workers to run function evaluations and the strategy decides where to evaluate next. POAP works with external black-box objective functions and handles potential crashes in the objective function evaluation. There is also a logfile from which all function evaluations can be accessed after the run finished. In its simplest form, an optimization code with POAP that evaluates a function predetermined set of points using NUM\_WORKERS threads may look the following way:
+
+\begin{python}
+from poap.strategy import FixedSampleStrategy
+from poap.strategy import CheckWorkStrategy
+from poap.controller import ThreadController
+from poap.controller import BasicWorkerThread
+
+# samples = list of sample points ...
+
+controller = ThreadController()
+sampler = FixedSampleStrategy(samples)
+controller.strategy = CheckWorkerStrategy(controller, sampler)
+
+for i in range(NUM_WORKERS):
+    t = BasicWorkerThread(controller, objective)
+    controller.launch_worker(t)
+
+result = controller.run()
+print 'Best result: {0} at {1}'.format(result.value, result.params)
+\end{python}
+
+\subsection{Controller} pySOT needs only the ThreadController, where we create a team of workers (threads) that carry our objective function evaluations. If the objective function is an external program we use workers of the class ProcessWorkerThread, whilst if the objective function isn't external we can just use the BasicWorkerThread class.
+
+\section{Strategies} pySOT provides two strategies:
 \begin{itemize}
-\item \textbf{nthreads:} Number of threads (threads) to be used
-\item \textbf{maxeval:} Maximal number of function evaluations
-\item \textbf{nsample:} Maximal number of simultaneous function evaluations allowed. It is recommended to set this value to nthreads
-\item \textbf{response\_surface:} A surrogate model (response surface)
-\item \textbf{experimental\_design:} An experimental design to generate initial points from
-\item \textbf{search\_strategies:} A strategy for generating new points to evaluate (can be MultiSearchStrategy)
-\item \textbf{constraint\_handler:} Method for handling non-bound constraints
+\item \textbf{SyncStrategyNoConstraints:} This strategy is to be used in case there are only bound constraints and no additional constraints. The arguments to this strategy are:
+\begin{itemize}
+\item \textbf{worker\_id:} An idea that the controller can use to distinguish between multiple simultaneously running optimization problems.
+\item \textbf{data:} Objective function object, as described in Section \ref{objfun}
+\item \textbf{response\_surface:} Response surface object, as described in Section \ref{surrogate}
+\item \textbf{maxeval:} Maximum number of function evaluations
+\item \textbf{nsamples:} Maximum number of simultaneous function evaluations (can be set to the number of workers/threads)
+\item \textbf{exp\_design:} Experimental design to do the initial evaluations, as described in Section \ref{expdes}. Default is a Latin Hypercube with 2dim+1 points
+\item \textbf{search\_procedure} Method to propose new evaluations, as described in Section \ref{search}. Default is Candidate DyCORS with 100dim candidate points.
+\item \textbf{extra:} Additional point to be added to the experimental design. If a good solution is known, you can use this argument to make sure this point is evaluated early. 
+\item \textbf{quiet:} Set to false if you want all messages to be suppressed. Default is True and the value of each evaluation is printed when it finishes.
+\item \text{stream:} If you want pySOT to print messages during the optimization run to some other place than stdout you can provide a stream here. If no argument is given, messages are printed to stdout.
 \end{itemize}
-\ \newline Example: 
-\begin{python}
-from pySOT import optimize
-xbest, fbest = optimize(nthreads=nthreads, data=data, maxeval=maxeval, 
-			nsample=nsample, response_surface=rsurface,
-                        experimental_design=expdes, search_strategies=sstrat, 
-                        constraint_handler=chandle)
-\end{python}
-The method returns to values, xbest and fbest, which is the best solution found and its objective function value. All of the information from the run is currently printed to an external logfile, ./surrogate\_optimization.log, but if the user want this information available in a structure I can make this possible as well.
+\item \textbf{SyncStrategyPenalty:} If there are additional non-bound constraints we provide a penalty based strategy. This strategy assumes that it makes sense to evaluate the objective function outside the feasible region. The strategy also assumes that there is a method eval\_ineq\_constraints that works exactly as described in Section \ref{objfun}. The startegy takes the same argument as SyncStrategyNoConstraints plus one addition argument which is the penalty to be used in the penalty method. Given a penalty $\mu$ set by the user we try to solve the box-constrained optimization problem 
+\begin{align*}
+\underset{x}{\operatorname{minimize}} \qquad &\widetilde{f}(x)=f(x)+\mu \sum_{i=1}^M \max(0,g_i(x))^2 \\
+\operatorname{subject\;to:} \qquad &-\infty<\ell_i \leq x_i \leq u_i<\infty, \quad i = 1,\ldots,n \\
+\end{align*}
+where $x \in \Rb^n$ and there are $M$ inequality constraints of the form $g_i(x) \leq 0,$ for $i=1,\ldots,M$. If you want the resulting solution to be feasible, just set $\mu$ to a very large value. This will force the algorithms to work there way towards a feasible solution. Candidate points are generated based on the solution with the smallest value of $\widetilde{f}$. In order to rank function value prediction by the response surface we set all infeasible solutions to have the same prediction as the worst feasible candidate point. The reason for this is that large penalties make it impossible for the weighted distance criteria to distinguish between feasible points. This modified approach will make the algorithm prefer feasible candidate points over infeasible candidate points as long as the function value is weighted higher than the minimum distance.
+\end{itemize}
 
-\section{An example of how to minimize the 30-dimensional Ackley function}
+\section{Examples}
+This section provides several examples that shows how to use POAP and pySOT to solve optimization problems.
+
+\subsection{First example (Hello World)}
+This example is a continuous optimization problem of the 10-dimensional Ackley-function which has only bound constraints. We are using 4 threads and 1000 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyNoConstraints strategy, since there are only bound constraints. We launch 4 BasicWorkerThread, start the optimization and finally print the result to the screen.
+
 \begin{python}
+from pySOT import *
+from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 
-class Ackley:
-    #  Global optimum: f(0,0,...,0)=0
-    def __init__(self, dim=10):
-        self.xlow = -15 * np.ones(dim)
-        self.xup = 20 * np.ones(dim)
-        self.dim = dim
-        self.info = str(dim)+"-dimensional Ackley function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
-        self.min = 0
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-        self.constraints = False
-        validate(self)
+print("Number of threads: 4")
+print("Maximum number of evaluations: 1000")
+print("Search strategy: Candidate DyCORS")
+print("Experimental design: Latin Hypercube")
+print("Ensemble surrogates: Cubic RBF")
 
-    def objfunction(self, x):
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
-        n = float(len(x))
-        return -20.0*exp(-0.2*sqrt(sum(x**2)/n)) - \
-            exp(sum(cos(2.0*pi*x))/n) + 20 + exp(1)
+nthreads = 4
+maxeval = 1000
+nsamples = nthreads
+
+data = Ackley(dim=10)
+print(data.info)
+
+# Create a strategy and a controller
+controller = ThreadController()
+controller.strategy = \
+    SyncStrategyNoConstraints(
+        worker_id=0, data=data,
+        maxeval=maxeval, nsamples=nsamples,
+        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+        response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                        dphi=dphi_cubic, dP=dlinear_tail,
+                                        eta=1e-8, maxp=maxeval),
+        search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
+        quiet=True)
+
+# Launch the threads and give them access to the objective function
+for _ in range(nthreads):
+    worker = BasicWorkerThread(controller, data.objfunction)
+    controller.launch_worker(worker)
+
+# Run the optimization strategy
+result = controller.run()
+
+print('Best value found: {0}'.format(result.value))
+print('Best solution found: {0}'.format(
+    np.array_str(result.params[0], max_line_width=np.inf,
+                 precision=5, suppress_small=True)))
 \end{python}
 
+\subsection{Continuous problem with non-bound constraints}
+This example is a continuous optimization problem of the 10-dimensional Keane's bump function which has two non-bound constraints. We are using 4 threads and 500 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyPenalty strategy, with the default penalty $10^6$. POAP doesn't check feasibility, so we need to modify the run command to supply a filter that makes POAP discard infeasible points when looking for the best solution at the end of the run. The feasible\_merit method simply sets infeasible points to have infinite function value so that only feasible points are considered. If for example small constraint violations are accepted the user can provide a merit function that is more suitable such a case.
+
 \begin{python}
-from pySOT import CandidateDyCORS,  LatinHypercube, PenaltyMethod, RSCapped, \
-                  RBFInterpolant, phi_cubic, linear_tail, dphi_cubic, \
-	          dlinear_tail, Ackley, optimize
+from pySOT import *
+from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 
-if __name__ == "__main__":
-    nthreads = 4  # Number of threads
-    maxeval = 1000  # Maximal number of function evaluations
-    nsample = nthreads  # Maximal number of simultaneous evaluations
-    data = Ackley(dim=30)  # Optimization problem
-    ed = LatinHypercube(dim=data.dim, npts=2*data.dim+1)  # Experimental design
-    rs = RSCapped(RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                 dphi=dphi_cubic, dP=dlinear_tail,
-                                 eta=1e-8, maxp=maxeval))  # Surrogate
-    ss = CandidateDyCORS(data=data, numcand=100*data.dim)  # Search strategy
-    ch = PenaltyMethod(penalty=1.0)  # Constraint handling
+print("Number of threads: 4")
+print("Maximum number of evaluations: 500")
+print("Search strategy: CandidateDycors")
+print("Experimental design: Latin Hypercube")
+print("Surrogate: Cubic RBF")
 
-    print(data.info)
-    # Optimize the objective function in synchronous parallel using nthreads
-    # threads and at most maxeval function evaluations
-    xbest, fbest = optimize(nthreads=nthreads, data=data, maxeval=maxeval,
-                            nsample=nsample, response_surface=rs,
-                            experimental_design=ed, search_strategies=ss,
-                            constraint_handler=ch)
+nthreads = 4
+maxeval = 500
+nsamples = nthreads
+
+data = Keane(dim=10)
+print(data.info)
+
+def feasible_merit(record):
+    """Merit function for ordering final answers -- kill infeasible x"""
+    x = record.params[0].reshape((1, record.params[0].shape[0]))
+    if np.max(data.eval_ineq_constraints(x)) > 0:
+        return np.inf
+    return record.value
+
+# Create a strategy and a controller
+controller = ThreadController()
+controller.strategy = \
+    SyncStrategyPenalty(
+        worker_id=0, data=data,
+        maxeval=maxeval, nsamples=nsamples, quiet=True,
+        response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                        dphi=dphi_cubic, dP=dlinear_tail,
+                                        eta=1e-8, maxp=maxeval),
+        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+        search_procedure=CandidateDyCORS(data=data, numcand=5000))
+
+# Launch the threads
+for _ in range(nthreads):
+    worker = BasicWorkerThread(controller, data.objfunction)
+    controller.launch_worker(worker)
+
+result = controller.run(merit=feasible_merit)
+best, xbest = result.value, result.params[0]
+
+print('Best value: {0}'.format(best))
+print('Best solution: {0}'.format(
+    np.array_str(xbest, max_line_width=np.inf,
+                 precision=5, suppress_small=True)))
 \end{python}
 
-\section{Calling an external objective function}
-Say that we want to evaluate an black-box objective function at a point \\ $x=(x_1,x_2,\ldots,x_n) \in \Rb^n$. We assume that the black-box objective function is an executable file that takes its input of the form \textquotesingle $x_1, \,x_2, \, \ldots, \, x_n$\textquotesingle, i.e., the point where we evaluate is given as a comma separated string of variables. We also assume that the black box objective function returns the value to us by printing it to the terminal, so that we can parse the value of the objective function from the output. We modify the Ackley objective function in our previous example to a script that we refer to AckleyExectuable that has the following form:
+\subsection{Ensemble Surrogates}
+This example is a continuous optimization problem of the 3-dimensional Hartman3-function which has only bound constraints. We are using 4 threads and 50 evaluations. To generate new points to evaluate we use Candidate SRBF, since the optimization problem is low-dimensional. The experimental design is created using a Latin Hypercube with 2dim+1 points. We also add the extra point [0.1, 0.5, 0.8], which we pretend is a known good solution to the problem. The response surface is an ensemble surrogate consisting of a cubic radial basis function with a linear tail, a linear radial basis function with constant tail, a thin-plate radial basis function with linear tail, and a MARS interpolant. We also redirect the stream from stdout and let pySOT print all messages to the text file surrogate\_optimizer.log placed in the current directory. We use the ThreadController and the SyncStrategyNoConstraints strategy, since there are only bound constraints. We launch 4 BasicWorkerThread, start the optimization and finally print the result to the screen.
+
 \begin{python}
+from pySOT import *
+from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
-import sys
 
-x = np.fromstring(sys.argv[1], sep=',')
-n = float(len(x))
-print(str(-20.0 * np.exp(-0.2*np.sqrt(sum(x**2)/n)) - \
-np.exp(sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)))
+print("Number of threads: 4")
+print("Maximum number of evaluations: 50")
+print("Search strategy: Candidate SRBF")
+print("Experimental design: Latin Hypercube + point [0.1, 0.5, 0.8]")
+print("Surrogate: Cubic RBF, Linear RBF, Thin-plate RBF, MARS")
+
+nthreads = 4
+maxeval = 50
+nsamples = nthreads
+
+data = Hartman3()
+print(data.info)
+
+# Use 3 differents RBF's and MARS as an ensemble surrogate
+models = [
+    RBFInterpolant(phi_cubic, linear_tail, dphi_cubic,
+                   dlinear_tail, 1e-8, maxeval),
+    RBFInterpolant(phi_linear, const_tail, dphi_linear,
+                   dconst_tail, 1e-8, maxeval),
+    RBFInterpolant(dphi_plate, linear_tail, dphi_plate,
+                   dlinear_tail, 1e-8, maxeval),
+    MARSInterpolant(maxeval)
+]
+response_surface = EnsembleSurrogate(models, maxeval)
+
+# Add an additional point to the experimental design. If a good
+# solution is already known you can add this point to the
+# experimental design
+extra = np.atleast_2d([0.1, 0.5, 0.8])
+
+# Print all info to the following file (instead of stdout)
+stream = open("./surrogate_optimizer.log", 'w')
+
+# Create a strategy and a controller
+controller = ThreadController()
+controller.strategy = \
+    SyncStrategyNoConstraints(
+        worker_id=0, data=data,
+        response_surface=response_surface,
+        maxeval=maxeval, nsamples=nsamples,
+        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+        search_procedure=CandidateSRBF(data=data, numcand=200*data.dim),
+        stream=stream, extra=extra)
+
+# Launch the threads and give them access to the objective function
+for _ in range(nthreads):
+    worker = BasicWorkerThread(controller, data.objfunction)
+    controller.launch_worker(worker)
+
+# Run the optimization strategy
+result = controller.run()
+
+response_surface.compute_weights()
+print('Final weights: {0}'.format(
+    np.array_str(response_surface.weights, max_line_width=np.inf,
+                 precision=5, suppress_small=True)))
+
+print('Best value found: {0}'.format(result.value))
+print('Best solution found: {0}'.format(
+    np.array_str(result.params[0], max_line_width=np.inf,
+                 precision=5, suppress_small=True)))
 \end{python}
-This script can be compiled to an executable and will serve as our black-box objective function. The Ackley class can then take the following form:
+
+\subsection{Mixed-integer problem with non-bound constraints}
+This example is a mixed-integer optimization problem of a 5-dimensional problem with 3 inequality constraints. The first three variables are discrete and the last 2 are continuous. We are using 4 threads and 200 evaluations. To generate new points to evaluate we use a Multi-search strategy consisting of CandidateDyCORS, CandidateDyCORS\_INT, CandidateDyCORS\_CONT, and CandidateUniform. The experimental design is created using a Symmetric Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyPenalty strategy, with the default penalty $10^6$. We submit the same merit function as in the previous example with constraints. The best solution is finally printed to the screen.
+
 \begin{python}
+from pySOT import *
+from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
-from subprocess32 import Popen, PIPE
 
-class Ackley:
-    def __init__(self, dim=10):
-        self.xlow = -15 * np.ones(dim)
-        self.xup = 20 * np.ones(dim)
-        self.dim = dim
-        self.info = str(dim)+"-dimensional Ackley function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
-        self.min = 0
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-        self.constraints = False
+print("Number of threads: 4")
+print("Maximum number of evaluations: 200")
+print("Search strategy: CandidateDyCORS, CandidateDyCORS_INT"
+      ", CandidateDyCORS_CONT, CandidateUniform")
+print("Experimental design: Symmetric Latin Hypercube")
+print("Surrogate: Cubic RBF")
 
-    def objfunction(self, x):
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+nthreads = 4
+maxeval = 200
+nsamples = nthreads
 
-        process = Popen(['/PATH/AckleyExecutable', array2str(x)], 
-        		stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        return float(stdout)
+data = LinearMI()
+print(data.info)
+
+def feasible_merit(record):
+    "Merit function for ordering final answers -- kill infeasible x"
+    x = record.params[0].reshape((1, record.params[0].shape[0]))
+    if np.max(data.eval_ineq_constraints(x)) > 0:
+        return np.inf
+    return record.value
+
+exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*data.dim+1)
+response_surface = RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                  dphi=dphi_cubic, dP=dlinear_tail,
+                                  eta=1e-8, maxp=maxeval)
+
+# Use a multi-search strategy for candidate points
+search_proc = MultiSearchStrategy(
+    [CandidateDyCORS(data=data, numcand=200*data.dim),
+     CandidateUniform(data=data, numcand=200*data.dim),
+     CandidateDyCORS_INT(data=data, numcand=200*data.dim),
+     CandidateDyCORS_CONT(data=data, numcand=200*data.dim)],
+    [0, 1, 2, 3])
+
+# Create a strategy and a controller
+controller = ThreadController()
+controller.strategy = \
+    SyncStrategyPenalty( 
+        worker_id=0, data=data,
+        response_surface=response_surface,
+        maxeval=maxeval, nsamples=nsamples,
+        exp_design=exp_design,
+        search_procedure=search_proc,
+        quiet=True)
+
+# Launch the threads
+for _ in range(nthreads): 
+    worker = BasicWorkerThread(controller, data.objfunction)
+    controller.launch_worker(worker)
+
+result = controller.run(merit=feasible_merit)
+best, xbest = result.value, result.params[0]
+
+print('Best value: {0}'.format(best))
+print('Best solution: {0}'.format(
+    np.array_str(xbest, max_line_width=np.inf,
+                 precision=5, suppress_small=True)))
 \end{python}
-where /PATH/ is the path of the executable and array2str is a help function that converts a numpy array to the form we described earlier:
+
+\subsection{External C++ objective function}
+This last example shows how to use POAP and pySOT with an external objective function. We consider an objective function written in C++ that computes the sum of square of a given input, which is an easy convex optimization problem. The program takes its input as a string $'x_1,x_2,\ldots,x_n'$. With a probability of 0.9 the program pauses for one second and then print the value of the sum of squares to the screen. With probability 0.1 the program prints nothing and terminates, which is supposed to imitate that the evaluation crashed. The C++ program that is compiled with the name sphere\_ext is provided below:
+\lstset { %
+    language=C++,
+    backgroundcolor=\color{black!5}, % set backgroundcolor
+    basicstyle=\footnotesize,% basic font setting
+}
+\begin{lstlisting}
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <unistd.h>
+#include <numeric>
+#include <random>
+
+int main(int argc, char** argv) {
+	// Random number generator
+	std::random_device rand_dev;
+	std::mt19937 generator(rand_dev());
+	std::uniform_real_distribution<float>  distr(0.0, 1.0);
+
+	// Pretend the simulation crashes with probability 0.1
+  	if(distr(generator) > 0.1) {
+
+		// Convert input to a standard vector
+		std::vector<float> vect;
+		std::stringstream ss(argv[1]);
+		float f;
+
+		while (ss >> f) {
+    			vect.push_back(f);
+			if (ss.peek() == ',')
+    	    			ss.ignore();
+		}
+   	 	sleep(1);    
+   		printf("%g\n", std::inner_product(vect.begin(), vect.end(), 
+   	 				          vect.begin(), 0.0 ));
+	}
+	return 0;
+}
+\end{lstlisting}
+We will use the subprocess library in Python to launch the objective function evaluations to our compiled C++ program. The help method array2str converts a numpy array to a string $'x_1,x_2,\ldots,x_n'$, which is what our C++ program wants as an input. The class SphereExt is the basic objective function class and the DummySim class overloads the evaluation method for a ProcessWorkerThread. In case the objective function evaluation fails, a message is printed to the screen just to illustrate that things are working correctly.
+
+\lstset { %
+    language=python,
+    backgroundcolor=\color{white}, % set backgroundcolor
+    basicstyle=\footnotesize,% basic font setting
+}
 \begin{python}
+from pySOT import *
+from poap.controller import ThreadController, ProcessWorkerThread
+import numpy as np
+from subprocess import Popen, PIPE
+import os.path
+
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
+
+
+class SphereExt:
+    def __init__(self, dim=10):
+        self.xlow = -15 * np.ones(dim)
+        self.xup = 20 * np.ones(dim)
+        self.dim = dim
+        self.info = str(dim)+"-dimensional Sphere function \n" + \
+                    "Global optimum: f(0,0,...,0) = 0"
+        self.min = 0
+        self.integer = []
+        self.continuous = np.arange(0, dim)
+
+
+class DummySim(ProcessWorkerThread):
+
+    def handle_eval(self, record):
+        self.process = Popen(['./sphere_ext', array2str(record.params[0])],
+                             stdout=PIPE)
+        out = self.process.communicate()[0]
+        try:
+            val = float(out)  # This raises ValueError if out is not a float
+            self.finish_success(record, val)
+        except ValueError:
+            print "Function evaluation crashed/failed"
+            self.finish_failure(record)
+
+print("Number of threads: 4")
+print("Maximum number of evaluations: 200")
+print("Search strategy: Candidate DyCORS")
+print("Experimental design: Latin Hypercube")
+print("Ensemble surrogates: Cubic RBF")
+
+assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
+nthreads = 4
+maxeval = 200
+nsamples = nthreads
+
+data = SphereExt(dim=10)
+print(data.info)
+
+# Create a strategy and a controller
+controller = ThreadController()
+controller.strategy = \
+    SyncStrategyNoConstraints(
+        worker_id=0, data=data,
+        maxeval=maxeval, nsamples=nsamples,
+        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+        search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
+        response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
+                                        dphi=dphi_cubic, dP=dlinear_tail,
+                                        eta=1e-8, maxp=maxeval),
+        quiet=True)
+
+# Launch the threads and give them access to the objective function
+for _ in range(nthreads):
+    controller.launch_worker(DummySim(controller))
+
+# Run the optimization strategy
+result = controller.run()
+
+print('Best value found: {0}'.format(result.value))
+print('Best solution found: {0}'.format(
+    np.array_str(result.params[0], max_line_width=np.inf,
+                 precision=5, suppress_small=True)))
 \end{python}
-\textbf{Note:} If your black-box objective function is only being optimized over a subset of the variables or reads its input from an external file the example above will have to be modified appropriately for such a case.
+
+\section{Hierarchy of POAP + pySOT}
+\begin{figure}[!ht] 
+	\centering
+	\resizebox{0.9\textwidth}{!}{ 
+		\includegraphics{RBFabstraction}} 
+	\caption{Overview of the pySOT hierarchy} 
+\end{figure}
+\FloatBarrier
 
 \section{Future changes}
 \begin{itemize}
-\item Add an asynchronous parallel optimizer
+\item Add an asynchronous strategy
 \item Add Heuristic Algorithms to search on the surrogate
 \item Add more experimental designs
-\item Add more methods for handling constraints
-\item Add ensemble surrogates
-\item A Graphical User Interface (GUI)
+\item Add more methods for handling constraints, especially a barrier method
+\item Add a Graphical User Interface (GUI)
+\item Support for Python 3.x
 \end{itemize}
 \end{document}

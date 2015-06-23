@@ -11,20 +11,20 @@ import numpy as np
 
 def main():
     print("Number of threads: 4")
-    print("Maximum number of evaluations: 1000")
+    print("Maximum number of evaluations: 500")
     print("Search strategy: CandidateDycors")
     print("Experimental design: Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    maxeval = 1000
+    maxeval = 500
     nsamples = nthreads
 
-    data = Keane(dim=30)
+    data = Keane(dim=10)
     print(data.info)
 
     def feasible_merit(record):
-        "Merit function for ordering final answers -- kill infeasible x"
+        """Merit function for ordering final answers -- kill infeasible x"""
         x = record.params[0].reshape((1, record.params[0].shape[0]))
         if np.max(data.eval_ineq_constraints(x)) > 0:
             return np.inf

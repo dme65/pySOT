@@ -1,7 +1,7 @@
 v0.1.0, 2015-06-03
 	Initial release
 
-v0.2.0, 2015-06-21
+v0.1.1, 2015-06-21
     surrogate_optimizer removed, so the user now has to create his own controller
     constraint_method.py is gone, and the constraint handling is handled in specific strategies instead
     There are now two strategies, SyncStrategyNoConstraints and SyncStrategyPenalty
@@ -10,4 +10,4 @@ v0.2.0, 2015-06-21
     Ensemble surrogates have been added to the toolbox
     The strategies takes an additional option 'quiet' so that all of the printing can be avoided if the user wants
     There is also an option 'stream' in case the printing should be redirected somewhere else, for example to a text file. Default is printing to stdout.
-
+    Several examples added to pySOT.test
