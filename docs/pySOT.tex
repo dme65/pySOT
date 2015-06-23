@@ -476,7 +476,7 @@ print 'Best result: {0} at {1}'.format(result.value, result.params)
 
 \subsection{Controller} pySOT needs only the ThreadController, where we create a team of workers (threads) that carry our objective function evaluations. If the objective function is an external program we use workers of the class ProcessWorkerThread, whilst if the objective function isn't external we can just use the BasicWorkerThread class.
 
-\section{Strategies} pySOT provides two strategies:
+\subsection{Strategies} pySOT provides two strategies:
 \begin{itemize}
 \item \textbf{SyncStrategyNoConstraints:} This strategy is to be used in case there are only bound constraints and no additional constraints. The arguments to this strategy are:
 \begin{itemize}
@@ -783,7 +783,7 @@ int main(int argc, char** argv) {
 	return 0;
 }
 \end{lstlisting}
-We will use the subprocess library in Python to launch the objective function evaluations to our compiled C++ program. The help method array2str converts a numpy array to a string $'x_1,x_2,\ldots,x_n'$, which is what our C++ program wants as an input. The class SphereExt is the basic objective function class and the DummySim class overloads the evaluation method for a ProcessWorkerThread. In case the objective function evaluation fails, a message is printed to the screen just to illustrate that things are working correctly.
+We will use the subprocess library in Python to launch the objective function evaluations to our compiled C++ program. The help method array2str converts a numpy array to a string \textquotesingle$x_1,x_2,\ldots,x_n$\textquotesingle, which is what our C++ program wants as an input. The class SphereExt is the basic objective function class and the DummySim class overloads the evaluation method for a ProcessWorkerThread. In case the objective function evaluation fails, a message is printed to the screen just to illustrate that things are working correctly.
 
 \lstset { %
     language=python,
