@@ -33,7 +33,6 @@ int main(int argc, char** argv) {
 			if (ss.peek() == ',')
     	    	ss.ignore();
 		}
-   	 	sleep(1);    
    	 	printf("%g\n", std::inner_product(vect.begin(), vect.end(), 
    	 									  vect.begin(), 0.0 ));
 	}

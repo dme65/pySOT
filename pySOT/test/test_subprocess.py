@@ -11,7 +11,6 @@ import numpy as np
 from subprocess import Popen, PIPE
 import os.path
 
-
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
@@ -38,14 +37,17 @@ class DummySim(ProcessWorkerThread):
             val = float(out)  # This raises ValueError if out is not a float
             self.finish_success(record, val)
         except ValueError:
-            logging.info("Function evaluation crashed/failed")
+            logging.warning("Function evaluation crashed/failed")
             self.finish_failure(record)
 
 
 def main():
-    logging.basicConfig(format="%(message)s", level=logging.INFO)
+    if not os.path.exists("./logfiles"):
+        os.makedirs("logfiles")
+    logging.basicConfig(filename="./logfiles/test_subprocess.log",
+                        level=logging.INFO)
 
-    print("Number of threads: 4")
+    print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DyCORS")
     print("Experimental design: Latin Hypercube")
@@ -79,7 +81,7 @@ def main():
     result = controller.run()
 
     print('Best value found: {0}'.format(result.value))
-    print('Best solution found: {0}'.format(
+    print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 

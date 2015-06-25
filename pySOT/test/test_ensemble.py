@@ -8,13 +8,15 @@ import logging
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
-
+import os.path
 
 def main():
-    logging.basicConfig(filename="./surrogate_optimizer.log",
+    if not os.path.exists("./logfiles"):
+        os.makedirs("logfiles")
+    logging.basicConfig(filename="./logfiles/test_ensemble.log",
                         level=logging.INFO)
 
-    print("Number of threads: 4")
+    print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 50")
     print("Search strategy: Candidate SRBF")
     print("Experimental design: Latin Hypercube + point [0.1, 0.5, 0.8]")
@@ -35,7 +37,6 @@ def main():
                        dconst_tail, 1e-8, maxeval),
         RBFInterpolant(dphi_plate, linear_tail, dphi_plate,
                        dlinear_tail, 1e-8, maxeval),
-        MARSInterpolant(maxeval)
     ]
     response_surface = EnsembleSurrogate(models, maxeval)
 
@@ -69,7 +70,7 @@ def main():
                      precision=5, suppress_small=True)))
 
     print('Best value found: {0}'.format(result.value))
-    print('Best solution found: {0}'.format(
+    print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 

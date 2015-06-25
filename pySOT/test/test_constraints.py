@@ -8,10 +8,15 @@ import logging
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
-
+import os.path
 
 def main():
-    print("Number of threads: 4")
+    if not os.path.exists("./logfiles"):
+        os.makedirs("logfiles")
+    logging.basicConfig(filename="./logfiles/test_constraints.log",
+                        level=logging.INFO)
+
+    print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 500")
     print("Search strategy: CandidateDycors")
     print("Experimental design: Latin Hypercube")
@@ -52,7 +57,7 @@ def main():
     best, xbest = result.value, result.params[0]
 
     print('Best value: {0}'.format(best))
-    print('Best solution: {0}'.format(
+    print('Best solution: {0}\n'.format(
         np.array_str(xbest, max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 

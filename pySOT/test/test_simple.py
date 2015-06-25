@@ -1,16 +1,21 @@
 """
-.. module:: test_ensemble
-  :synopsis: Test Ensemble surrogates
+.. module:: test_simple
+  :synopsis: Test Simple
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
-
+import os.path
 
 def main():
-    print("Number of threads: 4")
+    if not os.path.exists("./logfiles"):
+        os.makedirs("logfiles")
+    logging.basicConfig(filename="./logfiles/test_simple.log",
+                        level=logging.INFO)
+
+    print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 1000")
     print("Search strategy: Candidate DyCORS")
     print("Experimental design: Latin Hypercube")
@@ -44,7 +49,7 @@ def main():
     result = controller.run()
 
     print('Best value found: {0}'.format(result.value))
-    print('Best solution found: {0}'.format(
+    print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 
