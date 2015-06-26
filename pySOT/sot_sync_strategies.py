@@ -12,7 +12,6 @@ Synchronous strategies for Stochastic RBF
 """
 
 from __future__ import print_function
-import sys
 import numpy as np
 import math
 import logging

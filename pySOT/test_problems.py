@@ -13,7 +13,8 @@
 import random
 from time import time
 import numpy as np
-
+from poap.controller import ProcessWorkerThread
+import importlib
 
 def validate(obj):
     """Routine for checking that an implementation of an objective function
@@ -53,8 +54,14 @@ def validate(obj):
         assert isinstance(obj.continuous, np.ndarray) or \
             isinstance(obj.continuous, list), \
             "Continuous variables must be specified"
-    assert hasattr(obj, "objfunction"), \
-        "Method 'objfunction' is not implemented"
+    if not hasattr(obj, "objfunction"):
+        try:
+            module = importlib.import_module(obj.__module__)
+            objfun = getattr(module, "objfunction")
+            if not issubclass(objfun, ProcessWorkerThread):
+                raise AssertionError("Method 'objfunction' is not implemented")
+        except:
+            raise AssertionError("Method 'objfunction' is not implemented")
 
     # Check for logical errors
     assert isinstance(obj.dim, int) and obj.dim > 0, \

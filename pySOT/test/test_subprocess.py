@@ -54,6 +54,7 @@ def main():
     print("Ensemble surrogates: Cubic RBF")
 
     assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
+    
     nthreads = 4
     maxeval = 200
     nsamples = nthreads

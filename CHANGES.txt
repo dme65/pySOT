@@ -1,3 +1,8 @@
+v0.1.3, 2015-06-26
+	Experimental (but not documented) GUI added. You need PySide to use it.
+	Changes in testproblems.py to allow external objective functions that implement ProcessWorkerThread
+	Added GUI test examples in documentation (Ackley.py, Keane.py, SphereExt.py)
+
 v0.1.2, 2015-06-24
 	Changed to using the logging module for all the logging in order to conform to the changes in POAP 0.1.9
 	The quiet and stream arguments in the strategies were removed and the tests updated accordingly
