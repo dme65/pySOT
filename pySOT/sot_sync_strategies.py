@@ -60,6 +60,10 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param extra: Points to be added to the experimental design
         """
 
+        if self.__class__.__name__ == "SyncStrategyNoConstraints":
+            assert not hasattr(data, "eval_ineq_constraints"), "Objective function has constraints,\n" \
+                "SyncStrategyNoConstraints can't handle constraints"
+
         self.worker_id = worker_id
         self.data = data
         self.fhat = response_surface
@@ -259,6 +263,10 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
                                            response_surface, maxeval,
                                            nsamples, exp_design,
                                            search_procedure, extra)
+
+        if self.__class__.__name__ == "SyncStrategyPenalty":
+            assert hasattr(data, "eval_ineq_constraints"), "Objective function has no constraints"
+
         self.penalty = penalty
 
     def penalty_fun(self, xx):

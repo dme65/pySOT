@@ -119,6 +119,8 @@ class myGUI(QtGui.QWidget):
 
         self.numeval = 0
         self.numfail = 0
+        self.objfun = None
+        self.external = False
 
         # Run params
         self.fbest = np.inf
@@ -153,7 +155,6 @@ class myGUI(QtGui.QWidget):
         self.titlelbl.move(200, 10)
 
         """ File dialog """
-
         self.inputDlgBtn = QtGui.QPushButton("Optimization problem", self)
         self.importBtn = QtGui.QPushButton("Import", self)
         self.connect(self.inputDlgBtn, QtCore.SIGNAL("clicked()"), self.openInputDialog)
@@ -233,6 +234,7 @@ class myGUI(QtGui.QWidget):
         self.explist.addItem("SymmetricLatinHypercube")
         self.explist.move(170, 180)
         self.explbl.move(5, 185)
+        self.explist.setCurrentIndex(1)
         self.explist.show()
 
         # Initial evaluations
@@ -285,6 +287,7 @@ class myGUI(QtGui.QWidget):
         self.rsclist.addItem("No")
         self.rsclist.move(170, 330)
         self.rsclbl.move(5, 335)
+        self.rsclist.setCurrentIndex(1)
         self.rsclist.show()
 
         # Controller
@@ -326,25 +329,25 @@ class myGUI(QtGui.QWidget):
         # Number of Evaluations
         temp = QtGui.QLabel("Completed Evals: ", self)
         temp.move(5, 480)
-        self.nevallbl = QtGui.QLabel("0", self)
+        self.nevallbl = QtGui.QLabel("", self)
         self.nevallbl.move(110, 480)
 
         # Number of crashed evaluations
         temp = QtGui.QLabel("Failed Evals: ", self)
         temp.move(5, 500)
-        self.faillbl = QtGui.QLabel("0", self)
+        self.faillbl = QtGui.QLabel("", self)
         self.faillbl.move(110, 500)
 
         # Best value found
         temp = QtGui.QLabel("Best value: ", self)
         temp.move(5, 520)
-        self.bestlbl = QtGui.QLabel("NaN", self)
+        self.bestlbl = QtGui.QLabel("", self)
         self.bestlbl.move(110, 520)
 
         # Best solution feasible
         temp = QtGui.QLabel("Feasible: ", self)
         temp.move(5, 540)
-        self.feaslbl = QtGui.QLabel("NaN", self)
+        self.feaslbl = QtGui.QLabel("", self)
         self.feaslbl.move(110, 540)
 
         # Time
@@ -571,8 +574,28 @@ class myGUI(QtGui.QWidget):
 # ==============================================================================
 
     def optimizeActivated(self):
-        # Are we ready for this?
-        self.optimizebtn.setEnabled(False)
+
+         # Are we ready for this?
+        self.numeval = 0
+        self.numfail = 0
+        self.xbest = None
+        self.fbest = np.inf
+        self.feasible = np.NaN
+
+        # Reset parameters from last solution
+        self.nevallbl.setText("")
+        self.nevallbl.adjustSize()
+        self.bestlbl.setText("")
+        self.bestlbl.adjustSize()
+        self.feaslbl.setText("")
+        self.feaslbl.adjustSize()
+        self.faillbl.setText("")
+        self.faillbl.adjustSize()
+
+        # Timer
+        self.timelbl.setText("Not running")
+        self.timelbl.adjustSize()
+
         if not self.datainp:
             self.printMessage("No Optimization problem imported\n", "red")
         elif not self.threadinp:
@@ -584,6 +607,8 @@ class myGUI(QtGui.QWidget):
         elif not self.inevinp:
             self.printMessage("Incorrect number of initial evaluations\n", "red")
         else:
+            self.optimizebtn.setEnabled(False)
+
             # Extract parameters
             self.nthreads = int(self.threadline.text())
             self.maxeval = int(self.evalline.text())
@@ -593,19 +618,21 @@ class myGUI(QtGui.QWidget):
             try:
                 exp_design = get_object('pySOT', self.explist.currentText())
                 self.exp_des = exp_design(dim=self.data.dim, npts=int(self.inevline.text()))
-            except:
-                self.printMessage("Failed to initialize experimental design\n", "red")
+            except Exception, err:
+                self.printMessage("Failed to initialize experimental design:\n"
+                                  + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
-                pass
+                return
 
             # Search strategy
             try:
                 search_strategy = get_object('pySOT', self.searchlist.currentText())
                 self.search = search_strategy(data=self.data)
-            except:
-                self.printMessage("Failed to initialize search strategy\n", "red")
+            except Exception, err:
+                self.printMessage("Failed to initialize search strategy:\n"
+                                  + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
-                pass
+                return
 
             # Response surface Fixme Should be more general (Fix later)
             try:
@@ -639,40 +666,29 @@ class myGUI(QtGui.QWidget):
 
                     # Build RBF surface
                     self.rs = pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_, dP=dtail_, maxp=self.maxeval)
-
-            except:
-                self.printMessage("Failed to initialize response surface\n", "red")
+            except Exception, err:
+                self.printMessage("Failed to initialize response surface:\n"
+                                  + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
-                pass
+                return
 
             # Capping
             if self.rsclist.currentText() == "Yes":
                 try:
                     self.rs = pySOT.RSCapped(self.rs)
-                except:
-                    self.printMessage("Failed to apply capping\n", "red")
+                except Exception, err:
+                    self.printMessage("Failed to apply capping:\n"
+                                      + err.message + "\n", "red")
                     self.optimizebtn.setEnabled(True)
-                    pass
+                    return
 
-            # Controller
             try:
+                # Controller
                 if self.controllerlist.currentText() == "SerialController":
                     self.controller = SerialController(self.data.objfunction)
                 elif self.controllerlist.currentText() == "ThreadController":
                     self.controller = ThreadController()
-                    for _ in range(self.nthreads):
-                        if self.external:
-                            self.controller.launch_worker(self.objfun(self.controller))
-                        else:
-                            worker = BasicWorkerThread(self.controller, self.data.objfunction)
-                            self.controller.launch_worker(worker)
-            except:
-                self.printMessage("Failed to initiate controller\n", "red")
-                self.optimizebtn.setEnabled(True)
-                pass
-
-            # Strategy
-            try:
+                # Strategy
                 if self.stratlist.currentText() == "SyncStrategyNoConstraints":
                     self.controller.strategy = \
                         pySOT.SyncStrategyNoConstraints(0, self.data, self.rs, self.maxeval,
@@ -682,10 +698,18 @@ class myGUI(QtGui.QWidget):
                         pySOT.SyncStrategyPenalty(0, self.data, self.rs, self.maxeval,
                                                   self.nsample, self.exp_des, self.search)
                 self.controller.strategy = CheckWorkerStrategy(self.controller, self.controller.strategy)
-            except:
-                self.printMessage("Failed to initiate strategy\n", "red")
+                # Threads
+                for _ in range(self.nthreads):
+                    if self.external:
+                        self.controller.launch_worker(self.objfun(self.controller))
+                    else:
+                        worker = BasicWorkerThread(self.controller, self.data.objfunction)
+                        self.controller.launch_worker(worker)
+            except Exception, err:
+                self.printMessage("Failed to initiate controller/strategy:\n"
+                                  + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
-                pass
+                return
 
             # Optimize
             try:
@@ -710,19 +734,20 @@ class myGUI(QtGui.QWidget):
 
                 self.manager.run(self, feasible_merit)
             except Exception, err:
-                self.printMessage("Optimization failed\n", "red")
+                self.printMessage("Optimization failed:\n"
+                                  + err.message + "\n", "red")
 
-        self.myThread.run_timer = False
-        time.sleep(1)
-        self.printMessage("Runtime: " + self.timelbl.text() + "\n", "blue")
-        self.timelbl.setText("Not running")
-        self.timelbl.adjustSize()
-        self.manager = None
-        self.optimizebtn.setEnabled(True)
-        self.stopbtn.setEnabled(False)
+            self.myThread.run_timer = False
+            time.sleep(1)
+            self.printMessage("Runtime: " + self.timelbl.text() + "\n", "blue")
+            self.timelbl.setText("Not running")
+            self.timelbl.adjustSize()
+            self.manager = None
+            self.optimizebtn.setEnabled(True)
+            self.stopbtn.setEnabled(False)
 
-        # Force redraw
-        QtGui.QApplication.processEvents()
+            # Force redraw
+            QtGui.QApplication.processEvents()
 
 
 def GUI():
