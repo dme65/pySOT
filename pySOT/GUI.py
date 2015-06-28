@@ -254,6 +254,7 @@ class myGUI(QtGui.QWidget):
         self.searchlist.addItem("CandidateDyCORS")
         self.searchlist.addItem("CandidateSRBF")
         self.searchlist.addItem("CandidateUniform")
+        self.searchlist.addItem("GeneticAlgorithm")
         self.searchlist.move(170, 240)
         self.searchlbl.move(5, 245)
         self.searchlist.show()
@@ -699,12 +700,13 @@ class myGUI(QtGui.QWidget):
                                                   self.nsample, self.exp_des, self.search)
                 self.controller.strategy = CheckWorkerStrategy(self.controller, self.controller.strategy)
                 # Threads
-                for _ in range(self.nthreads):
-                    if self.external:
-                        self.controller.launch_worker(self.objfun(self.controller))
-                    else:
-                        worker = BasicWorkerThread(self.controller, self.data.objfunction)
-                        self.controller.launch_worker(worker)
+                if self.controllerlist.currentText() == "ThreadController":
+                    for _ in range(self.nthreads):
+                        if self.external:
+                            self.controller.launch_worker(self.objfun(self.controller))
+                        else:
+                            worker = BasicWorkerThread(self.controller, self.data.objfunction)
+                            self.controller.launch_worker(worker)
             except Exception, err:
                 self.printMessage("Failed to initiate controller/strategy:\n"
                                   + err.message + "\n", "red")
