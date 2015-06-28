@@ -152,7 +152,20 @@ class myGUI(QtGui.QWidget):
 
         # Title
         self.titlelbl = QtGui.QLabel("Surrogate Optimization Toolbox (pySOT)", self)
-        self.titlelbl.move(200, 10)
+        self.titlelbl.move(300, 10)
+
+        """ Log text area """
+        self.log = QtGui.QTextEdit("", self)
+        self.log.setReadOnly(True)
+        self.log.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        font = self.log.font()
+        font.setFamily("Courier")
+        font.setPointSize(10)
+        self.log.move(200, 420)
+        self.log.resize(595, 166)
+        self.log.show()
+        self.printMessage("Log file initiated\n")
+        self.printMessage("Please import your optimization problem\n")
 
         """ File dialog """
         self.inputDlgBtn = QtGui.QPushButton("Optimization problem", self)
@@ -161,23 +174,23 @@ class myGUI(QtGui.QWidget):
         self.connect(self.importBtn, QtCore.SIGNAL("clicked()"), self.importAction)
         self.inputline = QtGui.QLineEdit("", self)
         self.inputDlgBtn.move(0, 25)
-        self.importBtn.move(510, 25)
-        self.inputline.setFixedWidth(340)
+        self.importBtn.move(710, 25)
+        self.inputline.setFixedWidth(540)
         self.inputline.move(170, 30)
         self.inputDlgBtn.show()
         self.importBtn.show()
 
         """ Info lines """
         self.info1 = QtGui.QLabel(self)
-        self.info1.move(400, 65)
+        self.info1.move(570, 65)
         self.info2 = QtGui.QLabel(self)
-        self.info2.move(400, 85)
+        self.info2.move(570, 85)
         self.info3 = QtGui.QLabel(self)
-        self.info3.move(400, 105)
+        self.info3.move(570, 105)
         self.info4 = QtGui.QLabel(self)
-        self.info4.move(400, 125)
+        self.info4.move(570, 125)
         self.info5 = QtGui.QLabel(self)
-        self.info5.move(400, 145)
+        self.info5.move(570, 145)
 
         """ Input lines """
 
@@ -186,7 +199,7 @@ class myGUI(QtGui.QWidget):
         self.threaderr = QtGui.QLabel(self)
         self.threadline = QtGui.QLineEdit("4", self)
         self.threadline.setFixedWidth(60)
-        self.threadline.move(170, 60)
+        self.threadline.move(150, 60)
         self.threadlbl.move(5, 65)
         self.threaderr.move(240, 65)
         self.threadline.textChanged[str].connect(self.threadChange)
@@ -197,7 +210,7 @@ class myGUI(QtGui.QWidget):
         self.evalerr = QtGui.QLabel(self)
         self.evalline = QtGui.QLineEdit("500", self)
         self.evalline.setFixedWidth(60)
-        self.evalline.move(170, 90)
+        self.evalline.move(150, 90)
         self.evallbl.move(5, 95)
         self.evalerr.move(240, 95)
         self.evalline.textChanged[str].connect(self.evalChange)
@@ -208,9 +221,9 @@ class myGUI(QtGui.QWidget):
         self.simerr = QtGui.QLabel(self)
         self.simline = QtGui.QLineEdit("4", self)
         self.simline.setFixedWidth(60)
-        self.simline.move(170, 120)
-        self.simlbl.move(5, 125)
-        self.simerr.move(240, 125)
+        self.simline.move(420, 60)
+        self.simlbl.move(250, 65)
+        self.simerr.move(480, 65)
         self.simline.textChanged[str].connect(self.simChange)
         self.simline.show()
 
@@ -221,8 +234,9 @@ class myGUI(QtGui.QWidget):
         self.synchlist = QtGui.QComboBox(self)
         self.synchlist.addItem("Yes")
         self.synchlist.addItem("No")
-        self.synchlist.move(170, 150)
-        self.synchlbl.move(5, 155)
+        self.synchlist.move(420, 90)
+        self.synchlist.setFixedWidth(65)
+        self.synchlbl.move(250, 95)
         self.synchlist.show()
         self.synchlist.setCurrentIndex(1)
         self.synchlist.setEnabled(False)
@@ -232,7 +246,7 @@ class myGUI(QtGui.QWidget):
         self.explist = QtGui.QComboBox(self)
         self.explist.addItem("LatinHypercube")
         self.explist.addItem("SymmetricLatinHypercube")
-        self.explist.move(170, 180)
+        self.explist.move(150, 180)
         self.explbl.move(5, 185)
         self.explist.setCurrentIndex(1)
         self.explist.show()
@@ -242,62 +256,19 @@ class myGUI(QtGui.QWidget):
         self.ineverr = QtGui.QLabel(self)
         self.inevline = QtGui.QLineEdit("", self)
         self.inevline.setFixedWidth(60)
-        self.inevline.move(170, 210)
-        self.inevlbl.move(5, 215)
-        self.ineverr.move(240, 215)
+        self.inevline.move(540, 180)
+        self.inevlbl.move(420, 185)
+        self.ineverr.move(620, 185)
         self.inevline.textChanged[str].connect(self.inevChange)
         self.inevline.show()
-
-        # Search strategy
-        self.searchlbl = QtGui.QLabel("Search Strategy", self)
-        self.searchlist = QtGui.QComboBox(self)
-        self.searchlist.addItem("CandidateDyCORS")
-        self.searchlist.addItem("CandidateSRBF")
-        self.searchlist.addItem("CandidateUniform")
-        self.searchlist.addItem("GeneticAlgorithm")
-        self.searchlist.move(170, 240)
-        self.searchlbl.move(5, 245)
-        self.searchlist.show()
-
-        # Response surface
-        self.rslbl = QtGui.QLabel("Response Surface", self)
-        self.rslist = QtGui.QComboBox(self)
-        self.rslist.addItem("Cubic Radial Basis function")
-        self.rslist.addItem("Linear Radial Basis function")
-        self.rslist.addItem("Thin-Plate Radial Basis function")
-        self.rslist.addItem("Kriging")
-        self.rslist.addItem("MARS")
-        self.rslist.activated[str].connect(self.rsActivated)
-        self.rslist.move(170, 270)
-        self.rslbl.move(5, 275)
-        self.rslist.show()
-
-        # Tail for RBF
-        self.taillbl = QtGui.QLabel("Tail function", self)
-        self.taillist = QtGui.QComboBox(self)
-        self.taillist.addItem("LinearTail")
-        self.taillist.addItem("ConstantTail")
-        self.taillist.move(170, 300)
-        self.taillbl.move(5, 305)
-        self.taillist.show()
-
-        # Capping
-        self.rsclbl = QtGui.QLabel("Capped Surface", self)
-        self.rsclist = QtGui.QComboBox(self)
-        self.rsclist.addItem("Yes")
-        self.rsclist.addItem("No")
-        self.rsclist.move(170, 330)
-        self.rsclbl.move(5, 335)
-        self.rsclist.setCurrentIndex(1)
-        self.rsclist.show()
 
         # Controller
         self.controllerlbl = QtGui.QLabel("Controller", self)
         self.controllerlist = QtGui.QComboBox(self)
         self.controllerlist.addItem("ThreadController")
         self.controllerlist.addItem("SerialController")
-        self.controllerlist.move(170, 360)
-        self.controllerlbl.move(5, 365)
+        self.controllerlist.move(150, 120)
+        self.controllerlbl.move(5, 125)
         self.controllerlist.activated[str].connect(self.controllerActivated)
         self.controllerlist.show()
 
@@ -306,9 +277,62 @@ class myGUI(QtGui.QWidget):
         self.stratlist = QtGui.QComboBox(self)
         self.stratlist.addItem("SyncStrategyNoConstraints")
         self.stratlist.addItem("SyncStrategyPenalty")
-        self.stratlist.move(170, 390)
-        self.stratlbl.move(5, 395)
+        self.stratlist.move(150, 150)
+        self.stratlbl.move(5, 155)
         self.stratlist.show()
+
+        # Search strategy
+        self.searchlbl = QtGui.QLabel("Search Strategy", self)
+        self.searchlist = QtGui.QComboBox(self)
+        self.searchlist.addItem("CandidateDyCORS")
+        self.searchlist.addItem("CandidateSRBF")
+        self.searchlist.addItem("CandidateUniform")
+        self.searchlist.addItem("GeneticAlgorithm")
+        self.searchlist.move(150, 220)
+        self.searchlbl.move(5, 225)
+        self.searchlist.show()
+
+        # Response surface
+        self.rslbl = QtGui.QLabel("Response Surface", self)
+        self.rslist = QtGui.QComboBox(self)
+        self.rslist.addItem("Cubic RBF")
+        self.rslist.addItem("Linear RBF")
+        self.rslist.addItem("Thin-Plate RBF")
+        # Check for Kriging support
+        try:
+            krig = pySOT.KrigingInterpolant()
+            self.rslist.addItem("Kriging")
+        except:
+            self.printMessage("WARNING: pyKriging was not found, Kriging is not supported\n")
+        # Check for MARS support
+        try:
+            mars = pySOT.MARSInterpolant()
+            self.rslist.addItem("MARS")
+        except:
+            self.printMessage("WARNING: py-earth was not found, MARS is not supported\n")
+        self.rslist.activated[str].connect(self.rsActivated)
+        self.rslist.move(540, 220)
+        self.rslbl.move(420, 225)
+        self.rslist.show()
+
+        # Tail for RBF
+        self.taillbl = QtGui.QLabel("Tail function", self)
+        self.taillist = QtGui.QComboBox(self)
+        self.taillist.addItem("LinearTail")
+        self.taillist.addItem("ConstantTail")
+        self.taillist.move(540, 250)
+        self.taillbl.move(420, 255)
+        self.taillist.show()
+
+        # Capping
+        self.rsclbl = QtGui.QLabel("Capped Surface", self)
+        self.rsclist = QtGui.QComboBox(self)
+        self.rsclist.addItem("Yes")
+        self.rsclist.addItem("No")
+        self.rsclist.move(540, 280)
+        self.rsclbl.move(420, 285)
+        self.rsclist.setCurrentIndex(1)
+        self.rsclist.show()
 
         # Optimization button
         self.optimizebtn = QtGui.QPushButton('Optimize', self)
@@ -322,7 +346,7 @@ class myGUI(QtGui.QWidget):
         self.stopbtn.setStyleSheet("background-color: red")
         self.stopbtn.clicked.connect(self.stopActivated)
         self.stopbtn.move(100, 420)
-        self.stopbtn.resize(50, 50)
+        self.stopbtn.resize(80, 50)
         self.stopbtn.setEnabled(False)
 
         """ Run information """
@@ -331,45 +355,179 @@ class myGUI(QtGui.QWidget):
         temp = QtGui.QLabel("Completed Evals: ", self)
         temp.move(5, 480)
         self.nevallbl = QtGui.QLabel("", self)
-        self.nevallbl.move(110, 480)
+        self.nevallbl.move(120, 480)
 
         # Number of crashed evaluations
         temp = QtGui.QLabel("Failed Evals: ", self)
         temp.move(5, 500)
         self.faillbl = QtGui.QLabel("", self)
-        self.faillbl.move(110, 500)
+        self.faillbl.move(120, 500)
 
         # Best value found
         temp = QtGui.QLabel("Best value: ", self)
         temp.move(5, 520)
         self.bestlbl = QtGui.QLabel("", self)
-        self.bestlbl.move(110, 520)
+        self.bestlbl.move(120, 520)
 
         # Best solution feasible
         temp = QtGui.QLabel("Feasible: ", self)
         temp.move(5, 540)
         self.feaslbl = QtGui.QLabel("", self)
-        self.feaslbl.move(110, 540)
+        self.feaslbl.move(120, 540)
 
         # Time
         temp = QtGui.QLabel("Time elapsed: ", self)
         temp.move(5, 560)
         self.timelbl = QtGui.QLabel("Not running", self)
-        self.timelbl.move(110, 560)
+        self.timelbl.move(120, 560)
 
-        """ Log text area """
+        """ Add Tables for Search Strategies and Ensemble Surrogates """
 
-        self.log = QtGui.QTextEdit("", self)
-        self.log.setReadOnly(True)
-        self.log.setLineWrapMode(QtGui.QTextEdit.NoWrap)
-        font = self.log.font()
-        font.setFamily("Courier")
-        font.setPointSize(10)
-        self.log.move(180, 420)
-        self.log.resize(400, 160)
-        self.log.show()
-        self.printMessage("Log file initiated\n")
-        self.printMessage("Please import your optimization problem\n")
+        # Search strategies
+        self.searchadd = QtGui.QPushButton('Add', self)
+        self.searchadd.clicked.connect(self.searchAdd)
+        self.searchadd.move(320, 222)
+        self.searchadd.resize(70, 20)
+
+        self.searchremove = QtGui.QPushButton('Remove', self)
+        self.searchremove.clicked.connect(self.searchRemove)
+        self.searchremove.move(320, 245)
+        self.searchremove.resize(70, 20)
+        self.searchremove.setEnabled(False)
+
+        self.searchup = QtGui.QPushButton('Move\nUp', self)
+        self.searchup.clicked.connect(self.searchUp)
+        self.searchup.move(315, 277)
+        self.searchup.resize(60, 50)
+        self.searchup.setEnabled(False)
+
+        self.searchdown = QtGui.QPushButton('Move\nDown', self)
+        self.searchdown.clicked.connect(self.searchDown)
+        self.searchdown.move(315, 318)
+        self.searchdown.resize(60, 50)
+        self.searchdown.setEnabled(False)
+
+        self.searchtable = QtGui.QTableWidget(0, 1, self)
+        self.searchtable.horizontalHeader().setVisible(False)
+        self.searchtable.move(10, 250)
+        self.searchtable.resize(300, 152)
+        self.searchtable.setColumnWidth(0, 275)
+        self.searchtable.show()
+
+        # Surrogates
+        self.rsadd = QtGui.QPushButton('Add', self)
+        self.rsadd.clicked.connect(self.rsAdd)
+        self.rsadd.move(625, 282)
+        self.rsadd.resize(50, 20)
+
+        self.rsremove = QtGui.QPushButton('Remove', self)
+        self.rsremove.clicked.connect(self.rsRemove)
+        self.rsremove.move(685, 282)
+        self.rsremove.resize(90, 20)
+        self.rsremove.setEnabled(False)
+
+        self.rsup = QtGui.QPushButton('Move\nUp', self)
+        self.rsup.clicked.connect(self.rsUp)
+        self.rsup.move(720, 310)
+        self.rsup.resize(60, 50)
+        self.rsup.setEnabled(False)
+
+        self.rsdown = QtGui.QPushButton('Move\nDown', self)
+        self.rsdown.clicked.connect(self.rsDown)
+        self.rsdown.move(720, 350)
+        self.rsdown.resize(60, 50)
+        self.rsdown.setEnabled(False)
+
+        self.rstable = QtGui.QTableWidget(0, 1, self)
+        self.rstable.horizontalHeader().setVisible(False)
+        self.rstable.move(420, 310)
+        self.rstable.resize(300, 92)
+        self.rstable.setColumnWidth(0, 275)
+        self.rstable.show()
+
+    def searchAdd(self):
+        row = self.searchtable.rowCount()
+        self.searchtable.insertRow(row)
+        self.searchtable.setItem(row, 0, QtGui.QTableWidgetItem(self.searchlist.currentText()))
+        self.searchremove.setEnabled(True)
+        if self.searchtable.rowCount() > 1:
+            self.searchup.setEnabled(True)
+            self.searchdown.setEnabled(True)
+
+    def searchRemove(self):
+        if self.searchtable.rowCount() > 0:
+            row = self.searchtable.currentRow()
+            self.searchtable.removeRow(row)
+            if self.searchtable.rowCount() < 2:
+                self.searchup.setEnabled(False)
+                self.searchdown.setEnabled(False)
+                if self.searchtable.rowCount() == 0:
+                    self.searchremove.setEnabled(False)
+
+    def searchDown(self):
+        row = self.searchtable.currentRow()
+        if row < self.searchtable.rowCount()-1:
+            self.searchtable.insertRow(row+2)
+            self.searchtable.setItem(row+2, 0, self.searchtable.takeItem(row, 0))
+            self.searchtable.setCurrentCell(row+2, 0)
+            self.searchtable.removeRow(row)
+
+    def searchUp(self):
+        row = self.searchtable.currentRow()
+        if row > 0:
+            self.searchtable.insertRow(row-1)
+            self.searchtable.setItem(row-1, 0, self.searchtable.takeItem(row+1, 0))
+            self.searchtable.setCurrentCell(row-1, 0)
+            self.searchtable.removeRow(row+1)
+
+    def rsAdd(self):
+        row = self.rstable.rowCount()
+        str = ""
+        if self.rslist.currentText() == "Kriging" or self.rslist.currentText() == "MARS":
+            str = self.rslist.currentText()
+        else:
+            str = self.rslist.currentText() + ", "
+            str += self.taillist.currentText()
+            if self.rsclist.currentText() == "Yes":
+                str += ", Median Cap"
+
+        # Check if string already exists
+        for r in range(self.rstable.rowCount()):
+            if str == self.rstable.item(r, 0).text():
+                return
+
+        self.rstable.insertRow(row)
+        self.rstable.setItem(row, 0, QtGui.QTableWidgetItem(str))
+        self.rsremove.setEnabled(True)
+        if self.rstable.rowCount() > 1:
+            self.rsup.setEnabled(True)
+            self.rsdown.setEnabled(True)
+
+    def rsRemove(self):
+        if self.rstable.rowCount() > 0:
+            row = self.rstable.currentRow()
+            self.rstable.removeRow(row)
+            if self.rstable.rowCount() < 2:
+                self.rsup.setEnabled(False)
+                self.rsdown.setEnabled(False)
+                if self.rstable.rowCount() == 0:
+                    self.rsremove.setEnabled(False)
+
+    def rsDown(self):
+        row = self.rstable.currentRow()
+        if row < self.rstable.rowCount()-1:
+            self.rstable.insertRow(row+2)
+            self.rstable.setItem(row+2, 0, self.rstable.takeItem(row, 0))
+            self.rstable.setCurrentCell(row+2, 0)
+            self.rstable.removeRow(row)
+
+    def rsUp(self):
+        row = self.rstable.currentRow()
+        if row > 0:
+            self.rstable.insertRow(row-1)
+            self.rstable.setItem(row-1, 0, self.rstable.takeItem(row+1, 0))
+            self.rstable.setCurrentCell(row-1, 0)
+            self.rstable.removeRow(row+1)
 
     def printMessage(self, text, color="blue"):
         self.log.moveCursor(QtGui.QTextCursor.End)
@@ -470,7 +628,14 @@ class myGUI(QtGui.QWidget):
             sys.path.append(os.path.dirname(self.inputline.text()))
             mod = imp.load_source(os.path.splitext(path_leaf(self.inputline.text()))[0],
                                   self.inputline.text())  # Load module
-            class_ = getattr(mod, os.path.splitext(path_leaf(self.inputline.text()))[0])
+            class_ = None
+            try:
+                class_ = getattr(mod, os.path.splitext(path_leaf(self.inputline.text()))[0])
+            except:
+                self.printMessage("Expected class named " +
+                                  os.path.splitext(path_leaf(self.inputline.text()))[0] +
+                                  " containing the optimization problem", "red")
+                return None
             self.data = class_()
             pySOT.validate(self.data)
             # Check if the objective function is external
@@ -550,14 +715,22 @@ class myGUI(QtGui.QWidget):
 
         qp = QtGui.QPainter()
         qp.begin(self)
-        qp.drawLine(395, 60, 395, 170)
-        qp.drawLine(395, 60, 595, 60)
-        qp.drawLine(595, 60, 595, 170)
-        qp.drawLine(395, 170, 595, 170)
+        # Data info
+        qp.drawLine(530, 60, 530, 170)
+        qp.drawLine(530, 60, 795, 60)
+        qp.drawLine(795, 60, 795, 170)
+        qp.drawLine(530, 170, 795, 170)
+        # Run info
         qp.drawLine(2, 475, 2, 585)
-        qp.drawLine(2, 475, 178, 475)
-        qp.drawLine(178, 475, 178, 585)
-        qp.drawLine(2, 585, 178, 585)
+        qp.drawLine(2, 475, 195, 475)
+        qp.drawLine(195, 475, 195, 585)
+        qp.drawLine(2, 585, 195, 585)
+        # Search box and RS box
+        qp.drawLine(3, 210, 3, 410)
+        qp.drawLine(3, 210, 795, 210)
+        qp.drawLine(400, 210, 400, 410)
+        qp.drawLine(3, 410, 795, 410)
+        qp.drawLine(795, 215, 795, 410)
         qp.end()
 
     @QtCore.Slot()
@@ -620,22 +793,44 @@ class myGUI(QtGui.QWidget):
                 exp_design = get_object('pySOT', self.explist.currentText())
                 self.exp_des = exp_design(dim=self.data.dim, npts=int(self.inevline.text()))
             except Exception, err:
-                self.printMessage("Failed to initialize experimental design:\n"
+                self.printMessage("Failed to initialize experimental design: "
                                   + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
                 return
 
             # Search strategy
             try:
-                search_strategy = get_object('pySOT', self.searchlist.currentText())
-                self.search = search_strategy(data=self.data)
+                if self.searchtable.rowCount() == 0:
+                    raise AssertionError("No search strategies specified")
+                # Try to parse what strategies we are using
+                names = []
+                for i in range(self.searchtable.rowCount()):
+                    names.append(str(self.searchtable.item(i, 0).text()))
+                unique_names = list(set(names))
+                if len(unique_names) == 1:
+                    if len(names) > 1:
+                        self.printMessage("Multiple search strategies added, but only one unique. "
+                                          "Initiating one such instance.\n", "blue")
+                    search_strategy = get_object('pySOT', unique_names[0])
+                    self.search = search_strategy(data=self.data)
+                else:
+                    id = range(len(unique_names))
+                    weights = []
+                    search_strategies = []
+                    dictionary = dict(zip(unique_names, id))
+                    for name in unique_names:
+                        search_strategy = get_object('pySOT', name)
+                        search_strategies.append((search_strategy(data=self.data)))
+                    for i in range(len(names)):
+                        weights.append(dictionary[names[i]])
+                    self.search = pySOT.MultiSearchStrategy(search_strategies, weights)
+
             except Exception, err:
-                self.printMessage("Failed to initialize search strategy:\n"
+                self.printMessage("Failed to initialize search strategy: "
                                   + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
                 return
 
-            # Response surface Fixme Should be more general (Fix later)
             try:
                 phi_ = None
                 dphi_ = None
@@ -647,13 +842,13 @@ class myGUI(QtGui.QWidget):
                     self.rs = pySOT.MARSInterpolant(maxp=self.maxeval)
                 else:
                     # Kernel
-                    if self.rslist.currentText() == "Linear Radial Basis function":
+                    if self.rslist.currentText() == "Linear RBF":
                         phi_ = pySOT.phi_linear
                         dphi_ = pySOT.dphi_linear
-                    elif self.rslist.currentText() == "Cubic Radial Basis function":
+                    elif self.rslist.currentText() == "Cubic RBF":
                         phi_ = pySOT.phi_cubic
                         dphi_ = pySOT.dphi_cubic
-                    elif self.rslist.currentText() == "Thin-Plate Radial Basis function":
+                    elif self.rslist.currentText() == "Thin-Plate RBF":
                         phi_ = pySOT.phi_plate
                         dphi_ = pySOT.dphi_plate
 
@@ -668,7 +863,7 @@ class myGUI(QtGui.QWidget):
                     # Build RBF surface
                     self.rs = pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_, dP=dtail_, maxp=self.maxeval)
             except Exception, err:
-                self.printMessage("Failed to initialize response surface:\n"
+                self.printMessage("Failed to initialize response surface: "
                                   + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
                 return
@@ -678,7 +873,7 @@ class myGUI(QtGui.QWidget):
                 try:
                     self.rs = pySOT.RSCapped(self.rs)
                 except Exception, err:
-                    self.printMessage("Failed to apply capping:\n"
+                    self.printMessage("Failed to apply capping: "
                                       + err.message + "\n", "red")
                     self.optimizebtn.setEnabled(True)
                     return
@@ -708,7 +903,7 @@ class myGUI(QtGui.QWidget):
                             worker = BasicWorkerThread(self.controller, self.data.objfunction)
                             self.controller.launch_worker(worker)
             except Exception, err:
-                self.printMessage("Failed to initiate controller/strategy:\n"
+                self.printMessage("Failed to initiate controller/strategy: "
                                   + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
                 return
@@ -736,7 +931,7 @@ class myGUI(QtGui.QWidget):
 
                 self.manager.run(self, feasible_merit)
             except Exception, err:
-                self.printMessage("Optimization failed:\n"
+                self.printMessage("Optimization failed: "
                                   + err.message + "\n", "red")
 
             self.myThread.run_timer = False
@@ -751,15 +946,15 @@ class myGUI(QtGui.QWidget):
             # Force redraw
             QtGui.QApplication.processEvents()
 
-
 def GUI():
+    logging.basicConfig(level=logging.INFO)
     app = QtGui.QApplication(sys.argv)
     ex = myGUI()
     qr = ex.frameGeometry()
     cp = QtGui.QDesktopWidget().availableGeometry().center()
     qr.moveCenter(cp)
     ex.move(qr.topLeft())
-    ex.setFixedSize(600, 590)
+    ex.setFixedSize(800, 590)
     ex.show()
     sys.exit(app.exec_())
 
