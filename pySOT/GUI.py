@@ -863,7 +863,7 @@ class myGUI(QtGui.QWidget):
 
             # Experimental design
             try:
-                exp_design = get_object('pySOT', self.explist.currentText())
+                exp_design = get_object('experimental_design', self.explist.currentText())
                 self.exp_des = exp_design(dim=self.data.dim, npts=int(self.inevline.text()))
             except Exception, err:
                 self.printMessage("Failed to initialize experimental design: "
@@ -884,7 +884,7 @@ class myGUI(QtGui.QWidget):
                     if len(names) > 1:
                         self.printMessage("Multiple search strategies added, but only one unique. "
                                           "Initiating one such instance.\n", "blue")
-                    search_strategy = get_object('pySOT', unique_names[0])
+                    search_strategy = get_object('search_procedure', unique_names[0])
                     self.search = search_strategy(data=self.data)
                 else:
                     id = range(len(unique_names))
@@ -892,7 +892,7 @@ class myGUI(QtGui.QWidget):
                     search_strategies = []
                     dictionary = dict(zip(unique_names, id))
                     for name in unique_names:
-                        search_strategy = get_object('pySOT', name)
+                        search_strategy = get_object('search_procedure', name)
                         search_strategies.append((search_strategy(data=self.data)))
                     for i in range(len(names)):
                         weights.append(dictionary[names[i]])
