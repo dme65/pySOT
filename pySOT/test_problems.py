@@ -217,8 +217,8 @@ class Ackley:
         self.xup = 20 * np.ones(dim)
         self.dim = dim
         self.info = str(dim)+"-dimensional Ackley function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
-        self.min = 0
+                             "Global optimum: f(0,0,...,0) = -20 - e"
+        self.min = -20 - np.exp(1)
         self.integer = []
         self.continuous = np.arange(0, dim)
         validate(self)
@@ -233,7 +233,34 @@ class Ackley:
             raise ValueError('Dimension mismatch')
         n = float(len(x))
         return -20.0 * np.exp(-0.2*np.sqrt(sum(x**2)/n)) - \
-            np.exp(sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
+            np.exp(sum(np.cos(2.0*np.pi*x))/n)
+
+
+class Michalewicz:
+    """Michalewicz function
+
+    """
+    def __init__(self, dim=10):
+        self.xlow = np.zeros(dim)
+        self.xup = np.pi * np.ones(dim)
+        self.dim = dim
+        self.info = str(dim)+"-dimensional Michalewicz function \n" +\
+                             "Global optimum: ??"
+        self.min = np.NaN
+        self.integer = []
+        self.continuous = np.arange(0, dim)
+        validate(self)
+
+    def objfunction(self, x):
+        """Evaluate the Griewank function  at x
+
+        :param x: Data point
+        :return: Value at x
+        """
+        if len(x) != self.dim:
+            raise ValueError('Dimension mismatch')
+        return -np.sum(np.sin(x) * (np.sin(((1+np.arange(self.dim))
+                                            * x**2)/np.pi)) ** 20)
 
 
 class Griewank:
@@ -862,5 +889,13 @@ if __name__ == "__main__":
     print(fun.info)
     print("Linear_MI(1,1,1,1,1) = " +
           str(fun.objfunction(np.array([1, 1, 1, 1, 1]))))
+    print("Continuous variables: " + str(fun.continuous))
+    print("Integer variables: " + str(fun.integer))
+
+    print("\n========================= Michalewicz =======================")
+    fun = Michalewicz(dim=2)
+    print(fun.info)
+    print("Michalewicz(2.20, 1.57) = " +
+          str(fun.objfunction(np.array([2.20, 1.57]))))
     print("Continuous variables: " + str(fun.continuous))
     print("Integer variables: " + str(fun.integer))

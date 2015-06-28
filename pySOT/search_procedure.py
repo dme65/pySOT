@@ -37,6 +37,7 @@ We also support using multiple of these strategies and cycle
 import math
 import numpy as np
 import scipy.spatial as scp
+from heuristic_algorithms import GeneticAlgorithm as GA
 
 # ========================= Useful helpers =======================
 
@@ -315,7 +316,7 @@ class CandidateSRBF(object):
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
-        fhvals = evals(self.xcand)
+        fhvals = evals(self.xcand, scaling=True)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
 
@@ -356,7 +357,7 @@ class CandidateUniform(CandidateSRBF):
         self.xcand = round_vars(data, xcand)
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
-        fhvals = evals(self.xcand)
+        fhvals = evals(self.xcand, scaling=True)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
 
@@ -386,7 +387,7 @@ class CandidateDyCORS(CandidateSRBF):
         :param constraint_handler: Object for handling non-bound constraints
         """
         CandidateSRBF.__init__(self, data, numcand=numcand)
-        self.minprob = np.min([1, 3/self.data.dim])
+        self.minprob = np.min([1, 3.0/self.data.dim])
 
     def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
@@ -410,9 +411,8 @@ class CandidateDyCORS(CandidateSRBF):
         dim = self.data.dim
         ncand = self.numcand
         numeval = len(self.proposed_points)
-        # ddsProb = np.max([self.minprob,
-        # 1-np.log(float(numeval+1))/np.log(float(maxeval))])
-        ddsprob = 0.5 - np.arctan(-10 + 20*numeval/float(maxeval))/np.pi
+        # ddsprob = np.min([1, 20.0/dim]) * (1 - np.log(float(numeval+1))/np.log(float(maxeval)))
+        ddsprob = min([1, 20.0/dim]) * (0.5 - np.arctan(-10 + 20*numeval/float(maxeval))/np.pi)
         ddsprob = np.max([self.minprob, ddsprob])
         r = np.random.rand(ncand, len(subset))
         ar = (r < ddsprob)
@@ -456,7 +456,7 @@ class CandidateDyCORS(CandidateSRBF):
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
-        fhvals = evals(self.xcand)
+        fhvals = evals(self.xcand, scaling=True)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
 
@@ -604,3 +604,48 @@ class CandidateUniform_CONT(CandidateUniform):
             CandidateUniform.make_points(self, xbest, sigma, evals,
                                          maxeval=maxeval, issync=issync,
                                          subset=self.data.integer)
+
+class GeneticAlgorithm(object):
+
+    usecand = False
+
+    def __init__(self, data):
+        """Initialize the multi-search strategy
+
+        :param data: Optimization object
+        :param numcand: Number of candidate points to generate
+        """
+        self.data = data
+        self.avoid = None
+        self.xrange = np.asarray(data.xup-data.xlow)
+        minxrange = np.amin(self.xrange)
+        self.dtol = 1e-3 * minxrange * math.sqrt(data.dim)
+        self.dmerit = None
+        self.proposed_points = None
+        self.evals = None
+        self.sigma = None
+
+    def init(self, startsample, avoid=None):
+        self.proposed_points = startsample
+        self.avoid = avoid
+
+    def remove_point(self, x):
+        idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
+        self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
+
+    def next(self):
+        # Find a new point
+        def objfunction(x):
+            dist = np.atleast_2d(np.min(scp.distance.cdist(x, self.proposed_points), axis=1)).T
+            return self.evals(x, scaling=False) + 10E6 + (dist < self.sigma)
+
+        ga = GA(objfunction, self.data.dim, self.data.xlow, self.data.xup, popsize=100, ngen=300)
+        xnew, fBest = ga.optimize()
+
+        self.proposed_points = np.vstack((self.proposed_points, np.asarray(xnew)))
+        return xnew
+
+    def make_points(self, xbest, sigma, evals, maxeval=None,
+                    issync=False, subset=None):
+        self.evals = evals
+        self.sigma = sigma

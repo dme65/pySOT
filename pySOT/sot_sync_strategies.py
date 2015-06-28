@@ -168,13 +168,27 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         self.search.init(start_sample)
 
+    def evals(self, xx, scaling=False):
+        """Predict function values
+
+        As a measure of promising function values we let all infeasible points
+        have the value of the feasible candidate point with the worst function
+        value, since large penalties makes it impossible to distinguish
+        between feasible points.
+
+        :param xx: Data points
+        :return: Predicted function values
+        """
+
+        return self.fhat.evals(xx)
+
     def sample_adapt(self):
         """Generate and queue samples from the search strategy
         """
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval-self.numeval)
         self.search.make_points(self.xbest, self.sigma,
-                                self.fhat.evals, self.maxeval, True)
+                                self.evals, self.maxeval, True)
         for _ in range(nsamples):
             proposal = self.propose_eval(np.ravel(self.search.next()))
             self.resubmitter.rput(proposal)
@@ -283,7 +297,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         # Surrogate + penalty
         return self.penalty * np.asmatrix(np.sum(vec, axis=1)).T
 
-    def evals(self, xx):
+    def evals(self, xx, scaling=False):
         """Predict function values
 
         As a measure of promising function values we let all infeasible points
@@ -296,14 +310,14 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         """
         penalty = self.penalty_fun(xx)
         vals = self.fhat.evals(xx)
-        ind = (np.where(penalty <= 0.0)[0]).T
-        if ind.shape[0] > 1:
-            ind2 = (np.where(penalty > 0.0)[0]).T
-            ind3 = np.argmax(np.squeeze(vals[ind]))
-            vals[ind2] = vals[ind3]
-            return vals
-        else:
-            return vals + penalty
+        if scaling:
+            ind = (np.where(penalty <= 0.0)[0]).T
+            if ind.shape[0] > 1:
+                ind2 = (np.where(penalty > 0.0)[0]).T
+                ind3 = np.argmax(np.squeeze(vals[ind]))
+                vals[ind2] = vals[ind3]
+                return vals
+        return vals + penalty
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy"""

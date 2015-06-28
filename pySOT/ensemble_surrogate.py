@@ -78,13 +78,13 @@ class EnsembleSurrogate:
             self._alloc(dim)
         elif self.nump + extra > self.maxp - 1:
             oldmaxp = self.maxp
-            self.maxp = max(self.maxp*2, self.maxp + extra)
+            self.maxp = max([self.maxp*2, self.maxp + extra])
             self.x.resize((self.maxp, dim))
             self.fx.resize((self.maxp, 1))
             # Expand the surrogate lists
             for i in range(self.M):
-                self.surrogate_list[i].append(
-                    [None for _ in range(self.maxp - oldmaxp)])
+                for _ in range(self.maxp - oldmaxp):
+                    self.surrogate_list[i].append(None)
 
     def _prob_to_mass(self, prob):
         """Internal method for building a mass function from probabilities
@@ -266,19 +266,16 @@ class EnsembleSurrogate:
 if __name__ == "__main__":
 
     from pySOT import RBFInterpolant, phi_cubic, dphi_cubic, linear_tail, \
-        dlinear_tail, phi_linear, dphi_linear, phi_plate, dphi_plate, \
-        MARSInterpolant
-
+        dlinear_tail, phi_linear, dphi_linear, phi_plate, dphi_plate
     fhat1 = RBFInterpolant(phi_cubic, linear_tail,
                            dphi_cubic, dlinear_tail, 1e-8, 100)
     fhat2 = RBFInterpolant(phi_plate, linear_tail,
                            dphi_plate, dlinear_tail, 1e-8, 100)
     fhat3 = RBFInterpolant(phi_linear, linear_tail,
                            dphi_linear, dlinear_tail, 1e-8, 100)
-    fhat4 = MARSInterpolant(100)
 
-    models = [fhat1, fhat2, fhat3, fhat4]
-    fhat = EnsembleSurrogate(models, 100)
+    models = [fhat1, fhat2, fhat3]
+    fhat = EnsembleSurrogate(models, 10)
 
     def test_f(x):
         """Test function"""

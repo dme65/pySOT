@@ -632,10 +632,11 @@ class myGUI(QtGui.QWidget):
             try:
                 class_ = getattr(mod, os.path.splitext(path_leaf(self.inputline.text()))[0])
             except:
-                self.printMessage("Expected class named " +
+                self.printMessage("Import failed: Expected class named " +
                                   os.path.splitext(path_leaf(self.inputline.text()))[0] +
-                                  " containing the optimization problem", "red")
+                                  " containing the optimization problem\n", "red")
                 return None
+
             self.data = class_()
             pySOT.validate(self.data)
             # Check if the objective function is external
@@ -730,7 +731,7 @@ class myGUI(QtGui.QWidget):
         qp.drawLine(3, 210, 795, 210)
         qp.drawLine(400, 210, 400, 410)
         qp.drawLine(3, 410, 795, 410)
-        qp.drawLine(795, 215, 795, 410)
+        qp.drawLine(795, 210, 795, 410)
         qp.end()
 
     @QtCore.Slot()
@@ -749,7 +750,7 @@ class myGUI(QtGui.QWidget):
 
     def optimizeActivated(self):
 
-         # Are we ready for this?
+        # Are we ready for this?
         self.numeval = 0
         self.numfail = 0
         self.xbest = None
@@ -832,51 +833,63 @@ class myGUI(QtGui.QWidget):
                 return
 
             try:
-                phi_ = None
-                dphi_ = None
-                tail_ = None
-                dtail_ = None
-                if self.rslist.currentText() == "Kriging":
-                    self.rs = pySOT.KrigingInterpolant(maxp=self.maxeval)
-                elif self.rslist.currentText() == "MARS":
-                    self.rs = pySOT.MARSInterpolant(maxp=self.maxeval)
+                # Check if we need Ensembles or not
+                if self.rstable.rowCount() == 0:
+                    raise AssertionError("No response surface specified")
                 else:
-                    # Kernel
-                    if self.rslist.currentText() == "Linear RBF":
-                        phi_ = pySOT.phi_linear
-                        dphi_ = pySOT.dphi_linear
-                    elif self.rslist.currentText() == "Cubic RBF":
-                        phi_ = pySOT.phi_cubic
-                        dphi_ = pySOT.dphi_cubic
-                    elif self.rslist.currentText() == "Thin-Plate RBF":
-                        phi_ = pySOT.phi_plate
-                        dphi_ = pySOT.dphi_plate
+                    # We need to construct en ensemble surrogate
+                    rs = []
+                    for i in range(self.rstable.rowCount()):
+                        # Parse the name of the response surface
+                        name = self.rstable.item(i, 0).text().strip().split(",")
+                        name = [str(x) for x in name]
+                        if len(name) == 1 and name[0] == "Kriging":
+                            rs.append(pySOT.KrigingInterpolant(maxp=self.maxeval))
+                        elif len(name) == 1 and name[0] == "MARS":
+                            rs.append(pySOT.MARSInterpolant(maxp=self.maxeval))
+                        else:
+                            # Kernel
+                            print name[0], name[1]
+                            phi_ = None
+                            dphi_ = None
+                            tail_ = None
+                            dtail_ = None
+                            if name[0] == "Linear RBF":
+                                phi_ = pySOT.phi_linear
+                                dphi_ = pySOT.dphi_linear
+                            elif name[0] == "Cubic RBF":
+                                phi_ = pySOT.phi_cubic
+                                dphi_ = pySOT.dphi_cubic
+                            elif name[0] == "Thin-Plate RBF":
+                                phi_ = pySOT.phi_plate
+                                dphi_ = pySOT.dphi_plate
 
-                    # Tail
-                    if self.taillist.currentText() == "LinearTail":
-                        tail_ = pySOT.linear_tail
-                        dtail_ = pySOT.dlinear_tail
-                    elif self.taillist.currentText() == "ConstantTail":
-                        tail_ = pySOT.const_tail
-                        dtail_ = pySOT.dconst_tail
+                            # Tail
+                            if name[1] == " LinearTail":
+                                tail_ = pySOT.linear_tail
+                                dtail_ = pySOT.dlinear_tail
+                            elif name[1] == " ConstantTail":
+                                tail_ = pySOT.const_tail
+                                dtail_ = pySOT.dconst_tail
 
-                    # Build RBF surface
-                    self.rs = pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_, dP=dtail_, maxp=self.maxeval)
+                            # Build RBF (with cap if necessary)
+                            if len(name) == 3:
+                                rs.append(pySOT.RSCapped(pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
+                                                                              dP=dtail_, maxp=self.maxeval)))
+                            else:
+                                rs.append(pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
+                                                               dP=dtail_, maxp=self.maxeval))
+                    # Finally construct the objects
+                    if len(rs) == 1:
+                        self.rs = rs[0]
+                    else:
+                        self.rs = pySOT.EnsembleSurrogate(rs, maxp=self.maxeval)
+
             except Exception, err:
                 self.printMessage("Failed to initialize response surface: "
                                   + err.message + "\n", "red")
                 self.optimizebtn.setEnabled(True)
                 return
-
-            # Capping
-            if self.rsclist.currentText() == "Yes":
-                try:
-                    self.rs = pySOT.RSCapped(self.rs)
-                except Exception, err:
-                    self.printMessage("Failed to apply capping: "
-                                      + err.message + "\n", "red")
-                    self.optimizebtn.setEnabled(True)
-                    return
 
             try:
                 # Controller
@@ -911,7 +924,6 @@ class myGUI(QtGui.QWidget):
             # Optimize
             try:
                 self.stopbtn.setEnabled(True)
-                self.printMessage("Optimization initialized\n")
 
                 def feasible_merit(record):
                     """Merit function for ordering final answers -- kill infeasible x"""
@@ -929,6 +941,7 @@ class myGUI(QtGui.QWidget):
                 self.on_timer_activated()
                 self.myThread.run_timer = True
 
+                self.printMessage("Optimization initialized\n")
                 self.manager.run(self, feasible_merit)
             except Exception, err:
                 self.printMessage("Optimization failed: "
@@ -947,7 +960,6 @@ class myGUI(QtGui.QWidget):
             QtGui.QApplication.processEvents()
 
 def GUI():
-    logging.basicConfig(level=logging.INFO)
     app = QtGui.QApplication(sys.argv)
     ex = myGUI()
     qr = ex.frameGeometry()

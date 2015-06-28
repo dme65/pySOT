@@ -1,3 +1,8 @@
+v0.1.5, 2015-06-28
+	GUI now has support for multiple search strategies and ensemble surrogates
+	Reallocation bug in the ensemble surrogates fixed
+	Genetic algorithm added to search on the surrogate
+
 v0.1.4, 2015-06-26
 	GUI now has improved error handling 
 	Strategies informs the user if they get constraints when not expecting constraints (and the other way) before the run starts

@@ -10,3 +10,7 @@ number of evaluations is limited.
 The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
 
 Please refer to pySOT.pdf for more details about the functionality of the toolbox.
+
+Check out the new GUI:
+
+![Alt text](https://github.com/dme65/pySOT/tree/master/docs/pySOT_GUI.png “pySOT GUI”)
