@@ -13,4 +13,4 @@ Please refer to pySOT.pdf for more details about the functionality of the toolbo
 
 Check out the new GUI:
 
-![Alt text](https://github.com/dme65/pySOT/tree/master/docs/pySOT_GUI.png “pySOT GUI”)
+![alt tag](https://github.com/dme65/pySOT/tree/master/docs/pySOT_GUI.png?raw=true)
