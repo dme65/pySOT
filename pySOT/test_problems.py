@@ -217,8 +217,8 @@ class Ackley:
         self.xup = 20 * np.ones(dim)
         self.dim = dim
         self.info = str(dim)+"-dimensional Ackley function \n" +\
-                             "Global optimum: f(0,0,...,0) = -20 - e"
-        self.min = -20 - np.exp(1)
+                             "Global optimum: f(0,0,...,0) = 0"
+        self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
         validate(self)
@@ -233,7 +233,7 @@ class Ackley:
             raise ValueError('Dimension mismatch')
         n = float(len(x))
         return -20.0 * np.exp(-0.2*np.sqrt(sum(x**2)/n)) - \
-            np.exp(sum(np.cos(2.0*np.pi*x))/n)
+            np.exp(sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
 
 
 class Michalewicz:

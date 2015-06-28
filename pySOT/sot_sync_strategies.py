@@ -147,7 +147,10 @@ class SyncStrategyNoConstraints(BaseStrategy):
     def sample_initial(self):
         """Generate and queue an initial experimental design.
         """
-        logger.info("=== Restart ===")
+        if self.numeval == 0:
+            logger.info("=== Start ===")
+        else:
+            logger.info("=== Restart ===")
         self.fhat.reset()
         self.sigma = self.sigma_max
         self.status = 0

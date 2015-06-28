@@ -14,7 +14,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import math
 import numpy.linalg as la
 
-
 class EnsembleSurrogate:
     """Compute and evaluate an ensemble of interpolants.
 

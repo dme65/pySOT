@@ -12,16 +12,28 @@ import ntpath
 ntpath.basename("a/b/c")
 import imp
 import os
-import pySOT
 import numpy as np
 import importlib
 from poap.controller import *
 from poap.strategy import *
-#import logging
 import time
+from sot_sync_strategies import *
+from experimental_design import *
+from rs_capped import RSCapped
+from search_procedure import *
+from ensemble_surrogate import *
+from rbf_interpolant import *
+from test_problems import validate
+try:
+    from kriging_interpolant import KrigingInterpolant
+except:
+    pass
+try:
+    from mars_interpolant import MARSInterpolant
+except:
+    pass
 
-# Get module-level logger
-logger = logging.getLogger(__name__)
+import logging
 
 # =========================== Timing ==============================
 
@@ -164,7 +176,7 @@ class myGUI(QtGui.QWidget):
         self.log.move(200, 420)
         self.log.resize(595, 166)
         self.log.show()
-        self.printMessage("Log file initiated\n")
+        self.printMessage("Log file initiated at: ./pySOT_GUI.log\n")
         self.printMessage("Please import your optimization problem\n")
 
         """ File dialog """
@@ -300,13 +312,13 @@ class myGUI(QtGui.QWidget):
         self.rslist.addItem("Thin-Plate RBF")
         # Check for Kriging support
         try:
-            krig = pySOT.KrigingInterpolant()
+            krig = KrigingInterpolant()
             self.rslist.addItem("Kriging")
         except:
             self.printMessage("WARNING: pyKriging was not found, Kriging is not supported\n")
         # Check for MARS support
         try:
-            mars = pySOT.MARSInterpolant()
+            mars = MARSInterpolant()
             self.rslist.addItem("MARS")
         except:
             self.printMessage("WARNING: py-earth was not found, MARS is not supported\n")
@@ -412,6 +424,7 @@ class myGUI(QtGui.QWidget):
         self.searchtable.move(10, 250)
         self.searchtable.resize(300, 152)
         self.searchtable.setColumnWidth(0, 275)
+        self.searchtable.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.searchtable.show()
 
         # Surrogates
@@ -443,6 +456,7 @@ class myGUI(QtGui.QWidget):
         self.rstable.move(420, 310)
         self.rstable.resize(300, 92)
         self.rstable.setColumnWidth(0, 275)
+        self.rstable.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.rstable.show()
 
     def searchAdd(self):
@@ -602,17 +616,16 @@ class myGUI(QtGui.QWidget):
             self.ineverr.setText("Need data object!")
             self.inevinp = False
         elif text.isdigit() and int(text) > 0:
-            if self.rslist.currentText() == "Kriging" or self.rslist.currentText() == "MARS":
+            if self.explist.currentText() == "LatinHypercube":
+                minpts = self.data.dim + 1  # FIXME, for now
+            else:
+                minpts = 2*(self.data.dim + 1)  # FIXME, for now
+            if int(text) >= minpts:
                 self.ineverr.setText("")
                 self.inevinp = True
             else:
-                minpts = 2*(self.data.dim + 1)  # FIXME, for now
-                if int(text) >= minpts:
-                    self.ineverr.setText("")
-                    self.inevinp = True
-                else:
-                    self.ineverr.setText("Need at least " + str(minpts)+" evals")
-                    self.inevinp = False
+                self.ineverr.setText("Need at least " + str(minpts)+" evals")
+                self.inevinp = False
         else:
             self.ineverr.setText("Invalid input!")
             self.inevinp = False
@@ -638,7 +651,7 @@ class myGUI(QtGui.QWidget):
                 return None
 
             self.data = class_()
-            pySOT.validate(self.data)
+            validate(self.data)
             # Check if the objective function is external
             if not hasattr(self.data, "objfunction"):
                 self.external = True
@@ -748,6 +761,65 @@ class myGUI(QtGui.QWidget):
 
 # ==============================================================================
 
+    def turnActionsOff(self):
+        self.optimizebtn.setEnabled(False)
+        self.searchadd.setEnabled(False)
+        self.searchremove.setEnabled(False)
+        self.searchup.setEnabled(False)
+        self.searchdown.setEnabled(False)
+        self.rsadd.setEnabled(False)
+        self.rsremove.setEnabled(False)
+        self.rsup.setEnabled(False)
+        self.rsdown.setEnabled(False)
+        self.importBtn.setEnabled(False)
+        self.inputDlgBtn.setEnabled(False)
+        self.inputline.setEnabled(False)
+        self.threadline.setEnabled(False)
+        self.simline.setEnabled(False)
+        self.evalline.setEnabled(False)
+        self.synchlist.setEnabled(False)
+        self.controllerlist.setEnabled(False)
+        self.stratlist.setEnabled(False)
+        self.explist.setEnabled(False)
+        self.searchlist.setEnabled(False)
+        self.inevline.setEnabled(False)
+        self.rslist.setEnabled(False)
+        self.taillist.setEnabled(False)
+        self.rsclist.setEnabled(False)
+
+    def turnActionsOn(self):
+        self.stopbtn.setEnabled(False)
+        self.optimizebtn.setEnabled(True)
+        self.searchadd.setEnabled(True)
+        self.searchremove.setEnabled(True)
+        if self.searchtable.rowCount() > 1:
+            self.searchup.setEnabled(True)
+            self.searchdown.setEnabled(True)
+        self.rsadd.setEnabled(True)
+        self.rsremove.setEnabled(True)
+        if self.rstable.rowCount() > 1:
+            self.rsup.setEnabled(True)
+            self.rsdown.setEnabled(True)
+        self.importBtn.setEnabled(True)
+        self.inputDlgBtn.setEnabled(True)
+        self.inputline.setEnabled(True)
+        if not self.controllerlist.currentText() == "SerialController":
+            self.threadline.setEnabled(True)
+            self.simline.setEnabled(True)
+        self.evalline.setEnabled(True)
+        self.controllerlist.setEnabled(True)
+        self.stratlist.setEnabled(True)
+        self.explist.setEnabled(True)
+        self.searchlist.setEnabled(True)
+        self.inevline.setEnabled(True)
+        self.rslist.setEnabled(True)
+        if not (self.rslist.currentText() == "Kriging" or self.rslist.currentText() == "MARS"):
+            self.taillist.setEnabled(True)
+            self.rsclist.setEnabled(True)
+
+    def printProblemInfo(self):
+        pass
+
     def optimizeActivated(self):
 
         # Are we ready for this?
@@ -782,7 +854,7 @@ class myGUI(QtGui.QWidget):
         elif not self.inevinp:
             self.printMessage("Incorrect number of initial evaluations\n", "red")
         else:
-            self.optimizebtn.setEnabled(False)
+            self.turnActionsOff()
 
             # Extract parameters
             self.nthreads = int(self.threadline.text())
@@ -796,7 +868,7 @@ class myGUI(QtGui.QWidget):
             except Exception, err:
                 self.printMessage("Failed to initialize experimental design: "
                                   + err.message + "\n", "red")
-                self.optimizebtn.setEnabled(True)
+                self.turnActionsOn()
                 return
 
             # Search strategy
@@ -824,12 +896,12 @@ class myGUI(QtGui.QWidget):
                         search_strategies.append((search_strategy(data=self.data)))
                     for i in range(len(names)):
                         weights.append(dictionary[names[i]])
-                    self.search = pySOT.MultiSearchStrategy(search_strategies, weights)
+                    self.search = MultiSearchStrategy(search_strategies, weights)
 
             except Exception, err:
                 self.printMessage("Failed to initialize search strategy: "
                                   + err.message + "\n", "red")
-                self.optimizebtn.setEnabled(True)
+                self.turnActionsOn()
                 return
 
             try:
@@ -844,51 +916,50 @@ class myGUI(QtGui.QWidget):
                         name = self.rstable.item(i, 0).text().strip().split(",")
                         name = [str(x) for x in name]
                         if len(name) == 1 and name[0] == "Kriging":
-                            rs.append(pySOT.KrigingInterpolant(maxp=self.maxeval))
+                            rs.append(KrigingInterpolant(maxp=self.maxeval))
                         elif len(name) == 1 and name[0] == "MARS":
-                            rs.append(pySOT.MARSInterpolant(maxp=self.maxeval))
+                            rs.append(MARSInterpolant(maxp=self.maxeval))
                         else:
                             # Kernel
-                            print name[0], name[1]
                             phi_ = None
                             dphi_ = None
                             tail_ = None
                             dtail_ = None
                             if name[0] == "Linear RBF":
-                                phi_ = pySOT.phi_linear
-                                dphi_ = pySOT.dphi_linear
+                                phi_ = phi_linear
+                                dphi_ = dphi_linear
                             elif name[0] == "Cubic RBF":
-                                phi_ = pySOT.phi_cubic
-                                dphi_ = pySOT.dphi_cubic
+                                phi_ = phi_cubic
+                                dphi_ = dphi_cubic
                             elif name[0] == "Thin-Plate RBF":
-                                phi_ = pySOT.phi_plate
-                                dphi_ = pySOT.dphi_plate
+                                phi_ = phi_plate
+                                dphi_ = dphi_plate
 
                             # Tail
                             if name[1] == " LinearTail":
-                                tail_ = pySOT.linear_tail
-                                dtail_ = pySOT.dlinear_tail
+                                tail_ = linear_tail
+                                dtail_ = dlinear_tail
                             elif name[1] == " ConstantTail":
-                                tail_ = pySOT.const_tail
-                                dtail_ = pySOT.dconst_tail
+                                tail_ = const_tail
+                                dtail_ = dconst_tail
 
                             # Build RBF (with cap if necessary)
                             if len(name) == 3:
-                                rs.append(pySOT.RSCapped(pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
-                                                                              dP=dtail_, maxp=self.maxeval)))
+                                rs.append(RSCapped(RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
+                                                                  dP=dtail_, maxp=self.maxeval)))
                             else:
-                                rs.append(pySOT.RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
-                                                               dP=dtail_, maxp=self.maxeval))
+                                rs.append(RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
+                                                         dP=dtail_, maxp=self.maxeval))
                     # Finally construct the objects
                     if len(rs) == 1:
                         self.rs = rs[0]
                     else:
-                        self.rs = pySOT.EnsembleSurrogate(rs, maxp=self.maxeval)
+                        self.rs = EnsembleSurrogate(rs, maxp=self.maxeval)
 
             except Exception, err:
                 self.printMessage("Failed to initialize response surface: "
                                   + err.message + "\n", "red")
-                self.optimizebtn.setEnabled(True)
+                self.turnActionsOn()
                 return
 
             try:
@@ -900,11 +971,11 @@ class myGUI(QtGui.QWidget):
                 # Strategy
                 if self.stratlist.currentText() == "SyncStrategyNoConstraints":
                     self.controller.strategy = \
-                        pySOT.SyncStrategyNoConstraints(0, self.data, self.rs, self.maxeval,
+                        SyncStrategyNoConstraints(0, self.data, self.rs, self.maxeval,
                                                         self.nsample, self.exp_des, self.search)
                 elif self.stratlist.currentText() == "SyncStrategyPenalty":
                     self.controller.strategy = \
-                        pySOT.SyncStrategyPenalty(0, self.data, self.rs, self.maxeval,
+                        SyncStrategyPenalty(0, self.data, self.rs, self.maxeval,
                                                   self.nsample, self.exp_des, self.search)
                 self.controller.strategy = CheckWorkerStrategy(self.controller, self.controller.strategy)
                 # Threads
@@ -918,7 +989,7 @@ class myGUI(QtGui.QWidget):
             except Exception, err:
                 self.printMessage("Failed to initiate controller/strategy: "
                                   + err.message + "\n", "red")
-                self.optimizebtn.setEnabled(True)
+                self.turnActionsOn()
                 return
 
             # Optimize
@@ -942,6 +1013,9 @@ class myGUI(QtGui.QWidget):
                 self.myThread.run_timer = True
 
                 self.printMessage("Optimization initialized\n")
+
+                self.printProblemInfo()  # Print some information to the logfile
+
                 self.manager.run(self, feasible_merit)
             except Exception, err:
                 self.printMessage("Optimization failed: "
@@ -953,13 +1027,15 @@ class myGUI(QtGui.QWidget):
             self.timelbl.setText("Not running")
             self.timelbl.adjustSize()
             self.manager = None
-            self.optimizebtn.setEnabled(True)
-            self.stopbtn.setEnabled(False)
+            self.turnActionsOn()
 
             # Force redraw
             QtGui.QApplication.processEvents()
 
 def GUI():
+    # Use logger
+    logging.basicConfig(filename="./pySOT_GUI.log",
+                        level=logging.INFO)
     app = QtGui.QApplication(sys.argv)
     ex = myGUI()
     qr = ex.frameGeometry()
