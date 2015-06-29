@@ -15,7 +15,7 @@ from __future__ import print_function
 import numpy as np
 import math
 import logging
-from experimental_design import LatinHypercube
+from experimental_design import SymmetricLatinHypercube
 from search_procedure import round_vars, CandidateDyCORS
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
@@ -78,7 +78,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Default to generate sampling points using Symmetric Latin Hypercube
         self.design = exp_design
         if self.design is None:
-            self.design = LatinHypercube(data.dim, 2*data.dim+1)
+            self.design = SymmetricLatinHypercube(data.dim, 2*(data.dim+1))
 
         self.xrange = np.asarray(data.xup - data.xlow)
 
@@ -99,7 +99,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Set up search procedures and initialize
         self.search = search_procedure
         if self.search is None:
-            self.search = CandidateDyCORS(data, numcand=100*data.dim)
+            self.search = CandidateDyCORS(data)
 
         # Start with first experimental design
         self.sample_initial()
@@ -129,9 +129,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         # Check if we succeeded at significant improvement
         if self.fbest < self.fbest_old - 1e-3*math.fabs(self.fbest_old):
-            self.status = max(1, self.status+1)
+            self.status = max(1, self.status + 1)
         else:
-            self.status = min(-1, self.status-1)
+            self.status = min(-1, self.status - 1)
         self.fbest_old = self.fbest
 
         # Check if step needs adjusting

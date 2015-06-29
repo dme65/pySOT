@@ -119,7 +119,7 @@ class Manager(InputStrategy):
         else:
             self.GUI.printMessage("Best value: " + str(result.value) + "\n", "blue")
             self.GUI.printMessage('Best solution: {0}\n'.format(
-                np.array_str(result.params[0], max_line_width=50, precision=5, suppress_small=True)), "blue")
+                np.array_str(result.params[0], max_line_width=80, precision=5, suppress_small=True)), "blue")
 
 # ================================= GUI ===================================
 
@@ -262,6 +262,7 @@ class myGUI(QtGui.QWidget):
         self.explbl.move(5, 185)
         self.explist.setCurrentIndex(1)
         self.explist.show()
+        self.explist.activated[str].connect(self.expActivated)
 
         # Initial evaluations
         self.inevlbl = QtGui.QLabel("Initial evaluations", self)
@@ -561,6 +562,9 @@ class myGUI(QtGui.QWidget):
         else:
             self.rsclist.setEnabled(True)
             self.taillist.setEnabled(True)
+
+    def expActivated(self, text):
+        self.inevChange(self.inevline.text())
 
     def controllerActivated(self, text):
         if text == "SerialController":

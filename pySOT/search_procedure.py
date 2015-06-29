@@ -232,7 +232,7 @@ class CandidateSRBF(object):
 
     usecand = True
 
-    def __init__(self, data, numcand=None, ):
+    def __init__(self, data, numcand=None):
         """Initialize the multi-search strategy
 
         :param data: Optimization object
@@ -412,7 +412,7 @@ class CandidateDyCORS(CandidateSRBF):
         ncand = self.numcand
         numeval = len(self.proposed_points)
         # ddsprob = np.min([1, 20.0/dim]) * (1 - np.log(float(numeval+1))/np.log(float(maxeval)))
-        ddsprob = min([1, 20.0/dim]) * (0.5 - np.arctan(-10 + 20*numeval/float(maxeval))/np.pi)
+        ddsprob = min([1, 30.0/dim]) * (0.5 - np.arctan(-10 + 20*numeval/float(maxeval))/np.pi)
         ddsprob = np.max([self.minprob, ddsprob])
         r = np.random.rand(ncand, len(subset))
         ar = (r < ddsprob)
@@ -649,3 +649,34 @@ class GeneticAlgorithm(object):
                     issync=False, subset=None):
         self.evals = evals
         self.sigma = sigma
+
+
+
+if __name__ == "__main__":
+    # Test DYCORS
+    dim = 10
+    maxeval = 100
+    initeval = 80
+    from test_problems import Ackley
+    from experimental_design import LatinHypercube
+    from rbf_interpolant import RBFInterpolant, phi_cubic, dphi_cubic, linear_tail, dlinear_tail
+    xbest = np.ones(dim)
+    data = Ackley(dim)
+    cand = CandidateDyCORS(data, 100*dim)
+    exp_des = LatinHypercube(dim, npts=initeval)
+    initpoints = exp_des.generate_points()
+    rbf = RBFInterpolant(phi_cubic, linear_tail, dphi_cubic, dlinear_tail)
+    for i in range(initeval):
+        rbf.add_point(initpoints[i, :], data.objfunction(initpoints[i, :]))
+    cand.init(initpoints, None)
+
+    def evals(x, scaling):
+        return rbf.eval(x)
+
+    cand.make_points(xbest, 0.02, evals, maxeval)
+
+    import matplotlib.pyplot as plt
+    plt.plot(cand.xcand[:, 0], cand.xcand[:, 1], 'ro')
+    plt.ylabel('Dimension 1')
+    plt.xlabel('Dimension 2')
+    plt.show()
