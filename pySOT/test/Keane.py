@@ -18,6 +18,15 @@ class Keane:
         vec[:, 1] = np.sum(x) - 7.5 * self.dim
         return vec
 
+    def deriv_ineq_constraints(self, x):
+        vec = np.zeros((x.shape[0], 2, x.shape[1]))
+        for i in range(x.shape[0]):
+            xx = x[i, :]
+            for j in range(x.shape[1]):
+                vec[i, 0, j] = -np.prod(np.hstack((xx[:j], xx[j+1:])))
+                vec[i, 1, j] = 1.0
+        return vec
+
     # Evaluate the objective function for a single data point
     def objfunction(self, x):
         """Evaluate the Keane function  at x

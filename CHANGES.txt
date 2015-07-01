@@ -1,3 +1,6 @@
+v0.1.8, 2015-07-01
+	Multi Start Gradient method that uses the L-BFGS-B algorithm to search on the surroagate
+
 v0.1.7, 2015-06-30
 	Fixed some parameters (and bugs) to improve the DYCORS results. Using DYCORS together with the genetic algorithm is recommended.
 	Added polynomial regression (not yet in the GUI)

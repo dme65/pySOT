@@ -301,6 +301,7 @@ class myGUI(QtGui.QWidget):
         self.searchlist.addItem("CandidateSRBF")
         self.searchlist.addItem("CandidateUniform")
         self.searchlist.addItem("GeneticAlgorithm")
+        self.searchlist.addItem("MultiStartGradient")
         self.searchlist.move(150, 220)
         self.searchlbl.move(5, 225)
         self.searchlist.show()

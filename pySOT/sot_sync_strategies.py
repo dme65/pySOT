@@ -87,7 +87,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.xrange = np.asarray(data.xup - data.xlow)
 
         # algorithm parameters
-        self.sigma_max = 0.2  	# w.r.t. unit box
+        self.sigma_init = 0.2  	# w.r.t. unit box
         self.sigma_min = 0.005  # w.r.t. unit box
         self.failtol = max(5, data.dim)
         self.succtol = 3
@@ -134,7 +134,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             return
 
         # Check if we succeeded at significant improvement
-        if self.fbest < self.fbest_old - 1e-10*math.fabs(self.fbest_old):
+        if self.fbest < self.fbest_old - 1e-6*math.fabs(self.fbest_old):
             self.status = max(1, self.status + 1)
         else:
             self.status = min(-1, self.status - 1)
@@ -158,7 +158,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         else:
             logger.info("=== Restart ===")
         self.fhat.reset()
-        self.sigma = self.sigma_max
+        self.sigma = self.sigma_init
         self.status = 0
         self.xbest = None
         self.fbest_old = None
@@ -175,7 +175,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             proposal = self.propose_eval(start_sample[j, :])
             self.resubmitter.rput(proposal)
 
-        self.search.init(start_sample)
+        self.search.init(start_sample, self.maxeval, True)
 
     def evals(self, xx, scaling=False):
         """Predict function values
@@ -191,13 +191,15 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         return self.fhat.evals(xx)
 
+    def derivs(self, xx):
+        return np.atleast_2d(self.fhat.deriv(xx))
+
     def sample_adapt(self):
         """Generate and queue samples from the search strategy
         """
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval-self.numeval)
-        self.search.make_points(self.xbest, self.sigma,
-                                self.evals, self.maxeval, True)
+        self.search.make_points(self.xbest, self.sigma, self.evals, self.derivs)
         for _ in range(nsamples):
             proposal = self.propose_eval(np.ravel(self.search.next()))
             self.resubmitter.rput(proposal)
@@ -328,12 +330,22 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
                 return vals
         return vals + penalty
 
+    def derivs(self, xx):
+        # Compute the value of the constraint functions
+        x = np.atleast_2d(xx)
+        constraints = np.array(self.data.eval_ineq_constraints(x))
+        dconstraints = self.data.deriv_ineq_constraints(x)
+        constraints[np.where(constraints < 0.0)] = 0.0
+        return np.atleast_2d(self.fhat.deriv(xx)) + \
+            2 * self.penalty * np.sum(
+                constraints * np.rollaxis(dconstraints, 2), axis=2).T
+
     def sample_adapt(self):
         """Generate and queue samples from the search strategy"""
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval-self.numeval)
         self.search.make_points(self.xbest, self.sigma,
-                                self.evals, self.maxeval, True)
+                                self.evals, self.derivs)
         for _ in range(nsamples):
             proposal = self.propose_eval(np.ravel(self.search.next()))
             self.resubmitter.rput(proposal)
