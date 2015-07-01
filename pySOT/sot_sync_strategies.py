@@ -15,8 +15,9 @@ from __future__ import print_function
 import numpy as np
 import math
 import logging
-from experimental_design import SymmetricLatinHypercube
-from search_procedure import round_vars, CandidateDyCORS
+from experimental_design import SymmetricLatinHypercube, LatinHypercube
+from search_procedure import round_vars, CandidateDyCORS, \
+    MultiSearchStrategy, GeneticAlgorithm
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
     dlinear_tail, RBFInterpolant
@@ -78,7 +79,10 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Default to generate sampling points using Symmetric Latin Hypercube
         self.design = exp_design
         if self.design is None:
-            self.design = SymmetricLatinHypercube(data.dim, 2*(data.dim+1))
+            if self.data.dim > 50:
+                self.design = LatinHypercube(data.dim, data.dim+1)
+            else:
+                self.design = SymmetricLatinHypercube(data.dim, 2*(data.dim+1))
 
         self.xrange = np.asarray(data.xup - data.xlow)
 
@@ -99,7 +103,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Set up search procedures and initialize
         self.search = search_procedure
         if self.search is None:
-            self.search = CandidateDyCORS(data)
+            self.search = MultiSearchStrategy(
+                [CandidateDyCORS(data), GeneticAlgorithm(data)],
+                [0, 0, 0, 0, 1])
 
         # Start with first experimental design
         self.sample_initial()
@@ -128,7 +134,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             return
 
         # Check if we succeeded at significant improvement
-        if self.fbest < self.fbest_old - 1e-3*math.fabs(self.fbest_old):
+        if self.fbest < self.fbest_old - 1e-10*math.fabs(self.fbest_old):
             self.status = max(1, self.status + 1)
         else:
             self.status = min(-1, self.status - 1)
@@ -141,7 +147,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             logger.info("Reducing sigma")
         if self.status >= self.succtol:
             self.status = 0
-            self.sigma = min(2 * self.sigma, self.sigma_max)
+            self.sigma *= 2
             logger.info("Increasing sigma")
 
     def sample_initial(self):

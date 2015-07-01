@@ -1,3 +1,9 @@
+v0.1.7, 2015-06-30
+	Fixed some parameters (and bugs) to improve the DYCORS results. Using DYCORS together with the genetic algorithm is recommended.
+	Added polynomial regression (not yet in the GUI)
+	Changed so that candidate points are generated using truncated normal distribution to avoid projections onto the boundary
+	Removed some accidental scikit dependencies in the ensemble surrogate
+
 v0.1.6, 2015-06-28
 	GUI inactivates all buttons but the stop button while running
 	Bug fixes

@@ -10,7 +10,6 @@
 from pyds import MassFunction
 import numpy as np
 from copy import copy, deepcopy
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import math
 import numpy.linalg as la
 
@@ -97,6 +96,12 @@ class EnsembleSurrogate:
             dictlist.append([str(i+1), prob[i]])
         return MassFunction(dict(dictlist))
 
+    def _mean_squared_error(self, x, y):
+        return np.sum((x - y) ** 2)/len(x)
+
+    def _mean_abs_err(self, x, y):
+        return np.sum(np.abs(x - y))/len(x)
+
     def compute_weights(self):
         """Compute mode weights
 
@@ -128,11 +133,11 @@ class EnsembleSurrogate:
         root_mean_sq_err = np.ones(self.M)
         for i in range(self.M):
             root_mean_sq_err[i] = 1.0 / math.sqrt(
-                mean_squared_error(self.get_fx().flatten(), loocv[i, :]))
+                self._mean_squared_error(self.get_fx().flatten(), loocv[i, :]))
 
         mean_abs_err = np.ones(self.M)
         for i in range(self.M):
-            mean_abs_err[i] = 1.0 / mean_absolute_error(
+            mean_abs_err[i] = 1.0 / self._mean_abs_err(
                 self.get_fx().flatten(), loocv[i, :])
 
         # Make sure no correlations are negative

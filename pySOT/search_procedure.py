@@ -38,9 +38,10 @@ import math
 import numpy as np
 import scipy.spatial as scp
 from heuristic_algorithms import GeneticAlgorithm as GA
+from scipy.optimize import minimize
+import scipy.stats as stats
 
 # ========================= Useful helpers =======================
-
 
 def unit_rescale(xx):
     """Shift and rescale elements of a vector to the unit interval
@@ -51,20 +52,6 @@ def unit_rescale(xx):
         return np.ones(xx.shape)
     else:
         return (xx-xmin)/(xmax-xmin)
-
-
-def point_set_dist(x, xx):
-    """Compute the distance from a point to a set
-    """
-    return np.sqrt(np.min(np.sum((xx - x)**2, axis=1)))
-
-
-def closest_point(x, xx):
-    """Find point in xx closest to x
-    """
-    ind = np.argmin(np.sum((xx - x)**2, axis=1))
-    return xx[ind, :]
-
 
 def round_vars(data, x):
     """Round integer variables to closest integer
@@ -250,9 +237,10 @@ class CandidateSRBF(object):
         self.xcand = None
         self.proposed_points = None
         self.nextWeight = 0
+        self.n0 = None
         self.numcand = numcand
         if self.numcand is None:
-            self.numcand = min([5000, 100*data.dim])
+            self.numcand = min([10000, 100*data.dim])
 
     def init(self, startsample, avoid=None):
         """Add response surface, experimental design and points to avoid
@@ -261,7 +249,7 @@ class CandidateSRBF(object):
         :param avoid: Points to avoid
         """
         self.proposed_points = startsample
-        self.avoid = avoid
+        self.n0 = startsample.shape[0]
 
     def remove_point(self, x):
         """Remove x from the list of proposed points.
@@ -306,13 +294,15 @@ class CandidateSRBF(object):
         ind = np.intersect1d(self.data.integer, subset)
         if len(ind) > 0:
             scalefactors[ind] = np.maximum(scalefactors[ind], 1)
+
         xcand = np.zeros((ncand, dim))
-        xcand[:, subset] = np.random.randn(ncand, len(subset))
-        xcand = np.multiply(xcand, scalefactors)
-        xcand = np.reshape(xbest, (1, dim)) + xcand
-        xcand = np.minimum(np.reshape(data.xup, (1, dim)), xcand)
-        self.xcand = round_vars(data, np.maximum(
-            np.reshape(data.xlow, (1, dim)), xcand))
+        for i in subset:
+            lower, upper = self.data.xlow[i], self.data.xup[i]
+            ssigma = scalefactors[i]
+            xcand[:, i] = stats.truncnorm.rvs(
+                (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
+                loc=xbest[i], scale=ssigma, size=ncand)
+        self.xcand = round_vars(self.data, xcand)
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
@@ -411,48 +401,29 @@ class CandidateDyCORS(CandidateSRBF):
         dim = self.data.dim
         ncand = self.numcand
         numeval = len(self.proposed_points)
-        # ddsprob = np.min([1, 20.0/dim]) * (1 - np.log(float(numeval+1))/np.log(float(maxeval)))
-        ddsprob = min([1, 30.0/dim]) * (0.5 - np.arctan(-10 + 20*numeval/float(maxeval))/np.pi)
+        # ddsprob = min([1, 20.0/dim]) * (1 - np.log(float(numeval - self.n0 + 1)) /
+        #           np.log(float(maxeval - self.n0)))
+        ddsprob = min([1, 20.0/dim]) * (0.5 - np.arctan(-10 + 20*(numeval - self.n0) /
+                                                        float(maxeval - self.n0))/np.pi)
         ddsprob = np.max([self.minprob, ddsprob])
-        r = np.random.rand(ncand, len(subset))
-        ar = (r < ddsprob)
-        if len(subset) > 2:
-            # Find where less than 2 indices are perturbed
-            ind = np.where(np.sum(ar, axis=1) < 2)[0]
-            ar[ind, :] = False
-            # We now generate two random dimensions to
-            # perturb for each dimensions where we
-            # perturbed less than 2. We ignore he possibility
-            # of perturbing the same dimension twice since
-            # this is not necessarily bad
-            ar[ind, np.random.randint(0, len(subset)-1, len(ind))] = True
-            ar[ind, np.random.randint(0, len(subset)-1, len(ind))] = True
-
         # Create candidate points
-        scalefactors = sigma*self.xrange
+        scalefactors = sigma * self.xrange
         # Make sure that the scale factors are correct for
         # the integer variables (at least 1)
         ind = np.intersect1d(self.data.integer, subset)
         if len(ind) > 0:
             scalefactors[ind] = np.maximum(scalefactors[ind], 1)
 
-        xcand = np.zeros((ncand, dim))
-        xcand[:, subset] = np.random.randn(ncand, len(subset))
-        xcand = np.multiply(xcand, scalefactors)
-        xcand[:, subset] = np.multiply(xcand[:, subset], ar)
-        xcand = np.reshape(xbest, (1, dim)) + xcand
-
-        # Reflections
-        for i in range(dim):
-            ind = np.where(xcand[:, i] > self.data.xup[i])
-            xcand[ind, :] = 2*self.data.xup[i] - xcand[ind, :]
-            ind = np.where(xcand[:, i] < self.data.xlow[i])
-            xcand[ind, :] = 2*self.data.xlow[i] - xcand[ind, :]
-
-        # Projections
-        xcand = np.minimum(np.reshape(self.data.xup, (1, dim)), xcand)
-        self.xcand = round_vars(self.data, np.maximum(
-            np.reshape(self.data.xlow, (1, dim)), xcand))
+        # Generate from a truncated normal
+        xcand = xbest * np.ones((ncand, dim))
+        for i in subset:
+            lower, upper = self.data.xlow[i], self.data.xup[i]
+            ssigma = scalefactors[i]
+            ar = (np.random.rand(ncand, 1) < ddsprob)
+            xcand[np.where(ar), i] = stats.truncnorm.rvs(
+                (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
+                loc=xbest[i], scale=ssigma, size=np.sum(ar))
+        self.xcand = round_vars(self.data, xcand)
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
@@ -623,7 +594,6 @@ class GeneticAlgorithm(object):
         self.dmerit = None
         self.proposed_points = None
         self.evals = None
-        self.sigma = None
 
     def init(self, startsample, avoid=None):
         self.proposed_points = startsample
@@ -636,10 +606,11 @@ class GeneticAlgorithm(object):
     def next(self):
         # Find a new point
         def objfunction(x):
-            dist = np.atleast_2d(np.min(scp.distance.cdist(x, self.proposed_points), axis=1)).T
-            return self.evals(x, scaling=False) + 10E6 + (dist < self.sigma)
+            dist = np.atleast_2d(np.min(
+                scp.distance.cdist(x, self.proposed_points, metric='sqeuclidean',), axis=1)).T
+            return self.evals(x, scaling=False) + 10E6 * (dist < self.dtol ** 2)
 
-        ga = GA(objfunction, self.data.dim, self.data.xlow, self.data.xup, popsize=100, ngen=300)
+        ga = GA(objfunction, self.data.dim, self.data.xlow, self.data.xup, popsize=100, ngen=100)
         xnew, fBest = ga.optimize()
 
         self.proposed_points = np.vstack((self.proposed_points, np.asarray(xnew)))
@@ -648,9 +619,6 @@ class GeneticAlgorithm(object):
     def make_points(self, xbest, sigma, evals, maxeval=None,
                     issync=False, subset=None):
         self.evals = evals
-        self.sigma = sigma
-
-
 
 if __name__ == "__main__":
     # Test DYCORS
