@@ -269,14 +269,12 @@ class EnsembleSurrogate:
 
 if __name__ == "__main__":
 
-    from pySOT import RBFInterpolant, phi_cubic, dphi_cubic, linear_tail, \
-        dlinear_tail, phi_linear, dphi_linear, phi_plate, dphi_plate
-    fhat1 = RBFInterpolant(phi_cubic, linear_tail,
-                           dphi_cubic, dlinear_tail, 1e-8, 100)
-    fhat2 = RBFInterpolant(phi_plate, linear_tail,
-                           dphi_plate, dlinear_tail, 1e-8, 100)
-    fhat3 = RBFInterpolant(phi_linear, linear_tail,
-                           dphi_linear, dlinear_tail, 1e-8, 100)
+    from pySOT import RBFInterpolant
+    from pySOT import CubicRBFSurface, TPSSurface, LinearRBFSurface
+
+    fhat1 = RBFInterpolant(CubicRBFSurface, 1e-8, 100)
+    fhat2 = RBFInterpolant(TPSSurface, 1e-8, 100)
+    fhat3 = RBFInterpolant(LinearRBFSurface, 1e-8, 100)
 
     models = [fhat1, fhat2, fhat3]
     fhat = EnsembleSurrogate(models, 10)

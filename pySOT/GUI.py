@@ -23,6 +23,7 @@ from rs_capped import RSCapped
 from search_procedure import *
 from ensemble_surrogate import *
 from rbf_interpolant import *
+from rbf_surfaces import *
 from test_problems import validate
 try:
     from kriging_interpolant import KrigingInterpolant
@@ -926,35 +927,32 @@ class myGUI(QtGui.QWidget):
                             rs.append(MARSInterpolant(maxp=self.maxeval))
                         else:
                             # Kernel
-                            phi_ = None
-                            dphi_ = None
-                            tail_ = None
-                            dtail_ = None
+                            surf_ = None
                             if name[0] == "Linear RBF":
-                                phi_ = phi_linear
-                                dphi_ = dphi_linear
+                                surf_ = LinearRBFSurface
                             elif name[0] == "Cubic RBF":
-                                phi_ = phi_cubic
-                                dphi_ = dphi_cubic
+                                surf_ = CubicRBFSurface
                             elif name[0] == "Thin-Plate RBF":
-                                phi_ = phi_plate
-                                dphi_ = dphi_plate
+                                surf_ = TPSSurface
 
+                            # DSB: FIXME
                             # Tail
                             if name[1] == " LinearTail":
-                                tail_ = linear_tail
-                                dtail_ = dlinear_tail
+                                pass
                             elif name[1] == " ConstantTail":
-                                tail_ = const_tail
-                                dtail_ = dconst_tail
+                                pass
 
                             # Build RBF (with cap if necessary)
                             if len(name) == 3:
-                                rs.append(RSCapped(RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
-                                                                  dP=dtail_, maxp=self.maxeval)))
+                                rs.append(
+                                    RSCapped(
+                                        RBFInterpolant(surftype=surf_,
+                                                       maxp=self.maxeval)))
                             else:
-                                rs.append(RBFInterpolant(phi=phi_, P=tail_, dphi=dphi_,
-                                                         dP=dtail_, maxp=self.maxeval))
+                                rs.append(
+                                    RBFInterpolant(surftype=surf_,
+                                                   maxp=self.maxeval))
+
                     # Finally construct the objects
                     if len(rs) == 1:
                         self.rs = rs[0]

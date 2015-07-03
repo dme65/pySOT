@@ -19,8 +19,7 @@ from experimental_design import SymmetricLatinHypercube, LatinHypercube
 from search_procedure import round_vars, CandidateDyCORS, \
     MultiSearchStrategy, GeneticAlgorithm
 from poap.strategy import BaseStrategy, RetryStrategy
-from rbf_interpolant import phi_cubic, dphi_cubic, linear_tail, \
-    dlinear_tail, RBFInterpolant
+from rbf_surfaces import CubicRBFSurface
 
 
 # Get module-level logger
@@ -69,8 +68,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.data = data
         self.fhat = response_surface
         if self.fhat is None:
-            self.fhat = RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                       dphi=dphi_cubic, dP=dlinear_tail,
+            self.fhat = RBFInterpolant(surftype=CubicRBFSurface,
                                        eta=1e-8, maxp=maxeval)
         self.maxeval = maxeval
         self.nsamples = nsamples
@@ -188,7 +186,6 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param xx: Data points
         :return: Predicted function values
         """
-
         return self.fhat.evals(xx)
 
     def derivs(self, xx):

@@ -728,13 +728,14 @@ if __name__ == "__main__":
     initeval = 80
     from test_problems import Ackley
     from experimental_design import LatinHypercube
-    from rbf_interpolant import RBFInterpolant, phi_cubic, dphi_cubic, linear_tail, dlinear_tail
+    from rbf_interpolant import RBFInterpolant
+    from rbf_surfaces import CubicRBFSurface
     xbest = np.ones(dim)
     data = Ackley(dim)
     cand = CandidateDyCORS(data, 100*dim)
     exp_des = LatinHypercube(dim, npts=initeval)
     initpoints = exp_des.generate_points()
-    rbf = RBFInterpolant(phi_cubic, linear_tail, dphi_cubic, dlinear_tail)
+    rbf = RBFInterpolant(surftype=CubicRBFSurface)
     for i in range(initeval):
         rbf.add_point(initpoints[i, :], data.objfunction(initpoints[i, :]))
     cand.init(initpoints, maxeval, True, None)

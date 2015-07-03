@@ -35,8 +35,7 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-            response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                            dphi=dphi_cubic, dP=dlinear_tail,
+            response_surface=RBFInterpolant(surftype=CubicRBFSurface,
                                             eta=1e-8, maxp=maxeval),
             search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim))
 

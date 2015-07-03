@@ -31,12 +31,9 @@ def main():
 
     # Use 3 differents RBF's and MARS as an ensemble surrogate
     models = [
-        RBFInterpolant(phi_cubic, linear_tail, dphi_cubic,
-                       dlinear_tail, 1e-8, maxeval),
-        RBFInterpolant(phi_linear, const_tail, dphi_linear,
-                       dconst_tail, 1e-8, maxeval),
-        RBFInterpolant(dphi_plate, linear_tail, dphi_plate,
-                       dlinear_tail, 1e-8, maxeval),
+        RBFInterpolant(CubicRBFSurface, 1e-8, maxeval),
+        RBFInterpolant(LinearRBFSurface, 1e-8, maxeval),
+        RBFInterpolant(TPSSurface, 1e-8, maxeval)
     ]
     response_surface = EnsembleSurrogate(models, maxeval)
 
