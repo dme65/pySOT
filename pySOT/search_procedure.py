@@ -14,15 +14,15 @@ We support the following methods for minimizing on the surface:
 
 Candidate based methods:
     - CandidateSRBF: Generate candidate points around the best point
-    - DyCORS: Uses a DDS strategy with a cap on the lowest probability
+    - CandidateDYCORS: Uses a DDS strategy with a cap on the lowest probability
     - CandidateUniform: Sample the candidate points uniformly in the domain
     - CandidateSRBF_INT: Uses CandidateSRBF but only
         perturbs the integer variables
     - CandidateSRBF_CONT: Uses CandidateSRBF but only
         perturbs the continuous variables
-    - CandidateDyCORS_INT: Uses CandidateSRBF but only
+    - CandidateDYCORS_INT: Uses CandidateSRBF but only
         perturbs the integer variables
-    - CandidateDyCORS_CONT: Uses CandidateSRBF but only
+    - CandidateDYCORS_CONT: Uses CandidateSRBF but only
         perturbs the continuous variables
     - CandidateUniform_CONT: Sample the continuous variables of
         the candidate points uniformly in the domain
@@ -178,6 +178,7 @@ class MultiSearchStrategy(object):
 def candidate_merit_weighted_distance(cand):
     """Weighted distance merit functions for the candidate points based methods
     """
+
     ii = cand.nextWeight
     if cand.xsample:
         ds = scp.distance.cdist(cand.xcand, np.atleast_2d(cand.xsample[-1]))
@@ -190,7 +191,7 @@ def candidate_merit_weighted_distance(cand):
 
     weight = cand.weights[(ii+len(cand.weights)) % len(cand.weights)]
     merit = weight*cand.fhvals.ravel() + \
-        (1-weight)*unit_rescale(cand.dmerit.ravel())
+        (1-weight)*(1.0 - unit_rescale(cand.dmerit.ravel()))
     merit[cand.dmerit.ravel() < cand.dtol] = np.inf
     jj = np.argmin(merit)
     cand.fhvals[jj] = np.inf
@@ -237,7 +238,7 @@ class CandidateSRBF(object):
         self.n0 = None
         self.numcand = numcand
         if self.numcand is None:
-            self.numcand = min([10000, 100*data.dim])
+            self.numcand = min([5000, 100*data.dim])
         self.maxeval = None
         self.issync = None
 
@@ -302,8 +303,8 @@ class CandidateSRBF(object):
             xcand[:, i] = stats.truncnorm.rvs(
                 (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
                 loc=xbest[i], scale=ssigma, size=ncand)
-        self.xcand = round_vars(self.data, xcand)
 
+        self.xcand = round_vars(self.data, xcand)
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
         fhvals = evals(self.xcand, scaling=True)
@@ -349,7 +350,7 @@ class CandidateUniform(CandidateSRBF):
         self.xsample = []
 
 
-class CandidateDyCORS(CandidateSRBF):
+class CandidateDYCORS(CandidateSRBF):
     """This is an implementation of DyCORS method to generate
     candidate points. The DyCORS method uses the DDS algorithm
     which only perturbs a subset of the dimensions when
@@ -367,13 +368,18 @@ class CandidateDyCORS(CandidateSRBF):
         since the last restart
     """
     def __init__(self, data, numcand=None):
-        """Initialize the DyCORS strategy
+        """Initialize the DYCORS strategy
 
         :param data: Optimization object
         :param numcand:  Number of candidate points to generate
         """
         CandidateSRBF.__init__(self, data, numcand=numcand)
-        self.minprob = np.min([1, 3.0/self.data.dim])
+        self.minprob = np.min([1.0, 1.0/self.data.dim])
+
+        def probfun(numeval, maxeval, n0):
+            return min([20.0/data.dim, 1.0]) * (1-(np.log(numeval - n0 + 1) /
+                                                   np.log(maxeval - n0)))
+        self.probfun = probfun
 
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
         """Create new candidate points based on the best
@@ -393,10 +399,7 @@ class CandidateDyCORS(CandidateSRBF):
         dim = self.data.dim
         ncand = self.numcand
         numeval = len(self.proposed_points)
-        # ddsprob = min([1, 20.0/dim]) * (1 - np.log(float(numeval - self.n0 + 1)) /
-        #           np.log(float(self.maxeval - self.n0)))
-        ddsprob = min([1, 20.0/dim]) * (0.5 - np.arctan(-10 + 20*(numeval - self.n0) /
-                                                        float(self.maxeval - self.n0))/np.pi)
+        ddsprob = self.probfun(numeval, self.maxeval, self.n0)
         ddsprob = np.max([self.minprob, ddsprob])
         # Create candidate points
         scalefactors = sigma * self.xrange
@@ -406,22 +409,57 @@ class CandidateDyCORS(CandidateSRBF):
         if len(ind) > 0:
             scalefactors[ind] = np.maximum(scalefactors[ind], 1)
 
-        # Generate from a truncated normal
-        xcand = xbest * np.ones((ncand, dim))
-        for i in subset:
-            lower, upper = self.data.xlow[i], self.data.xup[i]
-            ssigma = scalefactors[i]
-            ar = (np.random.rand(ncand, 1) < ddsprob)
-            xcand[np.where(ar), i] = stats.truncnorm.rvs(
-                (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
-                loc=xbest[i], scale=ssigma, size=np.sum(ar))
-        self.xcand = round_vars(self.data, xcand)
+        nlen = len(subset)
+        ar = (np.random.rand(ncand, nlen) < ddsprob)
+        ind = np.where(np.sum(ar, axis=1) == 0)[0]
+        ar[ind, np.random.randint(0, nlen-1, size=len(ind))] = 1
 
+        xcand = np.ones((ncand, dim)) * xbest
+        for i in range(nlen):
+            lower, upper = self.data.xlow[subset[i]], self.data.xup[subset[i]]
+            ssigma = scalefactors[subset[i]]
+
+            ind = np.where(ar[:, i] == 1)[0]
+            xcand[ind, subset[i]] = stats.truncnorm.rvs(
+                (lower - xbest[subset[i]]) / ssigma, (upper - xbest[subset[i]]) / ssigma,
+                loc=xbest[subset[i]], scale=ssigma, size=len(ind))
+
+        """
+        for ii in range(ncand):
+            for kk in range(nlen):
+                if ar[ii, kk]:
+                    jj = subset[kk]
+                    xcand[ii, jj] += scalefactors[jj] * np.random.randn(1, 1)
+                    if xcand[ii, jj] < self.data.xlow[jj]:
+                        xcand[ii, jj] = self.data.xlow[jj] + (self.data.xlow[jj] - xcand[ii, jj])
+                        if xcand[ii, jj] > self.data.xup[jj]:
+                            xcand[ii, jj] = self.data.xlow[jj]
+                    elif xcand[ii, jj] > self.data.xup[jj]:
+                        xcand[ii, jj] = self.data.xup[jj] - (xcand[ii, jj] - self.data.xup[jj])
+                        if xcand[ii, jj] < self.data.xlow[jj]:
+                            xcand[ii, jj] = self.data.xup[jj]
+        """
+
+        self.xcand = round_vars(self.data, xcand)
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
         self.dmerit = np.amin(np.asmatrix(devals), axis=1)
         fhvals = evals(self.xcand, scaling=True)
         self.fhvals = unit_rescale(fhvals)
         self.xsample = []
+
+
+class CandidateDDS(CandidateDYCORS):
+    def __init__(self, data, numcand=None):
+        CandidateDYCORS.__init__(self, data, numcand=numcand)
+        self.weights = np.array([1.0])
+        self.numcand = max([0.5*data.dim, 2])
+
+        def probfun(numeval, maxeval, n0):
+            return 1 - (np.log(numeval - n0 + 1)/np.log(maxeval - n0))
+        self.probfun = probfun
+
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+        CandidateDYCORS.make_points(self, xbest, 0.2, evals, derivs, subset)
 
 
 class CandidateSRBF_INT(CandidateSRBF):
@@ -445,7 +483,7 @@ class CandidateSRBF_INT(CandidateSRBF):
                                       evals, derivs, subset=self.data.continuous)
 
 
-class CandidateDyCORS_INT(CandidateDyCORS):
+class CandidateDYCORS_INT(CandidateDYCORS):
     """Candidate points are generated by perturbing ONLY the discrete
     variables using the DyCORS strategy
 
@@ -459,10 +497,10 @@ class CandidateDyCORS_INT(CandidateDyCORS):
     """
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
         if len(self.data.integer) > 0:
-            CandidateDyCORS.make_points(self, xbest, sigma,
+            CandidateDYCORS.make_points(self, xbest, sigma,
                                         evals, derivs=None, subset=self.data.integer)
         else:
-            CandidateDyCORS.make_points(self, xbest, sigma,
+            CandidateDYCORS.make_points(self, xbest, sigma,
                                         evals, derivs=None, subset=self.data.continuous)
 
 
@@ -508,7 +546,7 @@ class CandidateSRBF_CONT(CandidateSRBF):
                                       derivs=None, subset=self.data.integer)
 
 
-class CandidateDyCORS_CONT(CandidateDyCORS):
+class CandidateDYCORS_CONT(CandidateDYCORS):
     """Candidate points are generated by perturbing ONLY
     the continuous variables using the DyCORS strategy
 
@@ -522,10 +560,10 @@ class CandidateDyCORS_CONT(CandidateDyCORS):
     """
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
         if len(self.data.continuous) > 0:
-            CandidateDyCORS.make_points(self, xbest, sigma, evals,
+            CandidateDYCORS.make_points(self, xbest, sigma, evals,
                                         derivs=None, subset=self.data.continuous)
         else:
-            CandidateDyCORS.make_points(self, xbest, sigma, evals,
+            CandidateDYCORS.make_points(self, xbest, sigma, evals,
                                         derivs=None, subset=self.data.integer)
 
 
@@ -549,6 +587,8 @@ class CandidateUniform_CONT(CandidateUniform):
         else:
             CandidateUniform.make_points(self, xbest, sigma, evals,
                                          derivs=None, subset=self.data.integer)
+
+################################## Optimization based strategies ###################################
 
 class GeneticAlgorithm(object):
 
@@ -722,7 +762,6 @@ class MultiStartGradient(object):
 
 if __name__ == "__main__":
     # Test DYCORS
-    """
     dim = 10
     maxeval = 100
     initeval = 80
@@ -732,7 +771,7 @@ if __name__ == "__main__":
     from rbf_surfaces import CubicRBFSurface
     xbest = np.ones(dim)
     data = Ackley(dim)
-    cand = CandidateDyCORS(data, 100*dim)
+    cand = CandidateDYCORS(data, 100*dim)
     exp_des = LatinHypercube(dim, npts=initeval)
     initpoints = exp_des.generate_points()
     rbf = RBFInterpolant(surftype=CubicRBFSurface)
@@ -741,7 +780,7 @@ if __name__ == "__main__":
     cand.init(initpoints, maxeval, True, None)
 
     def evals(x, scaling):
-        return rbf.eval(x)
+        return rbf.evals(x)
 
     cand.make_points(xbest, 0.02, evals, maxeval)
 
@@ -750,4 +789,3 @@ if __name__ == "__main__":
     plt.ylabel('Dimension 1')
     plt.xlabel('Dimension 2')
     plt.show()
-    """

@@ -298,7 +298,8 @@ class myGUI(QtGui.QWidget):
         # Search strategy
         self.searchlbl = QtGui.QLabel("Search Strategy", self)
         self.searchlist = QtGui.QComboBox(self)
-        self.searchlist.addItem("CandidateDyCORS")
+        self.searchlist.addItem("CandidateDYCORS")
+        self.searchlist.addItem("CandidateDDS")
         self.searchlist.addItem("CandidateSRBF")
         self.searchlist.addItem("CandidateUniform")
         self.searchlist.addItem("GeneticAlgorithm")
@@ -975,11 +976,11 @@ class myGUI(QtGui.QWidget):
                 if self.stratlist.currentText() == "SyncStrategyNoConstraints":
                     self.controller.strategy = \
                         SyncStrategyNoConstraints(0, self.data, self.rs, self.maxeval,
-                                                        self.nsample, self.exp_des, self.search)
+                                                  self.nsample, self.exp_des, self.search)
                 elif self.stratlist.currentText() == "SyncStrategyPenalty":
                     self.controller.strategy = \
                         SyncStrategyPenalty(0, self.data, self.rs, self.maxeval,
-                                                  self.nsample, self.exp_des, self.search)
+                                            self.nsample, self.exp_des, self.search)
                 self.controller.strategy = CheckWorkerStrategy(self.controller, self.controller.strategy)
                 # Threads
                 if self.controllerlist.currentText() == "ThreadController":

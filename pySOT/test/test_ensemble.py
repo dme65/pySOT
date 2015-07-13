@@ -18,7 +18,7 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 50")
-    print("Search strategy: Candidate SRBF")
+    print("Search strategy: CandidateSRBF")
     print("Experimental design: Latin Hypercube + point [0.1, 0.5, 0.8]")
     print("Surrogate: Cubic RBF, Linear RBF, Thin-plate RBF, MARS")
 
@@ -31,9 +31,9 @@ def main():
 
     # Use 3 differents RBF's and MARS as an ensemble surrogate
     models = [
-        RBFInterpolant(CubicRBFSurface, 1e-8, maxeval),
-        RBFInterpolant(LinearRBFSurface, 1e-8, maxeval),
-        RBFInterpolant(TPSSurface, 1e-8, maxeval)
+        RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
+        RBFInterpolant(surftype=LinearRBFSurface, maxp=maxeval),
+        RBFInterpolant(surftype=TPSSurface, maxp=maxeval)
     ]
     response_surface = EnsembleSurrogate(models, maxeval)
 
@@ -49,8 +49,8 @@ def main():
             worker_id=0, data=data,
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-            search_procedure=CandidateSRBF(data=data, numcand=200*data.dim),
+            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            search_procedure=CandidateSRBF(data=data, numcand=100*data.dim),
             extra=extra)
 
     # Launch the threads and give them access to the objective function

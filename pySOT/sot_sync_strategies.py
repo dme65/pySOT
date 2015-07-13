@@ -16,14 +16,16 @@ import numpy as np
 import math
 import logging
 from experimental_design import SymmetricLatinHypercube, LatinHypercube
-from search_procedure import round_vars, CandidateDyCORS, \
+from search_procedure import round_vars, CandidateDYCORS, \
     MultiSearchStrategy, GeneticAlgorithm
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_surfaces import CubicRBFSurface
+from rbf_interpolant import RBFInterpolant
 
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
+
 
 
 class SyncStrategyNoConstraints(BaseStrategy):
@@ -68,8 +70,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.data = data
         self.fhat = response_surface
         if self.fhat is None:
-            self.fhat = RBFInterpolant(surftype=CubicRBFSurface,
-                                       eta=1e-8, maxp=maxeval)
+            self.fhat = RBFInterpolant(surftype=CubicRBFSurface, eta=1e-8, maxp=maxeval)
         self.maxeval = maxeval
         self.nsamples = nsamples
         self.extra = extra
@@ -85,8 +86,10 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.xrange = np.asarray(data.xup - data.xlow)
 
         # algorithm parameters
-        self.sigma_init = 0.2  	# w.r.t. unit box
-        self.sigma_min = 0.005  # w.r.t. unit box
+        self.sigma_min = 0.005
+        self.sigma_max = 0.2
+        self.sigma_init = 0.2
+
         self.failtol = max(5, data.dim)
         self.succtol = 3
 
@@ -101,9 +104,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Set up search procedures and initialize
         self.search = search_procedure
         if self.search is None:
-            self.search = MultiSearchStrategy(
-                [CandidateDyCORS(data), GeneticAlgorithm(data)],
-                [0, 0, 0, 0, 1])
+            self.search = CandidateDYCORS(data)
 
         # Start with first experimental design
         self.sample_initial()
@@ -132,7 +133,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             return
 
         # Check if we succeeded at significant improvement
-        if self.fbest < self.fbest_old - 1e-6*math.fabs(self.fbest_old):
+        if self.fbest < self.fbest_old - 1e-3 * math.fabs(self.fbest_old):
             self.status = max(1, self.status + 1)
         else:
             self.status = min(-1, self.status - 1)
@@ -145,7 +146,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             logger.info("Reducing sigma")
         if self.status >= self.succtol:
             self.status = 0
-            self.sigma *= 2
+            self.sigma = min([2.0 * self.sigma, self.sigma_max])
             logger.info("Increasing sigma")
 
     def sample_initial(self):

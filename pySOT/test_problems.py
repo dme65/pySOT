@@ -263,6 +263,32 @@ class Michalewicz:
                                             * x**2)/np.pi)) ** 20)
 
 
+class Levy:
+    def __init__(self, dim=10):
+        self.xlow = -5 * np.ones(dim)
+        self.xup = 5 * np.ones(dim)
+        self.dim = dim
+        self.info = str(dim)+"-dimensional Levy function \n" +\
+                             "Global optimum: ?"
+        self.integer = []
+        self.continuous = np.arange(0, dim)
+        validate(self)
+
+    def objfunction(self, x):
+        """Evaluate the Levy function  at x
+
+        :param x: Data point
+        :return: Value at x
+        """
+        if len(x) != self.dim:
+            raise ValueError('Dimension mismatch')
+        a = 20
+        b = 0.2
+        d = 50
+        return -a * np.exp(-b * np.sqrt(np.sum(x ** 2)/d)) -\
+            np.exp(np.sum(np.cos(2 * np.pi * x))/d)
+
+
 class Griewank:
     """Griewank function
 

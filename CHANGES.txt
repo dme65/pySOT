@@ -1,3 +1,7 @@
+v0.1.9, 2015-07-13
+	Fixed a bug in the merit function and several bugs in the DYCORS strategy
+	Added a DDS candidate based strategy for searching on the surrogate
+
 v0.1.8, 2015-07-01
 	Multi Start Gradient method that uses the L-BFGS-B algorithm to search on the surroagate
 

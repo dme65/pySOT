@@ -68,9 +68,9 @@ def main():
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-            search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
-            response_surface=RBFInterpolant(CubicRBFSurface, 1e-8, maxeval))
+            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
+            response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

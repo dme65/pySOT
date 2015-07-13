@@ -17,7 +17,7 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 1000")
-    print("Search strategy: Candidate DyCORS")
+    print("Search strategy: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
     print("Ensemble surrogates: Cubic RBF")
 
@@ -34,10 +34,9 @@ def main():
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-            response_surface=RBFInterpolant(surftype=CubicRBFSurface,
-                                            eta=1e-8, maxp=maxeval),
-            search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim))
+            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
+            search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

@@ -34,7 +34,6 @@ class Keane:
         :param x: Data point
         :return: Value at x
         """
-        time.sleep(0.1)
         n = len(x)
         return -abs((sum(np.cos(x)**4)-2 * np.prod(np.cos(x)**2)) /
                     max([1E-10, np.sqrt(np.dot(1+np.arange(n), x**2))]))

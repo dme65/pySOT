@@ -18,8 +18,8 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 200")
-    print("Search strategy: CandidateDyCORS, CandidateDyCORS_INT"
-          ", CandidateDyCORS_CONT, CandidateUniform")
+    print("Search strategy: CandidateDYCORS, CandidateDYCORS_INT"
+          ", CandidateDYCORS_CONT, CandidateUniform")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
@@ -37,16 +37,15 @@ def main():
             return np.inf
         return record.value
 
-    exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*data.dim+1)
-    response_surface = RBFInterpolant(surftype=CubicRBFSurface,
-                                      eta=1e-8, maxp=maxeval)
+    exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1))
+    response_surface = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
 
     # Use a multi-search strategy for candidate points
     search_proc = MultiSearchStrategy(
-        [CandidateDyCORS(data=data, numcand=200*data.dim),
-         CandidateUniform(data=data, numcand=200*data.dim),
-         CandidateDyCORS_INT(data=data, numcand=200*data.dim),
-         CandidateDyCORS_CONT(data=data, numcand=200*data.dim)],
+        [CandidateDYCORS(data=data, numcand=100*data.dim),
+         CandidateUniform(data=data, numcand=100*data.dim),
+         CandidateDYCORS_INT(data=data, numcand=100*data.dim),
+         CandidateDYCORS_CONT(data=data, numcand=100*data.dim)],
         [0, 1, 2, 3])
 
     # Create a strategy and a controller
