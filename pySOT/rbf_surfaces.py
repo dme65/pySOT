@@ -18,11 +18,12 @@ class LinearRBFSystem(SimpleRBFSystem):
     """Linear RBF system"""
 
     dpoly = 1
+    avgdist = False
 
-    def phi(self, r):
+    def phi(self, r, epsilon=None):
         return r
 
-    def dphi_div_r(self, r):
+    def dphi_div_r(self, r, epsilon=None):
         return (r*0 + 1)/r
 
 
@@ -30,26 +31,79 @@ class CubicRBFSystem(SimpleRBFSystem):
     """Cubic RBF system"""
 
     dpoly = 2
+    avgdist = False
 
-    def phi(self, r):
+    def phi(self, r, epsilon=None):
         return r ** 3
 
-    def dphi_div_r(self, r):
+    def dphi_div_r(self, r, epsilon=None):
         return 3 * r
+
+class QuinticRBFSystem(SimpleRBFSystem):
+    """Quintic RBF system"""
+
+    dpoly = 2
+    avgdist = False
+
+    def phi(self, r, epsilon=None):
+        return r ** 5
+
+    def dphi_div_r(self, r, epsilon=None):
+        return 5 * (r ** 3)
 
 
 class ThinPlateRBFSystem(SimpleRBFSystem):
     """Thin plate RBF system"""
 
     dpoly = 2
-    eps = np.finfo(np.double).tiny
+    avgdist = False
+    tiny = np.finfo(np.double).tiny
 
-    def phi(self, r):
-        return r * r * np.log(r+self.eps)
+    def phi(self, r, epsilon=None):
+        return r * r * np.log(r + self.tiny)
 
-    def dphi_div_r(self, r):
-        return 2 * np.log(r+self.eps) + 1
+    def dphi_div_r(self, r, epsilon=None):
+        return 2 * np.log(r + self.tiny) + 1
 
+"""
+class MultiQuadraticRBFSystem(SimpleRBFSystem):
+    " Multi-Quadratic RBF "
+
+    dpoly = 2
+    avgdist = True
+
+    def phi(self, r, epsilon):
+        return np.sqrt((1.0/epsilon * r) ** 2 + 1)
+
+    def dphi_div_r(self, r, epsilon):
+        return 1.0/((epsilon ** 2) * np.sqrt(1 + (1.0/epsilon * r) ** 2))
+
+
+class InverseMultiQuadraticRBFSystem(SimpleRBFSystem):
+    " Inverse Multi-Quadratic RBF "
+
+    dpoly = 2
+    avgdist = True
+
+    def phi(self, r, epsilon):
+        return 1.0/np.sqrt((1.0 / epsilon * r) ** 2 + 1)
+
+    def dphi_div_r(self, r, epsilon):
+        return - 1.0/((epsilon ** 2) * (np.sqrt(1 + (1.0/epsilon * r) ** 2)) ** 3)
+
+
+class GaussianRBFSystem(SimpleRBFSystem):
+    " Gaussian RBF "
+
+    dpoly = 2
+    avgdist = True
+
+    def phi(self, r, epsilon):
+        return np.exp(-(1.0 / epsilon * r) ** 2)
+
+    def dphi_div_r(self, r, epsilon):
+        return - (2.0/(epsilon**2)) * np.exp(-(1.0 / epsilon * r) ** 2)
+"""
 
 class LinearRBFSurface(SimpleRBFSurface):
     RBFSystem = LinearRBFSystem
@@ -59,9 +113,26 @@ class CubicRBFSurface(SimpleRBFSurface):
     RBFSystem = CubicRBFSystem
 
 
+class QuinticRBFSurface(SimpleRBFSurface):
+    RBFSystem = QuinticRBFSystem
+
+
 class TPSSurface(SimpleRBFSurface):
     RBFSystem = ThinPlateRBFSystem
 
+
+"""
+class MultiQuadSurface(SimpleRBFSurface):
+    RBFSystem = MultiQuadraticRBFSystem
+
+
+class InvMultiQuadSurface(SimpleRBFSurface):
+    RBFSystem = InverseMultiQuadraticRBFSystem
+
+
+class GaussianSurface(SimpleRBFSurface):
+    RBFSystem = GaussianRBFSystem
+"""
 
 def toyf(x):
     if len(x.shape) == 1:

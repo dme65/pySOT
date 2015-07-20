@@ -144,7 +144,8 @@ class BaseRBFSystem(object):
     def refactor(self):
         """Compute factorization
         """
-        self.lupiv = la.lu_factor(self.M)
+        eta = 1e-16 * np.eye(self.M.shape[0]) * la.norm(self.M, 1) * la.norm(self.M, np.inf)
+        self.lupiv = la.lu_factor(self.M + eta)
 
     def solve(self, rhs):
         """Solve with the system matrix
@@ -217,7 +218,7 @@ class SimpleRBFSystem(BaseRBFSystem):
         elif dpoly == 1:
             mtail = 1
         elif dpoly == 2:
-            mtail = dim+1
+            mtail = dim + 1
         super(SimpleRBFSystem, self).__init__(dim, mtail, maxpts)
 
     def fill_basis(self, B, y, d=None):

@@ -10,9 +10,7 @@
 import numpy as np
 import numpy.linalg as la
 import scipy.spatial as scp
-
 from rbf_surfaces import CubicRBFSurface
-
 
 class RBFInterpolant(object):
     """Compute and evaluate RBF interpolant.
@@ -56,7 +54,7 @@ class RBFInterpolant(object):
     def __init__(self, surftype=CubicRBFSurface, eta=1e-8, maxp=100):
         self.maxp = maxp
         self.surface = None
-        self.surftype = CubicRBFSurface
+        self.surftype = surftype
 
     @property
     def nump(self):
@@ -105,8 +103,8 @@ class RBFInterpolant(object):
 
         :param fx: Transformed function value
         """
-        assert self.surface.fx.shape == fx.shape
-        self.surface.set_fx(fx)
+        assert self.surface.npt == fx.shape[0]
+        self.surface.set_fx(fx.ravel())
 
     def eval(self, xx):
         """Evaluate the rbf interpolant at the point xx
@@ -154,7 +152,7 @@ def _main():
                         np.sin(x[0])-x[0]*np.sin(x[1])])
         return dfx
 
-    fhat = RBFInterpolant(1e-8, 20)
+    fhat = RBFInterpolant(CubicRBFSurface, 1e-8, 20)
     xs = np.random.rand(120, 2)
     for i in range(100):
         xx = xs[i, :]

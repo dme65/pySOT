@@ -418,7 +418,6 @@ class CandidateDYCORS(CandidateSRBF):
         for i in range(nlen):
             lower, upper = self.data.xlow[subset[i]], self.data.xup[subset[i]]
             ssigma = scalefactors[subset[i]]
-
             ind = np.where(ar[:, i] == 1)[0]
             xcand[ind, subset[i]] = stats.truncnorm.rvs(
                 (lower - xbest[subset[i]]) / ssigma, (upper - xbest[subset[i]]) / ssigma,
@@ -622,12 +621,14 @@ class GeneticAlgorithm(object):
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
 
-    def next(self):
+    def next(self, objfunction=None):
+
         # Find a new point
-        def objfunction(x):
-            dist = np.atleast_2d(np.min(
-                scp.distance.cdist(x, self.proposed_points, metric='sqeuclidean',), axis=1)).T
-            return self.evals(x, scaling=False) + 10E6 * (dist < self.dtol ** 2)
+        if objfunction == None:
+            def objfunction(x):
+                dist = np.atleast_2d(np.min(
+                    scp.distance.cdist(x, self.proposed_points, metric='sqeuclidean',), axis=1)).T
+                return self.evals(x, scaling=False) + 10E6 * (dist < self.dtol ** 2)
 
         ga = GA(objfunction, self.data.dim, self.data.xlow,
                 self.data.xup, popsize=max([2*self.data.dim, 100]), ngen=100)
@@ -636,7 +637,7 @@ class GeneticAlgorithm(object):
         self.proposed_points = np.vstack((self.proposed_points, np.asarray(xnew)))
         return xnew
 
-    def make_points(self, xbest, sigma, evals, derivs):
+    def make_points(self, xbest, sigma, evals, derivs=None):
         self.evals = evals
         self.derivs = derivs
 

@@ -26,8 +26,6 @@ from rbf_interpolant import RBFInterpolant
 # Get module-level logger
 logger = logging.getLogger(__name__)
 
-
-
 class SyncStrategyNoConstraints(BaseStrategy):
     """Parallel synchronous optimization strategy without non-bound constraints.
 
@@ -109,6 +107,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Start with first experimental design
         self.sample_initial()
 
+    def dist_to_unit(self, x):
+        return x / (np.sqrt(self.data.dim) * (self.data.xup - self.data.xlow))
+
     def log_completion(self, record):
         """Record a completed evaluation to the log.
 
@@ -170,7 +171,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             start_sample = np.vstack((start_sample, self.extra))
 
         start_sample = round_vars(self.data, start_sample)
-        for j in range(min(start_sample.shape[0], self.maxeval-self.numeval)):
+        for j in range(min(start_sample.shape[0], self.maxeval - self.numeval)):
             proposal = self.propose_eval(start_sample[j, :])
             self.resubmitter.rput(proposal)
 
@@ -187,16 +188,16 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param xx: Data points
         :return: Predicted function values
         """
-        return self.fhat.evals(xx)
+        return self.fhat.evals(self.dist_to_unit(xx))
 
     def derivs(self, xx):
-        return np.atleast_2d(self.fhat.deriv(xx))
+        return np.atleast_2d(self.fhat.deriv(self.dist_to_unit(xx)))
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy
         """
         self.adjust_step()
-        nsamples = min(self.nsamples, self.maxeval-self.numeval)
+        nsamples = min(self.nsamples, self.maxeval - self.numeval)
         self.search.make_points(self.xbest, self.sigma, self.evals, self.derivs)
         for _ in range(nsamples):
             proposal = self.propose_eval(np.ravel(self.search.next()))
@@ -234,7 +235,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
-        self.fhat.add_point(record.params[0], record.value)
+        self.fhat.add_point(self.dist_to_unit(record.params[0]), record.value)
         if record.value < self.fbest:
             self.xbest = record.params[0]
             self.fbest = record.value
@@ -318,7 +319,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :return: Predicted function values
         """
         penalty = self.penalty_fun(xx)
-        vals = self.fhat.evals(xx)
+        vals = self.fhat.evals(self.dist_to_unit(xx))
         if scaling:
             ind = (np.where(penalty <= 0.0)[0]).T
             if ind.shape[0] > 1:
@@ -334,7 +335,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         constraints = np.array(self.data.eval_ineq_constraints(x))
         dconstraints = self.data.deriv_ineq_constraints(x)
         constraints[np.where(constraints < 0.0)] = 0.0
-        return np.atleast_2d(self.fhat.deriv(xx)) + \
+        return np.atleast_2d(self.fhat.deriv(self.dist_to_unit(xx))) + \
             2 * self.penalty * np.sum(
                 constraints * np.rollaxis(dconstraints, 2), axis=2).T
 
@@ -379,7 +380,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
-        self.fhat.add_point(record.params[0], record.value)
+        self.fhat.add_point(self.dist_to_unit(record.params[0]), record.value)
         # Check if the penalty function is a new best
         if record.value + penalty < self.fbest:
             self.xbest = record.params[0]

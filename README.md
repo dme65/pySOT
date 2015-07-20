@@ -11,8 +11,4 @@ The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
 
 Please refer to pySOT.pdf for more details about the functionality of the toolbox.
 
-Check out the new GUI:
-
-<p align="center">
-  <img src="https://github.com/dme65/pySOT/blob/master/pySOT_GUI.png?raw=true"/>
-</p>
+Check out the new GUI

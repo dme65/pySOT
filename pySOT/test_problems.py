@@ -252,7 +252,7 @@ class Michalewicz:
         validate(self)
 
     def objfunction(self, x):
-        """Evaluate the Griewank function  at x
+        """Evaluate the Michalewicz function  at x
 
         :param x: Data point
         :return: Value at x
@@ -381,7 +381,7 @@ class Rosenbrock:
             raise ValueError('Dimension mismatch')
         total = 0
         for i in range(len(x) - 1):
-            total += 100 * (x[i]**2 - x[i+1])**2 + (x[i] - 1)**2
+            total += 100 * (x[i] ** 2 - x[i+1]) ** 2 + (x[i] - 1) ** 2
         return total
 
 
@@ -566,7 +566,7 @@ class StyblinskiTang:
         """
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
-        return 0.5*sum(x**4 - 16*x**2 + 5*x)
+        return 0.5*np.sum(x ** 4 - 16 * x ** 2 + 5 * x)
 
 
 class Quartic:

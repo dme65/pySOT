@@ -1,3 +1,6 @@
+v0.1.10, 2015-07-14
+	README.md not uploaded to pypi which caused pip install to fail
+
 v0.1.9, 2015-07-13
 	Fixed a bug in the merit function and several bugs in the DYCORS strategy
 	Added a DDS candidate based strategy for searching on the surrogate
