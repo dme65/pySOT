@@ -89,7 +89,7 @@ class MARSInterpolant(Earth):
         self.nump += 1
         self.updated = False
 
-    def eval(self, xx):
+    def eval(self, xx, d=None):
         """Evaluate the MARS interpolant at the point xx
 
         :param xx: Point where to evaluate
@@ -103,7 +103,7 @@ class MARSInterpolant(Earth):
         fx = self.model.predict(xx)
         return fx[0]
 
-    def evals(self, xx):
+    def evals(self, xx, d=None):
         """Evaluate the MARS interpolant at the points xx
 
         :param xx: Points where to evaluate
@@ -117,7 +117,7 @@ class MARSInterpolant(Earth):
         fx[:, 0] = self.model.predict(xx)
         return fx
 
-    def deriv(self, x):
+    def deriv(self, x, d=None):
         """Evaluate the derivative of the MARS interpolant at x
 
         :param x: Data point

@@ -107,8 +107,11 @@ class SyncStrategyNoConstraints(BaseStrategy):
         # Start with first experimental design
         self.sample_initial()
 
-    def dist_to_unit(self, x):
-        return x / (np.sqrt(self.data.dim) * (self.data.xup - self.data.xlow))
+    def to_unit_box(self, x):
+        return (np.copy(x) - self.data.xlow) / (self.data.xup - self.data.xlow)
+
+    def from_unit_box(self, x):
+        return self.data.xlow + (self.data.xup - self.data.xlow) * np.copy(x)
 
     def log_completion(self, record):
         """Record a completed evaluation to the log.
@@ -165,19 +168,18 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.fbest = np.inf
         self.fhat.reset()
         start_sample = self.design.generate_points()
-        start_sample = np.asarray(self.data.xlow) + start_sample * self.xrange
         # Add extra evaluation points provided by the user
         if self.extra is not None:
-            start_sample = np.vstack((start_sample, self.extra))
+            start_sample = np.vstack((start_sample, self.to_unit_box(self.extra)))
 
         start_sample = round_vars(self.data, start_sample)
         for j in range(min(start_sample.shape[0], self.maxeval - self.numeval)):
-            proposal = self.propose_eval(start_sample[j, :])
+            proposal = self.propose_eval(self.from_unit_box(start_sample[j, :]))
             self.resubmitter.rput(proposal)
 
-        self.search.init(start_sample, self.maxeval, True)
+        self.search.init(start_sample, self.maxeval, True, self.fhat)
 
-    def evals(self, xx, scaling=False):
+    def evals(self, xx, d=None, scaling=False):
         """Predict function values
 
         As a measure of promising function values we let all infeasible points
@@ -188,10 +190,10 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param xx: Data points
         :return: Predicted function values
         """
-        return self.fhat.evals(self.dist_to_unit(xx))
+        return self.fhat.evals(xx, d)
 
-    def derivs(self, xx):
-        return np.atleast_2d(self.fhat.deriv(self.dist_to_unit(xx)))
+    def derivs(self, xx, d=None):
+        return np.atleast_2d(self.fhat.deriv(xx, d))
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy
@@ -200,7 +202,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         nsamples = min(self.nsamples, self.maxeval - self.numeval)
         self.search.make_points(self.xbest, self.sigma, self.evals, self.derivs)
         for _ in range(nsamples):
-            proposal = self.propose_eval(np.ravel(self.search.next()))
+            proposal = self.propose_eval(np.ravel(self.from_unit_box(self.search.next())))
             self.resubmitter.rput(proposal)
 
     def start_batch(self):
@@ -235,9 +237,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
-        self.fhat.add_point(self.dist_to_unit(record.params[0]), record.value)
+        self.fhat.add_point(self.to_unit_box(record.params[0]), record.value)
         if record.value < self.fbest:
-            self.xbest = record.params[0]
+            self.xbest = self.to_unit_box(record.params[0])
             self.fbest = record.value
 
 
@@ -269,7 +271,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, search_procedure=None, extra=None,
-                 penalty=1.0E6):
+                 penalty=1e6):
         """Initialize the optimization strategy.
 
         :param worker_id: Start ID in a multistart setting
@@ -300,14 +302,14 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :return: Penalty for constraint violations
         """
         # Get the constraint violations
-        vec = np.array(self.data.eval_ineq_constraints(xx))
+        vec = np.array(self.data.eval_ineq_constraints(self.from_unit_box(xx)))
         # Now apply the penalty for the constraint violation
         vec[np.where(vec < 0.0)] = 0.0
         vec **= 2
         # Surrogate + penalty
-        return self.penalty * np.asmatrix(np.sum(vec, axis=1)).T
+        return self.penalty * np.asmatrix(np.sum(vec, axis=1))
 
-    def evals(self, xx, scaling=False):
+    def evals(self, xx, d=None, scaling=False):
         """Predict function values
 
         As a measure of promising function values we let all infeasible points
@@ -318,8 +320,8 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :param xx: Data points
         :return: Predicted function values
         """
-        penalty = self.penalty_fun(xx)
-        vals = self.fhat.evals(self.dist_to_unit(xx))
+        penalty = self.penalty_fun(xx).T
+        vals = self.fhat.evals(xx, d)
         if scaling:
             ind = (np.where(penalty <= 0.0)[0]).T
             if ind.shape[0] > 1:
@@ -329,24 +331,24 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
                 return vals
         return vals + penalty
 
-    def derivs(self, xx):
+    def derivs(self, xx, d=None):
         # Compute the value of the constraint functions
         x = np.atleast_2d(xx)
-        constraints = np.array(self.data.eval_ineq_constraints(x))
-        dconstraints = self.data.deriv_ineq_constraints(x)
+        constraints = np.array(self.data.eval_ineq_constraints(self.from_unit_box(x)))
+        dconstraints = self.data.deriv_ineq_constraints(self.from_unit_box(x))
         constraints[np.where(constraints < 0.0)] = 0.0
-        return np.atleast_2d(self.fhat.deriv(self.dist_to_unit(xx))) + \
+        return np.atleast_2d(self.fhat.deriv(xx, d)) + \
             2 * self.penalty * np.sum(
                 constraints * np.rollaxis(dconstraints, 2), axis=2).T
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy"""
         self.adjust_step()
-        nsamples = min(self.nsamples, self.maxeval-self.numeval)
+        nsamples = min(self.nsamples, self.maxeval - self.numeval)
         self.search.make_points(self.xbest, self.sigma,
                                 self.evals, self.derivs)
         for _ in range(nsamples):
-            proposal = self.propose_eval(np.ravel(self.search.next()))
+            proposal = self.propose_eval(np.ravel(self.from_unit_box(self.search.next())))
             self.resubmitter.rput(proposal)
 
     def log_completion(self, record, penalty):
@@ -375,13 +377,13 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         """
         x = np.zeros((1, record.params[0].shape[0]))
         x[0, :] = record.params[0]
-        penalty = self.penalty_fun(x)[0, 0]
+        penalty = self.penalty_fun(self.to_unit_box(x))[0, 0]
         self.log_completion(record, penalty)
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
-        self.fhat.add_point(self.dist_to_unit(record.params[0]), record.value)
+        self.fhat.add_point(self.to_unit_box(record.params[0]), record.value)
         # Check if the penalty function is a new best
         if record.value + penalty < self.fbest:
-            self.xbest = record.params[0]
+            self.xbest = self.to_unit_box(record.params[0])
             self.fbest = record.value + penalty

@@ -221,7 +221,7 @@ class EnsembleSurrogate:
                 self.model_list[i] = self.surrogate_list[i][self.nump]
         self.weights = None
 
-    def eval(self, xx):
+    def eval(self, xx, d=None):
         """Evaluate the interpolant at the point xx
 
         :param xx: Point where to evaluate
@@ -233,10 +233,10 @@ class EnsembleSurrogate:
 
         val = 0
         for i in range(self.M):
-            val += self.weights[i]*self.model_list[i].eval(xx)
+            val += self.weights[i]*self.model_list[i].eval(xx, d)
         return val
 
-    def evals(self, xx):
+    def evals(self, xx, d=None):
         """Evaluate the MARS interpolant at the points xx
 
         :param xx: Points where to evaluate
@@ -248,11 +248,11 @@ class EnsembleSurrogate:
 
         vals = np.zeros((xx.shape[0], 1))
         for i in range(self.M):
-            vals += self.weights[i] * self.model_list[i].evals(xx)
+            vals += self.weights[i] * self.model_list[i].evals(xx, d)
 
         return vals
 
-    def deriv(self, x):
+    def deriv(self, x, d=None):
         """Evaluate the derivative of the MARS interpolant at x
 
         :param x: Data point
@@ -264,7 +264,7 @@ class EnsembleSurrogate:
 
         val = 0.0
         for i in range(self.M):
-            val += self.weights[i]*self.model_list[i].deriv(x)
+            val += self.weights[i]*self.model_list[i].deriv(x, d)
         return val
 
 if __name__ == "__main__":

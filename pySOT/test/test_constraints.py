@@ -43,7 +43,7 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
             search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads

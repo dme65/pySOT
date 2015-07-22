@@ -23,12 +23,13 @@ class RSCapped(object):
     :ivar needs_update: Flag if we need to update fhat
     """
 
-    def __init__(self, fhat):
+    def __init__(self, fhat, min_cap_range=-1):
         """Initialize the response surface adapter
 
         :param fhat: Original response surface object
         """
         self.needs_update = False
+        self.min_cap_range = min_cap_range
         self.fhat = fhat
         self.fvalues = np.zeros((100, 1))
         self.nump = 0
@@ -67,37 +68,38 @@ class RSCapped(object):
         """
         return self.fhat.get_fx()
 
-    def eval(self, xx):
+    def eval(self, xx, d=None):
         """Evaluate the capped rbf interpolant at the point xx
 
         :param xx: Point where to evaluate
         :return: Value of the capped rbf interpolant at x
         """
         self._apply_cap()
-        return self.fhat.eval(xx)
+        return self.fhat.eval(xx, d)
 
-    def evals(self, xx):
+    def evals(self, xx, d=None):
         """Evaluate the capped rbf interpolant at the points xx
 
         :param xx: Points where to evaluate
         :return: Values of the capped rbf interpolant at x
         """
         self._apply_cap()
-        return self.fhat.evals(xx)
+        return self.fhat.evals(xx, d)
 
-    def deriv(self, xx):
+    def deriv(self, xx, d=None):
         """Evaluate the derivative of the rbf interpolant at x
 
         :param x: Data point
         :return: Derivative of the rbf interpolant at x
         """
         self._apply_cap()
-        return self.fhat.deriv(xx)
+        return self.fhat.deriv(xx, d)
 
     def _apply_cap(self):
         """ Apply the cap to the function values.
         """
         fvalues = np.copy(self.fvalues[0:self.nump])
-        medf = np.median(fvalues)
-        fvalues[fvalues > medf] = medf
+        if np.max(fvalues) - np.min(fvalues) > self.min_cap_range:
+            medf = np.median(fvalues)
+            fvalues[fvalues > medf] = medf
         self.fhat.transform_fx(fvalues)

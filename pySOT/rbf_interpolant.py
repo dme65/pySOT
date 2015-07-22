@@ -106,32 +106,32 @@ class RBFInterpolant(object):
         assert self.surface.npt == fx.shape[0]
         self.surface.set_fx(fx.ravel())
 
-    def eval(self, xx):
+    def eval(self, xx, d=None):
         """Evaluate the rbf interpolant at the point xx
 
         :param xx: Point where to evaluate
         :return: Value of the rbf interpolant at x
         """
         assert xx.shape == (self.surface.dim,)
-        return self.surface.eval(xx)
+        return self.surface.eval(xx, d)
 
-    def evals(self, xx):
+    def evals(self, xx, d=None):
         """Evaluate the rbf interpolant at the points xx
 
         :param xx: Points where to evaluate
         :return: Values of the rbf interpolant at x
         """
         assert xx.shape[1] == self.surface.dim
-        return np.expand_dims(self.surface.eval(xx), axis=1)
+        return np.expand_dims(self.surface.eval(xx, d), axis=1)
 
-    def deriv(self, x):
+    def deriv(self, x, d=None):
         """Evaluate the derivative of the rbf interpolant at x
 
         :param x: Data point
         :return: Derivative of the rbf interpolant at x
         """
         assert x.shape == (self.surface.dim,)
-        return self.surface.deriv(x)
+        return self.surface.deriv(x, d)
 
 
 

@@ -246,6 +246,7 @@ class SimpleRBFSystem(BaseRBFSystem):
             y: Point at which to evaluate basis functions
             d: Distance from y to centers (optional)
         """
+
         if d is None:
             d = self.dist(y)
         m = self.mtail
@@ -362,7 +363,7 @@ class RBFSurface(object):
         self.add_centers(x)
         self.add_values(fx)
 
-    def eval(self, y):
+    def eval(self, y, d=None):
         """Evaluate the surface at y
 
         Args:
@@ -372,9 +373,9 @@ class RBFSurface(object):
             value of the surface at y
         """
         self.update()
-        return self.rbfs.basis_dot(self.coeff, y)
+        return self.rbfs.basis_dot(self.coeff, y, d)
 
-    def deriv(self, y):
+    def deriv(self, y, d=None):
         """Evaluate the derivative at y
 
         Args:
@@ -384,7 +385,7 @@ class RBFSurface(object):
             gradient of the surface at y
         """
         self.update()
-        return self.rbfs.dbasis_dot(self.coeff, y)
+        return self.rbfs.dbasis_dot(self.coeff, y, d)
 
     def seminorm(self):
         "Get the seminorm of the surface"

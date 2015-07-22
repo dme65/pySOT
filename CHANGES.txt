@@ -1,3 +1,11 @@
+v0.1.11, 2015-07-22
+	Fixed a bug in the capped response surface
+	pySOT now internally works on the unit hypercube
+	The distance can be passed to the RBF after being computed when generating candidate points so it’s not computed twice anymore
+	Fixed some bugs in the candidate functions
+	GA and Multi-Search gradient perturb the best solution in the case when the best solution is a previously evaluated point
+	Added an additional test for the multi-search strategy
+
 v0.1.10, 2015-07-14
 	README.md not uploaded to pypi which caused pip install to fail
 

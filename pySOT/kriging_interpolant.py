@@ -98,7 +98,7 @@ class KrigingInterpolant:
         self.k.addPoint(xx, fx)
         self.updated = False
 
-    def eval(self, xx):
+    def eval(self, xx, d=None):
         """Evaluate the Kriging interpolant at the point xx
 
         :param xx: Point where to evaluate
@@ -111,7 +111,7 @@ class KrigingInterpolant:
         fx = self.k.predict(xx.ravel())
         return fx
 
-    def evals(self, xx):
+    def evals(self, xx, d=None):
         """Evaluate the Kriging interpolant at the points xx
 
         :param xx: Points where to evaluate
@@ -127,7 +127,7 @@ class KrigingInterpolant:
             fx[i, 0] = self.eval(np.asarray(xx[i]))
         return fx
 
-    def deriv(self, x):
+    def deriv(self, x, d=None):
         """Evaluate the derivative of the rbf interpolant at x
 
         :param x: Data point
