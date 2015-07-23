@@ -20,7 +20,7 @@ def main():
     print("Maximum number of evaluations: 500")
     print("Search strategy: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
-    print("Surrogate: Cubic RBF")
+    print("Surrogate: Cubic RBF with median capping")
 
     nthreads = 4
     maxeval = 500
@@ -42,8 +42,8 @@ def main():
         SyncStrategyPenalty(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-            exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
+            response_surface=RSCapped(RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)),
+            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads

@@ -6,16 +6,17 @@
 __author__ = 'davideriksson'
 
 import numpy as np
+from experimental_design import SymmetricLatinHypercube
 
 
 class GeneticAlgorithm:
-    def __init__(self, function, dim, xlow, xup, intvar=[], popsize=1000, ngen=100):
+    def __init__(self, function, dim, xlow, xup, intvar=[], popsize=100, ngen=100, start="SLHD"):
         self.nVariables = dim
         self.nIndividuals = popsize + (popsize % 2)  # Make sure this is even
         self.lowerBoundary = np.array(xlow)
         self.upperBoundary = np.array(xup)
         self.integerVariables = np.array(intvar)
-
+        self.start = start
         self.sigma = 0.2
         self.pMutation = 1.0/dim
         self.tournamentSize = 5
@@ -25,8 +26,15 @@ class GeneticAlgorithm:
 
     def optimize(self):
         #  Initialize population
-        population = self.lowerBoundary + np.multiply(np.random.rand(self.nIndividuals, self.nVariables),
-                                                      self.upperBoundary - self.lowerBoundary)
+        if self.start == "SLHD":
+            exp_des = SymmetricLatinHypercube(self.nVariables, self.nIndividuals)
+            population = self.lowerBoundary + exp_des.generate_points() * \
+                (self.upperBoundary - self.lowerBoundary)
+        elif self.start == "Random":
+            population = self.lowerBoundary + np.random.rand(self.nIndividuals, self.nVariables) *\
+                (self.upperBoundary - self.lowerBoundary)
+        else:
+            raise AttributeError("Unknown argument for initial population")
 
         newpopulation = []
         #  Round positions
@@ -123,9 +131,9 @@ def main():
     # Vectorized Ackley function in dim dimensions
     def objfunction(x):
         return -20.0*np.exp(-0.2*np.sqrt(np.sum(x**2, axis=1)/dim)) - \
-            np.exp(np.sum(np.cos(2.0*np.pi*x), axis=1)/dim) + 20 + np.exp(1)
+            np.exp(np.sum(np.cos(2.0*np.pi*x), axis=1)/dim)
 
-    ga = GeneticAlgorithm(objfunction, dim, -15*np.ones(dim), 20*np.ones(dim), popsize=500, ngen=100)
+    ga = GeneticAlgorithm(objfunction, dim, -15*np.ones(dim), 20*np.ones(dim), popsize=100, ngen=100, start="SLHD")
     xBest, fBest = ga.optimize()
 
     # Print the best solution found

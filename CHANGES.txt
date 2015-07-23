@@ -1,3 +1,8 @@
+v0.1.12, 2015-07-23
+	The capping can now take in a general transformation that is used to transform the function values. Default is median capping.
+	The Genetic Algorithm now defaults to initialize the population using a symmetric latin hypercube design
+	DYCORS uses the remaining evaluation budget to change the probabilities after a restart instead of using the total budget 
+
 v0.1.11, 2015-07-22
 	Fixed a bug in the capped response surface
 	pySOT now internally works on the unit hypercube

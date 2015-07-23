@@ -23,16 +23,30 @@ class RSCapped(object):
     :ivar needs_update: Flag if we need to update fhat
     """
 
-    def __init__(self, fhat, min_cap_range=-1):
+    def __init__(self, fhat, transformation=None):
         """Initialize the response surface adapter
 
         :param fhat: Original response surface object
         """
         self.needs_update = False
-        self.min_cap_range = min_cap_range
+        self.transformation = transformation
+        if self.transformation is None:
+            def transformation(fvalues):
+                medf = np.median(fvalues)
+                fvalues[fvalues > medf] = medf
+                return fvalues
+            self.transformation = transformation
         self.fhat = fhat
         self.fvalues = np.zeros((100, 1))
         self.nump = 0
+
+    @property
+    def x(self):
+        return self.get_x()
+
+    @property
+    def fx(self):
+        return self.get_fx()
 
     def reset(self):
         """Reset the capped response surface
@@ -99,7 +113,4 @@ class RSCapped(object):
         """ Apply the cap to the function values.
         """
         fvalues = np.copy(self.fvalues[0:self.nump])
-        if np.max(fvalues) - np.min(fvalues) > self.min_cap_range:
-            medf = np.median(fvalues)
-            fvalues[fvalues > medf] = medf
-        self.fhat.transform_fx(fvalues)
+        self.fhat.transform_fx(self.transformation(fvalues))
