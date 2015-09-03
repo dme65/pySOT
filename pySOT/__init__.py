@@ -11,7 +11,11 @@ from search_procedure import *
 from test_problems import *
 from sot_sync_strategies import *
 from ensemble_surrogate import EnsembleSurrogate
-from GUI import GUI
+
+try:
+    from GUI import GUI
+except ImportError:
+    pass
 
 try:
     from mars_interpolant import MARSInterpolant
