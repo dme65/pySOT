@@ -17,16 +17,15 @@ class RSCapped(object):
     with a modified version in which any function values above the
     median are replaced by the median value.
 
-    :ivar fhat: Original response surface
+    :ivar model: Original response surface
     :ivar fvalues: Function values
-    :ivar nump: Number of points currently active
-    :ivar needs_update: Flag if we need to update fhat
     """
 
-    def __init__(self, fhat, transformation=None):
+    def __init__(self, model, transformation=None):
         """Initialize the response surface adapter
 
-        :param fhat: Original response surface object
+        :param model: Original response surface object
+        :param transformation: Function value transformation
         """
         self.needs_update = False
         self.transformation = transformation
@@ -36,7 +35,7 @@ class RSCapped(object):
                 fvalues[fvalues > medf] = medf
                 return fvalues
             self.transformation = transformation
-        self.fhat = fhat
+        self.model = model
         self.fvalues = np.zeros((100, 1))
         self.nump = 0
 
@@ -51,7 +50,7 @@ class RSCapped(object):
     def reset(self):
         """Reset the capped response surface
         """
-        self.fhat.reset()
+        self.model.reset()
         self.fvalues[:] = 0
         self.nump = 0
 
@@ -66,21 +65,21 @@ class RSCapped(object):
         self.fvalues[self.nump] = fx
         self.nump += 1
         self.needs_update = True
-        self.fhat.add_point(xx, fx)
+        self.model.add_point(xx, fx)
 
     def get_x(self):
         """Get the list of data points
 
         :return: List of data points
         """
-        return self.fhat.get_x()
+        return self.model.get_x()
 
     def get_fx(self):
         """Get the list of function values for the data points.
 
         :return: List of function values
         """
-        return self.fhat.get_fx()
+        return self.model.get_fx()
 
     def eval(self, xx, d=None):
         """Evaluate the capped rbf interpolant at the point xx
@@ -89,7 +88,7 @@ class RSCapped(object):
         :return: Value of the capped rbf interpolant at x
         """
         self._apply_cap()
-        return self.fhat.eval(xx, d)
+        return self.model.eval(xx, d)
 
     def evals(self, xx, d=None):
         """Evaluate the capped rbf interpolant at the points xx
@@ -98,7 +97,7 @@ class RSCapped(object):
         :return: Values of the capped rbf interpolant at x
         """
         self._apply_cap()
-        return self.fhat.evals(xx, d)
+        return self.model.evals(xx, d)
 
     def deriv(self, xx, d=None):
         """Evaluate the derivative of the rbf interpolant at x
@@ -107,10 +106,10 @@ class RSCapped(object):
         :return: Derivative of the rbf interpolant at x
         """
         self._apply_cap()
-        return self.fhat.deriv(xx, d)
+        return self.model.deriv(xx, d)
 
     def _apply_cap(self):
         """ Apply the cap to the function values.
         """
         fvalues = np.copy(self.fvalues[0:self.nump])
-        self.fhat.transform_fx(self.transformation(fvalues))
+        self.model.transform_fx(self.transformation(fvalues))

@@ -1,3 +1,7 @@
+v0.1.14, 2015-09-22
+	Updated the Tutorial to reflect the changes for the last few months
+	Simplified the object creation from strings in the GUI by importing directly from the namespace.
+
 v0.1.13, 2015-09-03
 	Allowed to still import the rest of pySOT when PySide is not found. In this case, the GUI will be unavailable.
 

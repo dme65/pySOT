@@ -12,6 +12,7 @@ import numpy.linalg as la
 import scipy.spatial as scp
 from rbf_surfaces import CubicRBFSurface
 
+
 class RBFInterpolant(object):
     """Compute and evaluate RBF interpolant.
 
@@ -132,7 +133,6 @@ class RBFInterpolant(object):
         """
         assert x.shape == (self.surface.dim,)
         return self.surface.deriv(x, d)
-
 
 
 # ====================================================================

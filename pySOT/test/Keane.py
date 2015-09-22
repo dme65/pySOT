@@ -1,7 +1,7 @@
 import numpy as np
 import time
 class Keane:
-    def __init__(self, dim=10):
+    def __init__(self, dim=30):
         self.xlow = np.zeros(dim)
         self.xup = 5 * np.ones(dim)
         self.dim = dim

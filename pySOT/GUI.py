@@ -8,8 +8,6 @@
 import sys
 from PySide import QtGui, QtCore
 import ntpath
-
-ntpath.basename("a/b/c")
 import imp
 import os
 import numpy as np
@@ -35,8 +33,10 @@ except:
     pass
 
 import logging
+ntpath.basename("a/b/c")
 
 # =========================== Timing ==============================
+
 
 class timerThread(QtCore.QThread):
     timeElapsed = QtCore.Signal(int)
@@ -74,13 +74,16 @@ class myThread(QtCore.QThread):
 
 # ============================= Helpers =============================
 
+
 def path_leaf(path):
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
 
+
 def path_head(path):
     head, tail = ntpath.split(path)
     return head
+
 
 def get_object(module_name, object_name):
     """return method object or class object given their names"""
@@ -89,6 +92,7 @@ def get_object(module_name, object_name):
     return obj
 
 # ========== Manage communication with the strategy and the GUI ============
+
 
 class Manager(InputStrategy):
     def __init__(self, controller):
@@ -105,6 +109,7 @@ class Manager(InputStrategy):
     def on_complete(self, rec):
         self.numeval += 1
         self.GUI.update(rec.params[0], rec.value, self.numeval, self.killed)
+        print(rec.params[0], rec.value)
 
     def on_kill(self, rec):
         self.killed += 1
@@ -123,6 +128,7 @@ class Manager(InputStrategy):
                 np.array_str(result.params[0], max_line_width=80, precision=5, suppress_small=True)), "blue")
 
 # ================================= GUI ===================================
+
 
 class myGUI(QtGui.QWidget):
 
@@ -626,7 +632,7 @@ class myGUI(QtGui.QWidget):
             if self.explist.currentText() == "LatinHypercube":
                 minpts = self.data.dim + 1  # FIXME, for now
             else:
-                minpts = 2*(self.data.dim + 1)  # FIXME, for now
+                minpts = 2*self.data.dim + 1  # FIXME, for now
             if int(text) >= minpts:
                 self.ineverr.setText("")
                 self.inevinp = True
@@ -870,11 +876,11 @@ class myGUI(QtGui.QWidget):
 
             # Experimental design
             try:
-                exp_design = get_object('experimental_design', self.explist.currentText())
-                self.exp_des = exp_design(dim=self.data.dim, npts=int(self.inevline.text()))
+                exp_design_class = globals()[self.explist.currentText()]
+                self.exp_des = exp_design_class(dim=self.data.dim, npts=int(self.inevline.text()))
             except Exception, err:
-                self.printMessage("Failed to initialize experimental design: "
-                                  + err.message + "\n", "red")
+                self.printMessage("Failed to initialize experimental design: " +
+                                  err.message + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -891,23 +897,23 @@ class myGUI(QtGui.QWidget):
                     if len(names) > 1:
                         self.printMessage("Multiple search strategies added, but only one unique. "
                                           "Initiating one such instance.\n", "blue")
-                    search_strategy = get_object('search_procedure', unique_names[0])
-                    self.search = search_strategy(data=self.data)
+                    search_strategy_class = globals()[unique_names[0]]
+                    self.search = search_strategy_class(data=self.data)
                 else:
                     id = range(len(unique_names))
                     weights = []
                     search_strategies = []
                     dictionary = dict(zip(unique_names, id))
                     for name in unique_names:
-                        search_strategy = get_object('search_procedure', name)
-                        search_strategies.append((search_strategy(data=self.data)))
+                        search_strategy_class = globals()[name]
+                        search_strategies.append((search_strategy_class(data=self.data)))
                     for i in range(len(names)):
                         weights.append(dictionary[names[i]])
                     self.search = MultiSearchStrategy(search_strategies, weights)
 
             except Exception, err:
-                self.printMessage("Failed to initialize search strategy: "
-                                  + err.message + "\n", "red")
+                self.printMessage("Failed to initialize search strategy: " +
+                                  err.message + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -961,8 +967,8 @@ class myGUI(QtGui.QWidget):
                         self.rs = EnsembleSurrogate(rs, maxp=self.maxeval)
 
             except Exception, err:
-                self.printMessage("Failed to initialize response surface: "
-                                  + err.message + "\n", "red")
+                self.printMessage("Failed to initialize response surface: " +
+                                  err.message + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -991,8 +997,8 @@ class myGUI(QtGui.QWidget):
                             worker = BasicWorkerThread(self.controller, self.data.objfunction)
                             self.controller.launch_worker(worker)
             except Exception, err:
-                self.printMessage("Failed to initiate controller/strategy: "
-                                  + err.message + "\n", "red")
+                self.printMessage("Failed to initiate controller/strategy: " +
+                                  err.message + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -1003,7 +1009,8 @@ class myGUI(QtGui.QWidget):
                 def feasible_merit(record):
                     """Merit function for ordering final answers -- kill infeasible x"""
                     x = record.params[0].reshape((1, record.params[0].shape[0]))
-                    if hasattr(self.data, 'eval_ineq_constraints') and np.max(self.data.eval_ineq_constraints(x)) > 0.0:
+                    if hasattr(self.data, 'eval_ineq_constraints') and \
+                                    np.max(self.data.eval_ineq_constraints(x)) > 0.0:
                         return np.inf
                     return record.value
 

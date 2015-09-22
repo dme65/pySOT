@@ -6,11 +6,11 @@
 __author__ = 'davideriksson'
 
 import numpy as np
-from experimental_design import SymmetricLatinHypercube
+from experimental_design import LatinHypercube
 
 
 class GeneticAlgorithm:
-    def __init__(self, function, dim, xlow, xup, intvar=[], popsize=100, ngen=100, start="SLHD"):
+    def __init__(self, function, dim, xlow, xup, intvar=[], popsize=100, ngen=100, start="LHD"):
         self.nVariables = dim
         self.nIndividuals = popsize + (popsize % 2)  # Make sure this is even
         self.lowerBoundary = np.array(xlow)
@@ -26,8 +26,13 @@ class GeneticAlgorithm:
 
     def optimize(self):
         #  Initialize population
-        if self.start == "SLHD":
-            exp_des = SymmetricLatinHypercube(self.nVariables, self.nIndividuals)
+        if isinstance(self.start, np.ndarray):
+            assert self.start.shape[0] == self.nIndividuals and self.start.shape[1] == self.nVariables
+            assert all(np.min(self.start, axis=0) >= self.lowerBoundary) and \
+                all(np.max(self.start, axis=0) <= self.upperBoundary)
+            population = self.start
+        elif self.start == "LHD":
+            exp_des = LatinHypercube(self.nVariables, self.nIndividuals)
             population = self.lowerBoundary + exp_des.generate_points() * \
                 (self.upperBoundary - self.lowerBoundary)
         elif self.start == "Random":

@@ -9,6 +9,7 @@ from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 
+
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")

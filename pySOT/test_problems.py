@@ -472,7 +472,7 @@ class Sphere:
         """
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
-        return sum(x**2)
+        return np.sum(x ** 2)
 
 
 class Exponential:

@@ -26,6 +26,7 @@ from rbf_interpolant import RBFInterpolant
 # Get module-level logger
 logger = logging.getLogger(__name__)
 
+
 class SyncStrategyNoConstraints(BaseStrategy):
     """Parallel synchronous optimization strategy without non-bound constraints.
 
@@ -177,7 +178,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             proposal = self.propose_eval(self.from_unit_box(start_sample[j, :]))
             self.resubmitter.rput(proposal)
 
-        self.search.init(start_sample, self.maxeval, self.numeval, True, self.fhat)
+        self.search.init(start_sample, self.maxeval - self.numeval, True, self.fhat)
 
     def evals(self, xx, d=None, scaling=False):
         """Predict function values
@@ -233,6 +234,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         :param record: Evaluation record
         """
+
         self.log_completion(record)
         self.numeval += 1
         record.worker_id = self.worker_id

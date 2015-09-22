@@ -39,6 +39,7 @@ class CubicRBFSystem(SimpleRBFSystem):
     def dphi_div_r(self, r, epsilon=None):
         return 3 * r
 
+
 class QuinticRBFSystem(SimpleRBFSystem):
     """Quintic RBF system"""
 
@@ -104,6 +105,7 @@ class GaussianRBFSystem(SimpleRBFSystem):
     def dphi_div_r(self, r, epsilon):
         return - (2.0/(epsilon**2)) * np.exp(-(1.0 / epsilon * r) ** 2)
 """
+
 
 class LinearRBFSurface(SimpleRBFSurface):
     RBFSystem = LinearRBFSystem
