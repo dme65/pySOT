@@ -1,3 +1,6 @@
+v0.1.15, 2015-09-23
+	Added an example test_subprocess_files that shows how to use pySOT in case the objective function needs to read the input from a textfile
+
 v0.1.14, 2015-09-22
 	Updated the Tutorial to reflect the changes for the last few months
 	Simplified the object creation from strings in the GUI by importing directly from the namespace.

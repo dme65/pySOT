@@ -1,7 +1,8 @@
 export PYTHONPATH=../..:
 
-sphere_ext: sphere_ext.cpp
-	g++ -o $@ $<
+all:
+	g++ -o sphere_ext sphere_ext.cpp
+	g++ -o sphere_ext_files sphere_ext_files.cpp
 
 .PHONY: test
 test: sphere_ext
@@ -11,3 +12,4 @@ test: sphere_ext
 	python test_multisearch.py
 	python test_simple.py
 	python test_subprocess.py
+	python test_subprocess_files.py
