@@ -469,8 +469,8 @@ creates an ensemble surrogate with three surrogate models, namely a Cubic RBF In
 
 \subsection{Capped RBF model} Functions with very large function values can cause the fitted surface to oscillate wildly. In the case of the RBFInterpolant we therefore provide a capped version that transforms the function values. The default is to replace all function values larger than the median of the function values by the median, but it is possible to provide an other transformation. Arguments: \\
 \begin{itemize}
-\item \textbf{fhat}: Surrogate model.
-\item \textbf{maxp:} Initial maximum number of points (can grow). Default is 100.
+\item \textbf{model}: Surrogate model.
+\item \textbf{transformation:} Function value transformation
 \end{itemize}
 \ \newline Example: 
 \begin{python}
