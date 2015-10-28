@@ -8,7 +8,6 @@ black-box objective functions with continuous and/or integer variables where the
 number of evaluations is limited.
 
 The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
+Link to the pySOT documentation: https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf
 
-Please refer to pySOT.pdf for more details about the functionality of the toolbox.
-
-Check out the new GUI
+pySOT has been downloaded 8,762 times from 2015-June-4 to 2015-October-28
