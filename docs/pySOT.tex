@@ -595,10 +595,8 @@ print 'Best result: {0} at {1}'.format(result.value, result.params)
 \item \textbf{exp\_design:} Experimental design to do the initial evaluations, as described in Section \ref{expdes}. Default is a Latin Hypercube with 2dim+1 points
 \item \textbf{search\_procedure} Method to propose new evaluations, as described in Section \ref{search}. Default is Candidate DyCORS with 100dim candidate points.
 \item \textbf{extra:} Additional point to be added to the experimental design. If a good solution is known, you can use this argument to make sure this point is evaluated early. 
-\item \textbf{quiet:} Set to false if you want all messages to be suppressed. Default is True and the value of each evaluation is printed when it finishes.
-\item \text{stream:} If you want pySOT to print messages during the optimization run to some other place than stdout you can provide a stream here. If no argument is given, messages are printed to stdout.
 \end{itemize}
-\item \textbf{SyncStrategyPenalty:} If there are additional non-bound constraints we provide a penalty based strategy. This strategy assumes that it makes sense to evaluate the objective function outside the feasible region. The strategy also assumes that there is a method eval\_ineq\_constraints that works exactly as described in Section \ref{objfun}. The startegy takes the same argument as SyncStrategyNoConstraints plus one addition argument which is the penalty to be used in the penalty method. Given a penalty $\mu$ set by the user we try to solve the box-constrained optimization problem 
+\item \textbf{SyncStrategyPenalty:} If there are additional non-bound constraints we provide a penalty based strategy. This strategy assumes that it makes sense to evaluate the objective function outside the feasible region. The strategy also assumes that there is a method eval\_ineq\_constraints that works exactly as described in Section \ref{objfun}. The strategy takes the same argument as SyncStrategyNoConstraints plus one addition argument which is the penalty to be used in the penalty method. Given a penalty $\mu$ set by the user we try to solve the box-constrained optimization problem 
 \begin{align*}
 \underset{x}{\operatorname{minimize}} \qquad &\widetilde{f}(x)=f(x)+\mu \sum_{i=1}^M \max(0,g_i(x))^2 \\
 \operatorname{subject\;to:} \qquad &-\infty<\ell_i \leq x_i \leq u_i<\infty, \quad i = 1,\ldots,n \\
@@ -616,7 +614,7 @@ Dimensions & Problem type & Search Strategies \\
    $> 10$ & Continuous & CandidateDYCORS\\
    \hline
      $\leq 10$ & Integer & CandidateSRBF\_INT \\
-   $> 10$ & Integer & CandidateSRBF\_INT \\
+   $> 10$ & Integer & CandidateDYCORS\_INT \\
    \hline
    $\leq 10$ & Mixed &  \multirow{1}{*}{[CandidateSRBF,} \\ & & CandidateSRBF\_INT,  \\ & & CandidateSRBF\_CONT] \\
       $> 10$ & Mixed &  \multirow{1}{*}{[CandidateDYCORS,} \\ & & CandidateDYCORS\_INT, \\ & & CandidateDYCORS\_CONT] \\
