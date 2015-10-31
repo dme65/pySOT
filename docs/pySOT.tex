@@ -724,7 +724,7 @@ The four figures in Figure \ref{fig:gui} show what the GUI looks like and how th
 This section provides several examples that shows how to use POAP and pySOT to solve optimization problems.
 
 \subsection{First example (Hello World)}
-This example is a continuous optimization problem of the 10-dimensional Ackley-function which has only bound constraints. We are using 4 threads and 1000 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyNoConstraints strategy, since there are only bound constraints. We launch 4 BasicWorkerThread, start the optimization and finally print the result to the screen.
+This example is a continuous optimization problem of the 10-dimensional Ackley-function which has only bound constraints. We are using 4 threads and 1000 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2(dim+1) points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyNoConstraints strategy, since there are only bound constraints. We launch 4 BasicWorkerThread, start the optimization and finally print the result to the screen.
 
 \begin{python}
 import logging
@@ -756,11 +756,11 @@ controller.strategy = \
     SyncStrategyNoConstraints(
         worker_id=0, data=data,
         maxeval=maxeval, nsamples=nsamples,
-        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-        response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                        dphi=dphi_cubic, dP=dlinear_tail,
-                                        eta=1e-8, maxp=maxeval),
-        search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim))
+        exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+        response_surface=RBFInterpolant(surftype=CubicRBFSurface,
+                                        maxp=maxeval),
+        search_procedure=CandidateDYCORS(data=data,
+                                         numcand=100*data.dim))
 
 # Launch the threads and give them access to the objective function
 for _ in range(nthreads):
@@ -816,11 +816,10 @@ controller.strategy = \
     SyncStrategyPenalty(
         worker_id=0, data=data,
         maxeval=maxeval, nsamples=nsamples,
-        response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                        dphi=dphi_cubic, dP=dlinear_tail,
-                                        eta=1e-8, maxp=maxeval),
-        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-        search_procedure=CandidateDyCORS(data=data, numcand=5000))
+        response_surface=RSCapped(RBFInterpolant(surftype=CubicRBFSurface,
+                                                 maxp=maxeval)),
+        exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+        search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim))
 
 # Launch the threads
 for _ in range(nthreads):
@@ -865,12 +864,9 @@ print(data.info)
 
 # Use 3 differents RBF's and MARS as an ensemble surrogate
 models = [
-    RBFInterpolant(phi_cubic, linear_tail, dphi_cubic,
-                   dlinear_tail, 1e-8, maxeval),
-    RBFInterpolant(phi_linear, const_tail, dphi_linear,
-                   dconst_tail, 1e-8, maxeval),
-    RBFInterpolant(dphi_plate, linear_tail, dphi_plate,
-                   dlinear_tail, 1e-8, maxeval),
+    RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
+    RBFInterpolant(surftype=LinearRBFSurface, maxp=maxeval),
+    RBFInterpolant(surftype=TPSSurface, maxp=maxeval)
 ]
 response_surface = EnsembleSurrogate(models, maxeval)
 
@@ -945,9 +941,8 @@ def feasible_merit(record):
     return record.value
 
 exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*data.dim+1)
-response_surface = RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                  dphi=dphi_cubic, dP=dlinear_tail,
-                                  eta=1e-8, maxp=maxeval)
+response_surface = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
+
 
 # Use a multi-search strategy for candidate points
 search_proc = MultiSearchStrategy(
@@ -1090,12 +1085,10 @@ controller.strategy = \
     SyncStrategyNoConstraints(
         worker_id=0, data=data,
         maxeval=maxeval, nsamples=nsamples,
-        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-        search_procedure=CandidateDyCORS(data=data, numcand=200*data.dim),
-        response_surface=RBFInterpolant(phi=phi_cubic, P=linear_tail,
-                                        dphi=dphi_cubic, dP=dlinear_tail,
-                                        eta=1e-8, maxp=maxeval))
-
+        exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+        search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
+        response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
+            
 # Launch the threads and give them access to the objective function
 for _ in range(nthreads):
     controller.launch_worker(DummySim(controller))
