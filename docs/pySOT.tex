@@ -42,6 +42,8 @@
 \usepackage{setspace}
 \usepackage{palatino}
 \usepackage{multirow}
+\usepackage{algorithm2e}
+\usepackage[authoryear]{natbib}
 
 \renewcommand{\lstlistlistingname}{Code Listings}
 \renewcommand{\lstlistingname}{Code Listing}
@@ -291,12 +293,14 @@ rulesepcolor=\color{blue},#1
 \end{itemize}
 
 \section{Introduction}
-This is a tutorial (user guide) for the Surrogate Optimization Toolbox (pySOT) for global deterministic optimization problems. The main purpose of the toolbox is for optimization of computationally expensive black-box objective functions with continuous and/or integer variables. We support inequality constraints of any form through a penalty method approach, but cannot yet efficiently handle equality constraints. All variables are assumed to have bound constraints in some form where none of the bounds are infinity. The tighter the bounds, the more efficient are the algorithms since it reduces the search region and increases the quality of the constructed surrogate. The longer the objective functions are to evaluate, the more efficient are these algorithms. For this reason, this toolbox may not be very efficient for problems with computationally cheap function evaluations. Surrogate models are intended to be used when function evaluations take from several minutes to several hours or more. The toolbox is based on the following published papers that should be cited when the toolbox is used for own research purposes:
+This is a tutorial (user guide) for the Surrogate Optimization Toolbox (pySOT) for global deterministic optimization problems. The main purpose of the toolbox is for optimization of computationally expensive black-box objective functions with continuous and/or integer variables. We support inequality constraints of any form through a penalty method approach, but cannot yet efficiently handle equality constraints. All variables are assumed to have bound constraints in some form where none of the bounds are infinity. The tighter the bounds, the more efficient are the algorithms since it reduces the search region and increases the quality of the constructed surrogate. The longer the objective functions take to evaluate, the more efficient are these algorithms. For this reason, this toolbox may not be very efficient for problems with computationally cheap function evaluations. Surrogate models are intended to be used when function evaluations take from several minutes to several hours or more. The toolbox is based on the following published papers that should be cited when the toolbox is used for own research purposes:
 \begin{enumerate}
-\item J. Muller and R. Piche, 2011. "Mixture Surrogate Models Based on Dempster-Shafer Theory for Global Optimization Problems", Journal of Global Optimization, vol. 51, pp. 79-104
-\item J. Muller, C.A. Shoemaker, and R. Piche, 2012. "SO-MI: A Surrogate Model Algorithm for Computationally Expensive Nonlinear Mixed-Integer Black-Box Global Optimization Problems", Computers \& Operations Research, \\ http://dx.doi.org/10.1016/j.cor.2012.08.022
-\item R.G. Regis and C.A. Shoemaker, 2007. "A Stochastic Radial Basis Function Method for the Global Optimization of Expensive Functions", INFORMS Journal on Computing, vol. 19, pp. 497-509
-\item R.G. Regis and C.A. Shoemaker, 2009. "Parallel Stochastic Global Optimization Using Radial Basis Functions", INFORMS Journal on Computing, vol. 21, pp. 411-426
+\item Stochastic RBF: \cite{regis2007stochastic}
+\item Parallel Stochastic RBF: \cite{regis2009parallel}
+\item DYCORS: \cite{regis2013combining}
+\item Surrogate optimization using mixture surrogates: \cite{muller2011mixture}
+\item Surrogate optimization for Mixed-Integer problems: \cite{muller2013so}
+\item Surrogate optimization for Integer problems: \cite{muller2014so}
 \end{enumerate}
 For easier understanding of the algorithms in this toolbox, it is recommended and helpful to read these papers. If you have any questions, or you encounter any bugs, please feel free to either submit a bug report on Github (recommended) or to contact me at the email address: dme65@cornell.edu. Keep an eye on the Github repository for updates and changes to both the toolbox and the documentation.
 
@@ -304,23 +308,31 @@ For easier understanding of the algorithms in this toolbox, it is recommended an
 
 \section{Surrogate Model Algorithms}
 Surrogates models (or response surfaces) are used to approximate an underlying function that has been evaluated for a set of points. During the optimization phase information from the surrogate model is used in order to guide the search for improved solutions, which has the advantage of not needing as many function evaluations to find a good solution. Most surrogate model algorithms consist of the same steps as shown in the algorithm below.
-\begin{enumerate}
-\item Generate an initial experimental design.
-\item Carry out the costly function evaluations at the points generated in Step 1.
-\item Fit a response surface to the data generated in Steps 1 and 2.
-\item Use the response surface to predict the objective function values at new points in the variable domain in order to decide the next point(s) to be evaluated.
-\item Do the expensive function evaluation at the point(s) selected in Step 4.
-\item Use the new data to update the surrogate model.
-\item Iterate through Steps 4 to 6 until the stopping criterion has been met.
-\end{enumerate}
+The general framework for a Surrogate Optimization algorithm can be seen in Algorithm \ref{alg:sync_algo}
 
-\noindent Surrogate model algorithms in the literature differ mainly with respect to
+\begin{algorithm}[!h]
+%\SetAlgoNoLine
+\LinesNumbered
+\SetKw{KwGoTo}{go to}
 
-\begin{itemize}
-\item The generation of the initial experimental design;
-\item The chosen surrogate model;
-\item The strategy for selecting the sample point(s) in each iteration.
-\end{itemize}
+\KwIn{Initial experimental design, Sample point strategy, Surrogate model, Stopping criterion, Restart criterion}
+\KwOut{Best solution and its corresponding function value}
+
+Generate an initial experimental design\;{\label{restart}}
+Evaluate the points in the experimental design\;
+Build a Surrogate model from the data\;
+\Repeat{Stopping criterion not met}{
+	\If{Restart criterion met}{
+		Reset the Surrogate model and the Sample point strategy\;
+		\KwGoTo \ref{restart}\;
+	}
+	Use the Sample point strategy to generate new point(s) to evaluate\;
+	Evaluate the point(s) generated using all computational resources\;
+	Update the Surrogate model\;
+}
+\caption{Synchronous Surrogate Optimization Algorithm}
+\label{alg:sync_algo}
+\end{algorithm} 
 
 \noindent Typically used stopping criteria are a maximum number of allowed function evaluations (used in this toolbox), a maximum allowed CPU time, or a maximum number of failed iterative improvement trials.
 
@@ -378,7 +390,7 @@ The experimental design generates the initial points to be evaluated. A well-cho
 \item \textbf{LatinHypercube}. Arguments:
 \begin{itemize}
 \item \textbf{dim:} Number of dimensions
-\item \textbf{npts:} Number of points to generate ($2 \text{dim}+1$ is recommended)
+\item \textbf{npts:} Number of points to generate ($2( \text{dim}+1)$ is recommended)
 \end{itemize} 
 \ \newline Example: 
 \begin{python}
@@ -1119,4 +1131,9 @@ print('Best solution found: {0}'.format(
 \item Add more methods for handling constraints, especially a barrier method
 \item Support for Python 3.x
 \end{itemize}
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+
 \end{document}
