@@ -16,7 +16,7 @@ import numpy as np
 import math
 import logging
 from experimental_design import SymmetricLatinHypercube, LatinHypercube
-from search_procedure import round_vars, CandidateDYCORS, \
+from sampling_strategies import round_vars, CandidateDYCORS, \
     MultiSearchStrategy, GeneticAlgorithm
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_surfaces import CubicRBFSurface
@@ -389,3 +389,77 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         if record.value + penalty < self.fbest:
             self.xbest = self.to_unit_box(record.params[0])
             self.fbest = record.value + penalty
+
+
+class SyncStrategyProjection(SyncStrategyNoConstraints):
+    """Parallel synchronous optimization strategy with non-bound constraints.
+
+    This is an extension of SyncStrategyNoConstraints that also works with
+    bound constraints.
+    """
+
+    def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
+                 exp_design=None, search_procedure=None, extra=None,
+                 proj_fun=None):
+        """Initialize the optimization strategy.
+
+        :param worker_id: Start ID in a multistart setting
+        :param data: Problem parameter data structure
+        :param response_surface: Surrogate model object
+        :param maxeval: Function evaluation budget
+        :param nsamples: Number of simultaneous fevals allowed
+        :param exp_design: Experimental design
+        :param search_procedure: Search procedure for finding
+            points to evaluate
+        :param extra: Points to be added to the experimental design
+        :param proj_fun: Projection operator
+        """
+
+        self.proj_fun = proj_fun
+
+        SyncStrategyNoConstraints.__init__(self,  worker_id, data,
+                                           response_surface, maxeval,
+                                           nsamples, exp_design,
+                                           search_procedure, extra)
+
+        if self.__class__.__name__ == "SyncStrategyProjection":
+            assert hasattr(data, "eval_ineq_constraints") or \
+                   hasattr(data, "eval_eq_constraints"), \
+                   "Objective function has no constraints"
+
+    def sample_initial(self):
+        """Generate and queue an initial experimental design.
+        """
+        if self.numeval == 0:
+            logger.info("=== Start ===")
+        else:
+            logger.info("=== Restart ===")
+        self.fhat.reset()
+        self.sigma = self.sigma_init
+        self.status = 0
+        self.xbest = None
+        self.fbest_old = None
+        self.fbest = np.inf
+        self.fhat.reset()
+        start_sample = self.design.generate_points()
+        # Add extra evaluation points provided by the user
+        if self.extra is not None:
+            start_sample = np.vstack((start_sample, self.to_unit_box(self.extra)))
+
+        for j in range(min(start_sample.shape[0], self.maxeval - self.numeval)):
+            # Project the initial design onto the feasible region
+            proposal = self.propose_eval(self.proj_fun(self.from_unit_box(start_sample[j, :])))
+            self.resubmitter.rput(proposal)
+
+        self.search.init(start_sample, self.maxeval - self.numeval, True, self.fhat)
+
+    def sample_adapt(self):
+        """Generate and queue samples from the search strategy
+        """
+        self.adjust_step()
+        nsamples = min(self.nsamples, self.maxeval - self.numeval)
+        self.search.make_points(self.xbest, self.sigma, evals=self.evals,
+                                derivs=self.derivs, proj_fun=self.proj_fun)
+        for _ in range(nsamples):
+            proposal = self.propose_eval(np.ravel(self.from_unit_box(self.search.next())))
+            self.resubmitter.rput(proposal)

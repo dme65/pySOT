@@ -7,7 +7,7 @@ from experimental_design import *
 from rbf_interpolant import *
 from rbf_surfaces import *
 from rs_capped import *
-from search_procedure import *
+from sampling_strategies import *
 from test_problems import *
 from sot_sync_strategies import *
 from ensemble_surrogate import EnsembleSurrogate

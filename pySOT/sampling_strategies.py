@@ -288,7 +288,7 @@ class CandidateSRBF(object):
                                           np.asarray(xnew)))
         return xnew
 
-    def _generate_cand(self, scalefactors, xbest, subset):
+    def _generate_cand(self, scalefactors, xbest, subset, proj_fun):
         xcand = np.ones((self.numcand,  self.data.dim)) * xbest
         for i in subset:
             lower, upper = 0.0, 1.0
@@ -296,18 +296,19 @@ class CandidateSRBF(object):
             xcand[:, i] = stats.truncnorm.rvs(
                 (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
                 loc=xbest[i], scale=ssigma, size=self.numcand)
+
+        if proj_fun is not None:
+            for i in range(self.numcand):
+                xcand[i, :] = to_unit_box(proj_fun(from_unit_box(xcand[i, :], self.data)), self.data)
         self.xcand = round_vars(self.data, xcand)
 
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         """Create new candidate points based on the best
         solution and the current value of sigma.
 
         :param xbest: Best solution found so far
         :param sigma: Current radius, i.e. stdDev used
             to generate candidate points
-        :param maxeval: Ignored by this method
-        :param issync: Ignored by this method
-        :param subset: Dimensions that will be perturbed
         """
 
         if subset is None:
@@ -321,7 +322,7 @@ class CandidateSRBF(object):
             scalefactors[ind] = np.maximum(scalefactors[ind], 1.0 / (self.data.xup[ind] - self.data.xlow[ind]))
 
         # Generate candidate points
-        self._generate_cand(scalefactors, xbest, subset)
+        self._generate_cand(scalefactors, xbest, subset, proj_fun)
 
         devals = scp.distance.cdist(self.xcand, self.proposed_points)
 
@@ -350,11 +351,14 @@ class CandidateUniform(CandidateSRBF):
         since the last restart
     """
 
-    def _generate_cand(self, scalefactors, xbest, subset):
+    def _generate_cand(self, scalefactors, xbest, subset, proj_fun):
         xcand = np.ones((self.numcand, self.data.dim)) * xbest
         xcand[:, subset] = np.random.uniform(
             0.0, 1.0, (self.numcand, len(subset)))
 
+        if proj_fun is not None:
+            for i in range(self.numcand):
+                xcand[i, :] = to_unit_box(proj_fun(from_unit_box(xcand[i, :], self.data)), self.data)
         self.xcand = round_vars(self.data, xcand)
 
 
@@ -388,7 +392,7 @@ class CandidateDYCORS(CandidateSRBF):
             return min([20.0/data.dim, 1.0]) * (1.0-(np.log(numevals + 1.0) / np.log(budget)))
         self.probfun = probfun
 
-    def _generate_cand(self, scalefactors, xbest, subset):
+    def _generate_cand(self, scalefactors, xbest, subset, proj_fun):
         ddsprob = self.probfun(self.proposed_points.shape[0] - self.n0, self.budget - self.n0)
         ddsprob = np.max([self.minprob, ddsprob])
 
@@ -406,6 +410,9 @@ class CandidateDYCORS(CandidateSRBF):
                 (lower - xbest[subset[i]]) / ssigma, (upper - xbest[subset[i]]) / ssigma,
                 loc=xbest[subset[i]], scale=ssigma, size=len(ind))
 
+        if proj_fun is not None:
+            for i in range(self.numcand):
+                xcand[i, :] = to_unit_box(proj_fun(from_unit_box(xcand[i, :], self.data)), self.data)
         self.xcand = round_vars(self.data, xcand)
 
 
@@ -419,7 +426,7 @@ class CandidateDDS(CandidateDYCORS):
             return 1.0-(np.log(numevals + 1.0) / np.log(budget))
         self.probfun = probfun
 
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         CandidateDYCORS.make_points(self, xbest, 0.2, evals, derivs, subset)
 
 
@@ -435,13 +442,15 @@ class CandidateSRBF_INT(CandidateSRBF):
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             CandidateSRBF.make_points(self, xbest, sigma,
-                                      evals, derivs, subset=self.data.integer)
+                                      evals, derivs, subset=self.data.integer,
+                                      proj_fun=proj_fun)
         else:
             CandidateSRBF.make_points(self, xbest, sigma,
-                                      evals, derivs, subset=self.data.continuous)
+                                      evals, derivs, subset=self.data.continuous,
+                                      proj_fun=proj_fun)
 
 
 class CandidateDYCORS_INT(CandidateDYCORS):
@@ -456,13 +465,15 @@ class CandidateDYCORS_INT(CandidateDYCORS):
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             CandidateDYCORS.make_points(self, xbest, sigma,
-                                        evals, derivs=None, subset=self.data.integer)
+                                        evals, derivs=None, subset=self.data.integer,
+                                        proj_fun=proj_fun)
         else:
             CandidateDYCORS.make_points(self, xbest, sigma,
-                                        evals, derivs=None, subset=self.data.continuous)
+                                        evals, derivs=None, subset=self.data.continuous,
+                                        proj_fun=proj_fun)
 
 
 class CandidateUniform_INT(CandidateUniform):
@@ -477,13 +488,15 @@ class CandidateUniform_INT(CandidateUniform):
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             CandidateUniform.make_points(self, xbest, sigma, evals,
-                                         derivs=None, subset=self.data.integer)
+                                         derivs=None, subset=self.data.integer,
+                                         proj_fun=proj_fun)
         else:
             CandidateUniform.make_points(self, xbest, sigma, evals,
-                                         derivs=None, subset=self.data.continuous)
+                                         derivs=None, subset=self.data.continuous,
+                                         proj_fun=proj_fun)
 
 
 class CandidateSRBF_CONT(CandidateSRBF):
@@ -498,13 +511,15 @@ class CandidateSRBF_CONT(CandidateSRBF):
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
             CandidateSRBF.make_points(self, xbest, sigma, evals,
-                                      derivs=None, subset=self.data.continuous)
+                                      derivs=None, subset=self.data.continuous,
+                                      proj_fun=proj_fun)
         else:
             CandidateSRBF.make_points(self, xbest, sigma, evals,
-                                      derivs=None, subset=self.data.integer)
+                                      derivs=None, subset=self.data.integer,
+                                      proj_fun=proj_fun)
 
 
 class CandidateDYCORS_CONT(CandidateDYCORS):
@@ -519,13 +534,15 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
             CandidateDYCORS.make_points(self, xbest, sigma, evals,
-                                        derivs=None, subset=self.data.continuous)
+                                        derivs=None, subset=self.data.continuous,
+                                        proj_fun=proj_fun)
         else:
             CandidateDYCORS.make_points(self, xbest, sigma, evals,
-                                        derivs=None, subset=self.data.integer)
+                                        derivs=None, subset=self.data.integer,
+                                        proj_fun=proj_fun)
 
 
 class CandidateUniform_CONT(CandidateUniform):
@@ -541,15 +558,19 @@ class CandidateUniform_CONT(CandidateUniform):
         since the last restart
     """
 
-    def make_points(self, xbest, sigma, evals, derivs=None, subset=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
             CandidateUniform.make_points(self, xbest, sigma, evals,
-                                         derivs=None, subset=self.data.continuous)
+                                         derivs=None, subset=self.data.continuous,
+                                         proj_fun=proj_fun)
         else:
             CandidateUniform.make_points(self, xbest, sigma, evals,
-                                         derivs=None, subset=self.data.integer)
+                                         derivs=None, subset=self.data.integer,
+                                         proj_fun=proj_fun)
+
 
 ################################## Optimization based strategies ###################################
+
 
 class GeneticAlgorithm(object):
 
