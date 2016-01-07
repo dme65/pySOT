@@ -663,6 +663,7 @@ class GeneticAlgorithm(object):
         return xnew
 
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
+        assert proj_fun is None, "Projection currently not supported in GA"
         self.evals = evals
         self.derivs = derivs
 
@@ -734,6 +735,7 @@ class MultiStartGradient(object):
 
     def make_points(self, xbest, sigma, evals, derivs, subset=None, proj_fun=None):
         """The method doesn't use candidate points so this method is not used """
+        assert proj_fun is None, "Projection currently not supported in Multi-Start Gradient"
         self.evals = evals
         self.derivs = derivs
         self.xbest = xbest

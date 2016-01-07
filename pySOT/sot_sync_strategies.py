@@ -16,12 +16,10 @@ import numpy as np
 import math
 import logging
 from experimental_design import SymmetricLatinHypercube, LatinHypercube
-from sampling_strategies import round_vars, CandidateDYCORS, \
-    MultiSearchStrategy, GeneticAlgorithm
+from sampling_strategies import round_vars, CandidateDYCORS
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf_surfaces import CubicRBFSurface
 from rbf_interpolant import RBFInterpolant
-
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
@@ -69,7 +67,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.data = data
         self.fhat = response_surface
         if self.fhat is None:
-            self.fhat = RBFInterpolant(surftype=CubicRBFSurface, eta=1e-8, maxp=maxeval)
+            self.fhat = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
         self.maxeval = maxeval
         self.nsamples = nsamples
         self.extra = extra

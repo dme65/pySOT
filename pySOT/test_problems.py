@@ -16,6 +16,7 @@ import numpy as np
 from poap.controller import ProcessWorkerThread
 import importlib
 
+
 def validate(obj):
     """Routine for checking that an implementation of an objective function
     follows the standard. This method checks everything, but can't make
@@ -232,8 +233,8 @@ class Ackley:
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         n = float(len(x))
-        return -20.0 * np.exp(-0.2*np.sqrt(sum(x**2)/n)) - \
-            np.exp(sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
+        return -20.0 * np.exp(-0.2*np.sqrt(np.sum(x**2)/n)) - \
+            np.exp(np.sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
 
 
 class Michalewicz:

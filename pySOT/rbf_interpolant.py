@@ -39,7 +39,6 @@ class RBFInterpolant(object):
     :ivar P: Tail functions
     :ivar dphi: Derivative of kernel function
     :ivar dP: Gradient of tail functions
-    :ivar eta: Regularization parameter
     :ivar ntail: Number of tail functions
     :ivar nump: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
@@ -52,7 +51,7 @@ class RBFInterpolant(object):
     :ivar ntail: Number of tail functions
     """
 
-    def __init__(self, surftype=CubicRBFSurface, eta=1e-8, maxp=100):
+    def __init__(self, surftype=CubicRBFSurface, maxp=100):
         self.maxp = maxp
         self.surface = None
         self.surftype = surftype
