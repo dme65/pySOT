@@ -391,6 +391,10 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
 
 class SyncStrategyProjection(SyncStrategyNoConstraints):
     """Parallel synchronous optimization strategy with non-bound constraints.
+    It uses a supplied method to project proposed points onto the feasible
+    region in order to always evaluate feasible points which is useful in
+    situations where it is easy to project onto the feasible region and where
+    the objective function is nonsensical for infeasible points.
 
     This is an extension of SyncStrategyNoConstraints that also works with
     bound constraints.
