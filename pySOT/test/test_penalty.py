@@ -1,5 +1,5 @@
 """
-.. module:: test_constraints
+.. module:: test_penalty
   :synopsis: Test constrained optimization strategy
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
@@ -14,7 +14,9 @@ import os.path
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    logging.basicConfig(filename="./logfiles/test_constraints.log",
+    if os.path.exists("./logfiles/test_penalty.log"):
+        os.remove("./logfiles/test_penalty.log")
+    logging.basicConfig(filename="./logfiles/test_penalty.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")

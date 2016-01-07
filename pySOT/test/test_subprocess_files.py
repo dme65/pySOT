@@ -83,6 +83,8 @@ class DummySim(ProcessWorkerThread):
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
+    if os.path.exists("./logfiles/test_subprocess_files.log"):
+        os.remove("./logfiles/test_subprocess_files.log")
     logging.basicConfig(filename="./logfiles/test_subprocess_files.log",
                         level=logging.INFO)
 

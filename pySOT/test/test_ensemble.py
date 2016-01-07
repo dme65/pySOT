@@ -10,9 +10,12 @@ from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 
+
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
+    if os.path.exists("./logfiles/test_ensemble.log"):
+        os.remove("./logfiles/test_ensemble.log")
     logging.basicConfig(filename="./logfiles/test_ensemble.log",
                         level=logging.INFO)
 

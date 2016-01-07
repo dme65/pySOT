@@ -242,7 +242,6 @@ def dlegendre(x, d):
     return P.reshape(s), dP.reshape(s)
 
 
-
 def basis_base(n, testf):
     """Generate list of shape functions for a subset of a TP poly space.
 
@@ -331,6 +330,7 @@ def test_legendre1():
     relerr = la.norm(E)/la.norm(M)
     assert relerr < 1e-4, "Test Legendre orthonormality"
 
+
 def test_legendre2():
     npt = 1000
     x = np.linspace(-1,1, npt)
@@ -338,6 +338,7 @@ def test_legendre2():
     P, dP = dlegendre(x, 4)
     assert np.max(np.abs(dP[1:-2,:]-(P[2:-1,:]-P[0:-3,:])/2/h)) < 1e-4, \
         "Test Legendre derivs vs finite difference"
+
 
 def test_poly():
     bounds = np.array([[0, 1], [1, 1.5]])

@@ -10,9 +10,12 @@ from poap.controller import SerialController
 import numpy as np
 import os.path
 
+
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
+    if os.path.exists("./logfiles/test_multisearch.log"):
+        os.remove("./logfiles/test_multisearch.log")
     logging.basicConfig(filename="./logfiles/test_multisearch.log",
                         level=logging.INFO)
 

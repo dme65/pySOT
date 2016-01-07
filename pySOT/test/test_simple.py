@@ -13,6 +13,8 @@ import os.path
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
+    if os.path.exists("./logfiles/test_simple.log"):
+        os.remove("./logfiles/test_simple.log")
     logging.basicConfig(filename="./logfiles/test_simple.log",
                         level=logging.INFO)
 

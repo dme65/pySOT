@@ -10,9 +10,12 @@ from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 
+
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
+    if os.path.exists("./logfiles/test_mixed_integer_constraints.log"):
+        os.remove("./logfiles/test_mixed_integer_constraints.log")
     logging.basicConfig(filename="./logfiles/test_mixed_integer_constraints.log",
                         level=logging.INFO)
 

@@ -35,6 +35,8 @@ class AckleyUnit:
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
+    if os.path.exists("./logfiles/test_projection.log"):
+        os.remove("./logfiles/test_projection.log")
     logging.basicConfig(filename="./logfiles/test_projection.log",
                         level=logging.INFO)
 

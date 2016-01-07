@@ -1,5 +1,5 @@
 """
-.. module:: test_subprocess
+.. module:: test_subprocess_partial_info
   :synopsis: Test an external objective function
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
@@ -16,12 +16,12 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
-class SphereExt:
+class SumfunExt:
     def __init__(self, dim=10):
-        self.xlow = -15 * np.ones(dim)
-        self.xup = 20 * np.ones(dim)
+        self.xlow = -5 * np.ones(dim)
+        self.xup = 5 * np.ones(dim)
         self.dim = dim
-        self.info = str(dim)+"-dimensional Sphere function \n" +\
+        self.info = str(dim)+"-dimensional Sumfun function \n" +\
                              "Global optimum: f(0,0,...,0) = 0"
         self.min = 0
         self.integer = []
@@ -31,38 +31,57 @@ class SphereExt:
 class DummySim(ProcessWorkerThread):
 
     def handle_eval(self, record):
-        self.process = Popen(['./sphere_ext', array2str(record.params[0])],
+        self.process = Popen(['./sumfun_ext', array2str(record.params[0])],
                              stdout=PIPE)
-        out = self.process.communicate()[0]
-        try:
-            val = float(out)  # This raises ValueError if out is not a float
-            self.finish_success(record, val)
-        except ValueError:
-            logging.warning("Function evaluation crashed/failed")
+
+        val = np.nan
+        # Continuously check for new outputs from the subprocess
+        while True:
+            output = self.process.stdout.readline()
+            if output == '' and self.process.poll() is not None:  # No new output
+                break
+            if output:  # New intermediate output
+                try:
+                    val = float(output.strip())  # Try to parse output
+                    if val > 300:  # Terminate if too large
+                        self.process.terminate()
+                        self.finish_success(record, 300)
+                        return
+                except ValueError:  # If the output is nonsense we terminate
+                    logging.warning("Incorrect output")
+                    self.process.terminate()
+                    self.finish_failure(record)
+                    return
+
+        rc = self.process.poll()  # Check the return code
+        if rc < 0 or np.isnan(val):
+            logging.warning("Incorrect output or crashed evaluation")
             self.finish_failure(record)
+        else:
+            self.finish_success(record, val)
 
 
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_subprocess.log"):
-        os.remove("./logfiles/test_subprocess.log")
-    logging.basicConfig(filename="./logfiles/test_subprocess.log",
+    if os.path.exists("./logfiles/test_subprocess_partial_info.log"):
+        os.remove("./logfiles/test_subprocess_partial_info.log")
+    logging.basicConfig(filename="./logfiles/test_subprocess_partial_info.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 200")
+    print("Maximum number of evaluations: 500")
     print("Search strategy: Candidate DyCORS")
     print("Experimental design: Latin Hypercube")
     print("Ensemble surrogates: Cubic RBF")
 
-    assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
+    assert os.path.isfile("./sumfun_ext"), "You need to build sphere_ext"
 
     nthreads = 4
-    maxeval = 200
+    maxeval = 500
     nsamples = nthreads
 
-    data = SphereExt(dim=10)
+    data = SumfunExt(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
