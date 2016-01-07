@@ -11,4 +11,4 @@ The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
 
 Link to the pySOT documentation: https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf
 
-pySOT has been downloaded 8,762 times from 2015-June-4 to 2015-October-28
+pySOT has been downloaded 11,273 times from 2015-June-4 to 2016-January-06
