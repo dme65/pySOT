@@ -4,7 +4,7 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
                  David Bindel <bindel@cornell.edu>
 
-:Module: search_procedure
+:Module: sampling_strategies
 :Author: David Eriksson <dme65@cornell.edu>,
     David Bindel <bindel@cornell.edu>
 
@@ -127,6 +127,9 @@ class MultiSearchStrategy(object):
 
         :param start_sample: Points in the initial design that
             will be evaluated before the adaptive sampling starts
+        :param budget: Evaluation budget
+        :param issync: True if the strategy is synchronous
+        :param fhat: Response surface the approximates the objective function
         :param avoid: Points to avoid
         """
         self.proposed_points = start_sample
@@ -148,22 +151,24 @@ class MultiSearchStrategy(object):
         for i in range(len(self.search_strategies)):
             self.search_strategies[i].proposed_points = self.proposed_points
 
-    def make_points(self, xbest, sigma, evals, derivs):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         """Create new candidate points. This call is ignored by the optimization
         based search strategies.
-
 
         :param xbest: Best solution found
         :param sigma: Current stdDev used to generate candidate points
         :param evals: Routine for predicting function values
-        :param deriv: Routine for predicting derivatives
+        :param derivs: Routine for predicting derivatives
+        :param proj_fun: Routine for projecting infeasible points onto the feasible region
         """
         if self.issync:
             for i in range(len(self.search_strategies)):
-                self.search_strategies[i].make_points(xbest, sigma, evals, derivs)
+                self.search_strategies[i].make_points(xbest, sigma, evals,
+                                                      derivs, subset, proj_fun)
         else:
             weight = self.weights[self.currentWeight]
-            self.search_strategies[weight].make_points(xbest, sigma, evals, derivs)
+            self.search_strategies[weight].make_points(xbest, sigma, evals,
+                                                       derivs, subset, proj_fun)
 
     def next(self):
         """Generate the next proposed point from the current search strategy,
@@ -195,7 +200,7 @@ class MultiSearchStrategy(object):
 # ====================== Candidate based search methods =====================
 
 def candidate_merit_weighted_distance(cand):
-    """Weighted distance merit functions for the candidate points based methods
+    """Weighted distance merit function for the candidate points based methods
     """
 
     ii = cand.nextWeight
@@ -229,7 +234,7 @@ class CandidateSRBF(object):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
@@ -303,12 +308,14 @@ class CandidateSRBF(object):
         self.xcand = round_vars(self.data, xcand)
 
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
-        """Create new candidate points based on the best
-        solution and the current value of sigma.
+        """Create new candidate points based on the best solution and the current value of sigma.
 
         :param xbest: Best solution found so far
-        :param sigma: Current radius, i.e. stdDev used
-            to generate candidate points
+        :param sigma: Current radius, i.e. stdDev used to generate candidate points
+        :param evals: Routine for predicting function values
+        :param derivs: Routine for predicting derivatives
+        :param subset: Coordinates to perturb
+        :param proj_fun: Routine for projecting infeasible points onto the feasible region
         """
 
         if subset is None:
@@ -346,7 +353,7 @@ class CandidateUniform(CandidateSRBF):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
@@ -375,7 +382,7 @@ class CandidateDYCORS(CandidateSRBF):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
@@ -418,6 +425,11 @@ class CandidateDYCORS(CandidateSRBF):
 
 class CandidateDDS(CandidateDYCORS):
     def __init__(self, data, numcand=None):
+        """Initialize the DYCORS strategy
+
+        :param data: Optimization object
+        :param numcand:  Number of candidate points to generate
+        """
         CandidateDYCORS.__init__(self, data, numcand=numcand)
         self.weights = np.array([1.0])
         self.numcand = max([0.5*data.dim, 2])
@@ -427,6 +439,15 @@ class CandidateDDS(CandidateDYCORS):
         self.probfun = probfun
 
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
+        """Create new candidate points based on the best solution and the current value of sigma.
+
+        :param xbest: Best solution found so far
+        :param sigma: Current radius, i.e. stdDev used to generate candidate points
+        :param evals: Routine for predicting function values
+        :param derivs: Routine for predicting derivatives
+        :param subset: Coordinates to perturb
+        :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        """
         CandidateDYCORS.make_points(self, xbest, 0.2, evals, derivs, subset)
 
 
@@ -438,10 +459,11 @@ class CandidateSRBF_INT(CandidateSRBF):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
+
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             CandidateSRBF.make_points(self, xbest, sigma,
@@ -461,10 +483,11 @@ class CandidateDYCORS_INT(CandidateDYCORS):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
+
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             CandidateDYCORS.make_points(self, xbest, sigma,
@@ -484,10 +507,11 @@ class CandidateUniform_INT(CandidateUniform):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
+
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             CandidateUniform.make_points(self, xbest, sigma, evals,
@@ -507,10 +531,11 @@ class CandidateSRBF_CONT(CandidateSRBF):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
+
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
             CandidateSRBF.make_points(self, xbest, sigma, evals,
@@ -530,10 +555,11 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
+    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
+
     def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
             CandidateDYCORS.make_points(self, xbest, sigma, evals,
@@ -636,15 +662,12 @@ class GeneticAlgorithm(object):
         self.proposed_points = np.vstack((self.proposed_points, np.asarray(xnew)))
         return xnew
 
-    def make_points(self, xbest, sigma, evals, derivs=None):
+    def make_points(self, xbest, sigma, evals, derivs=None, subset=None, proj_fun=None):
         self.evals = evals
         self.derivs = derivs
 
 
 class MultiStartGradient(object):
-
-    usecand = False
-
     """ A wrapper around the scipy.optimize implementations of box-constrained
         gradient based minimization.
 
@@ -665,13 +688,16 @@ class MultiStartGradient(object):
         Note: SLSQP is supposed to work with bound constraints but for some reason it
               sometimes violates the constraints anyway.
     """
-    def __init__(self, data, method='L-BFGS-B', numrestarts=30):
+
+    usecand = False
+
+    def __init__(self, data, method='L-BFGS-B', num_restarts=30):
         """Initialize the Multi-Start Gradient object
 
         Args:
             data: Optimization object
             method: What optimization method to use (see above)
-            numrestarts: Number of random starting points
+            num_restarts: Number of random starting points
         """
         self.data = data
         self.fhat = None
@@ -686,7 +712,7 @@ class MultiStartGradient(object):
         self.bounds = np.zeros((self.data.dim, 2))
         self.bounds[:, 0] = self.data.xlow
         self.bounds[:, 1] = self.data.xup
-        self.numrestarts = numrestarts
+        self.num_restarts = num_restarts
         self.xbest = None
         if (method == 'TNC') or (method == 'L-BFGS-B'):
             self.method = method
@@ -706,7 +732,7 @@ class MultiStartGradient(object):
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
 
-    def make_points(self, xbest, sigma, evals, derivs):
+    def make_points(self, xbest, sigma, evals, derivs, subset=None, proj_fun=None):
         """The method doesn't use candidate points so this method is not used """
         self.evals = evals
         self.derivs = derivs
@@ -720,11 +746,11 @@ class MultiStartGradient(object):
         def deriv(x):
             return self.derivs(to_unit_box(x, self.data)).ravel()
 
-        self.fvals = np.zeros(self.numrestarts)
-        self.xvals = np.zeros((self.numrestarts, self.data.dim))
-        self.dists = np.zeros(self.numrestarts)
+        self.fvals = np.zeros(self.num_restarts)
+        self.xvals = np.zeros((self.num_restarts, self.data.dim))
+        self.dists = np.zeros(self.num_restarts)
 
-        for i in range(self.numrestarts):
+        for i in range(self.num_restarts):
             if i == 0:
                 x0 = np.array(from_unit_box(self.xbest, self.data))
             else:
@@ -745,7 +771,7 @@ class MultiStartGradient(object):
         if self.dists.max() > self.dtol:
             xbest = None
             fbest = np.inf
-            for i in range(self.numrestarts):
+            for i in range(self.num_restarts):
                 if self.dists[i] > self.dtol and self.fvals[i] < fbest:
                     xbest = self.xvals[i, :]
                     fbest = self.fvals[i]
