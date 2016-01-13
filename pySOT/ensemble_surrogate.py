@@ -13,6 +13,7 @@ from copy import copy, deepcopy
 import math
 import numpy.linalg as la
 
+
 class EnsembleSurrogate:
     """Compute and evaluate an ensemble of interpolants.
 

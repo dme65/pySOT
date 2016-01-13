@@ -1,5 +1,0 @@
-pyDOE
-pyKriging
-POAP >= 0.1.9
-py_dempster_shafer
-PySide

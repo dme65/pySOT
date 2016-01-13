@@ -8,7 +8,7 @@ import logging
 from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
-from subprocess import Popen, PIPE
+from subprocess32 import Popen, PIPE
 import os.path
 import threading
 

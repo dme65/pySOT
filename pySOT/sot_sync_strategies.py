@@ -306,7 +306,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         # Now apply the penalty for the constraint violation
         vec[np.where(vec < 0.0)] = 0.0
         vec **= 2
-        # Surrogate + penalty
+        # penalty
         return self.penalty * np.asmatrix(np.sum(vec, axis=1))
 
     def evals(self, xx, d=None, scaling=False):
@@ -362,6 +362,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         feas = "Feasible"
         if penalty > 0.0:
             feas = "Infeasible"
+        #logger.info("{} {:.3e} @ {}".format(feas, record.value + penalty, xstr))
         logger.info("{} {:.3e} @ {}".format(feas, record.value, xstr))
 
     def on_complete(self, record):

@@ -7,6 +7,7 @@
 
 import sys
 from PySide import QtGui, QtCore
+import matplotlib.pyplot as plt
 import ntpath
 import imp
 import os
@@ -18,7 +19,7 @@ import time
 from sot_sync_strategies import *
 from experimental_design import *
 from rs_capped import RSCapped
-from search_procedure import *
+from sampling_strategies import *
 from ensemble_surrogate import *
 from rbf_interpolant import *
 from rbf_surfaces import *
@@ -72,6 +73,43 @@ class myThread(QtCore.QThread):
         while self.run_timer:
             time.sleep(1)
 
+# ======================= Dynamic Plot Update =======================
+
+
+class DynamicUpdate():
+
+    def __init__(self):
+        plt.ion()
+        self.figure = None
+        self.ax = None
+        self.pts = None
+        self.lines = None
+
+    def on_launch(self, min_x, max_x):
+        self.figure, self.ax = plt.subplots()
+        self.pts, = self.ax.plot([], [], 'bo')  # Points
+        self.lines, = self.ax.plot([], [], 'r-', linewidth=4.0)  # Lines
+        self.ax.set_xlim(min_x, max_x)
+        self.ax.grid()
+        plt.xlabel('Evaluations')
+        plt.ylabel('Function Value')
+
+    def on_running(self, xdata, ydata):
+        self.lines.set_xdata(xdata)
+        ycummin = np.minimum.accumulate(ydata)
+        self.lines.set_ydata(ycummin)
+        ymin = np.amin(ycummin)
+        ymax = np.amax(ycummin)
+        if ymin == ymax:
+            ymax += 1
+        self.ax.set_ylim(ymin - 0.1*(ymax - ymin), ymax + 0.1*(ymax - ymin))
+        self.pts.set_xdata(xdata)
+        self.pts.set_ydata(ydata)
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.figure.canvas.draw()
+        self.figure.canvas.flush_events()
+
 # ============================= Helpers =============================
 
 
@@ -91,25 +129,50 @@ def get_object(module_name, object_name):
     obj = getattr(module, object_name)
     return obj
 
+
+def isfloat(value):
+    try:
+        float(value)
+        return True
+    except:
+        return False
+
 # ========== Manage communication with the strategy and the GUI ============
 
 
 class Manager(InputStrategy):
-    def __init__(self, controller):
+
+    def __init__(self, controller, maxeval, feasible_merit, plot_progress):
         strategy = controller.strategy
         InputStrategy.__init__(self, controller, strategy)
         self.controller.strategy = self
         self.GUI = None
         self.numeval = 0
         self.killed = 0
+        self.plot_progress = plot_progress
+        self.feasible_merit = feasible_merit
+        if self.plot_progress:
+            self.dynamic_plot = DynamicUpdate()
+            self.dynamic_plot.on_launch(0, maxeval)
+            self.xdata = np.arange(0, maxeval)
+            self.ydata = np.nan * np.ones(maxeval,)
 
     def notify(self, msg):
         pass
 
     def on_complete(self, rec):
         self.numeval += 1
+        rec.value = self.feasible_merit(rec)
         self.GUI.update(rec.params[0], rec.value, self.numeval, self.killed)
-        print(rec.params[0], rec.value)
+        print('Evaluation: {0}'.format(self.numeval))
+        print('\tParams: {0}'.format(np.array_str(rec.params[0], max_line_width=np.inf,
+                                                  precision=5, suppress_small=True)))
+        print('\tValue: {0}'.format(rec.value))
+
+        # Plot
+        if self.plot_progress:
+            self.ydata[self.numeval-1] = self.feasible_merit(rec)
+            self.dynamic_plot.on_running(self.xdata[:self.numeval], self.ydata[:self.numeval])
 
     def on_kill(self, rec):
         self.killed += 1
@@ -117,9 +180,9 @@ class Manager(InputStrategy):
     def on_terminate(self, rec):
         self.GUI.printMessage("Optimization finished\n", "green")
 
-    def run(self, GUI, feasible_merit):
+    def run(self, GUI):
         self.GUI = GUI
-        result = self.controller.run(merit=feasible_merit)
+        result = self.controller.run(merit=self.feasible_merit)
         if result is None:
             self.GUI.printMessage("No result", "red")
         else:
@@ -150,6 +213,7 @@ class myGUI(QtGui.QWidget):
         self.nthreads = 4
         self.maxeval = 1000
         self.nsample = 4
+        self.penalty = None
 
         self.exp_des = None
         self.con_hand = None
@@ -158,6 +222,7 @@ class myGUI(QtGui.QWidget):
         # Input check
         self.datainp = False
         self.threadinp = True
+        self.penaltyinp = False
         self.evalinp = True
         self.siminp = True
         self.inevinp = False
@@ -172,6 +237,17 @@ class myGUI(QtGui.QWidget):
         # Title
         self.titlelbl = QtGui.QLabel("Surrogate Optimization Toolbox (pySOT)", self)
         self.titlelbl.move(300, 10)
+
+        # Plot checkbox
+        self.plotprogcb = QtGui.QCheckBox("Plot progress", self)
+        self.plotprogcb.move(680, 10)
+        self.plotprogcb.toggle()
+
+        # Default options
+        self.defaultopts = QtGui.QPushButton('Default Options', self)
+        self.defaultopts.clicked.connect(self.defaultOpts)
+        self.defaultopts.move(10, 5)
+        self.defaultopts.resize(140, 20)
 
         """ Log text area """
         self.log = QtGui.QTextEdit("", self)
@@ -289,7 +365,7 @@ class myGUI(QtGui.QWidget):
         self.controllerlist.addItem("SerialController")
         self.controllerlist.move(150, 120)
         self.controllerlbl.move(5, 125)
-        self.controllerlist.activated[str].connect(self.controllerActivated)
+        self.controllerlist.activated[str].connect(self.controllerChange)
         self.controllerlist.show()
 
         # Strategy
@@ -299,7 +375,17 @@ class myGUI(QtGui.QWidget):
         self.stratlist.addItem("SyncStrategyPenalty")
         self.stratlist.move(150, 150)
         self.stratlbl.move(5, 155)
+        self.stratlist.activated[str].connect(self.stratChange)
         self.stratlist.show()
+
+        # Penalty
+        self.penaltylbl = QtGui.QLabel("Penalty", self)
+        self.penaltyline = QtGui.QLineEdit("", self)
+        self.penaltyline.setFixedWidth(60)
+        self.penaltyline.move(450, 150)
+        self.penaltylbl.move(400, 155)
+        self.penaltyline.textChanged[str].connect(self.penaltyChange)
+        self.penaltyline.setDisabled(True)
 
         # Search strategy
         self.searchlbl = QtGui.QLabel("Search Strategy", self)
@@ -469,6 +555,9 @@ class myGUI(QtGui.QWidget):
         self.rstable.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.rstable.show()
 
+    def defaultOpts(self):
+        self.printMessage("Not yet activated\n", "red")
+
     def searchAdd(self):
         row = self.searchtable.rowCount()
         self.searchtable.insertRow(row)
@@ -575,7 +664,7 @@ class myGUI(QtGui.QWidget):
     def expActivated(self, text):
         self.inevChange(self.inevline.text())
 
-    def controllerActivated(self, text):
+    def controllerChange(self, text):
         if text == "SerialController":
             self.threadline.setText("1")
             self.threadline.setDisabled(True)
@@ -585,29 +674,35 @@ class myGUI(QtGui.QWidget):
             self.threadline.setDisabled(False)
             self.simline.setDisabled(False)
 
+    def stratChange(self, text):
+        if text == "SyncStrategyNoConstraints":
+            self.penaltyline.setDisabled(True)
+            self.penaltyline.setText("")
+        elif text == "SyncStrategyPenalty":
+            self.penaltyline.setDisabled(False)
+            self.penaltyline.setText("1e6")
+
     def stopActivated(self):
         self.printMessage("Optimization aborted\n", "red")
         self.manager.terminate()
 
     def threadChange(self, text):
         if text.isdigit() and int(text) > 0:
-            self.threaderr.setText("")
-            self.threaderr.adjustSize()
             self.threadinp = True
         else:
-            self.threaderr.setText("Invalid input!")
-            self.threaderr.adjustSize()
             self.threadinp = False
         self.simChange(self.simline.text())
 
+    def penaltyChange(self, text):
+        if isfloat(text) and float(text) > 0:
+            self.penaltyinp = True
+        else:
+            self.penaltyinp = False
+
     def evalChange(self, text):
         if text.isdigit() and int(text) > 0:
-            self.evalerr.setText("")
-            self.evalerr.adjustSize()
             self.evalinp = True
         else:
-            self.evalerr.setText("Invalid input!")
-            self.evalerr.adjustSize()
             self.evalinp = False
 
     def simChange(self, text):
@@ -711,16 +806,15 @@ class myGUI(QtGui.QWidget):
     def update(self, xnew, fnew, numeval, numfail):
         # Process new information
         x = xnew.reshape((1, xnew.shape[0]))
-        if hasattr(self.data, 'eval_ineq_constraints') and np.max(self.data.eval_ineq_constraints(x)) > 0.0:
-            fnew = np.inf
 
         if fnew < self.fbest:
             self.fbest = fnew
             self.xbest = xnew
-        if self.fbest < np.inf:
-            self.feasible = True
-        else:
-            self.feasible = False
+            if hasattr(self.data, 'eval_ineq_constraints') and \
+                       np.max(self.data.eval_ineq_constraints(x)) > 0.0:
+                self.feasible = False
+            else:
+                self.feasible = True
 
         self.numeval = numeval
         self.numfail = numfail
@@ -866,6 +960,8 @@ class myGUI(QtGui.QWidget):
             self.printMessage("Incorrect number of simultaneous evaluations\n", "red")
         elif not self.inevinp:
             self.printMessage("Incorrect number of initial evaluations\n", "red")
+        elif self.stratlist.currentText() == "SyncStrategyPenalty" and not self.penaltyinp:
+            self.printMessage("Incorrect penalty\n", "red")
         else:
             self.turnActionsOff()
 
@@ -980,13 +1076,17 @@ class myGUI(QtGui.QWidget):
                     self.controller = ThreadController()
                 # Strategy
                 if self.stratlist.currentText() == "SyncStrategyNoConstraints":
-                    self.controller.strategy = \
-                        SyncStrategyNoConstraints(0, self.data, self.rs, self.maxeval,
-                                                  self.nsample, self.exp_des, self.search)
+                    strat = SyncStrategyNoConstraints(0, self.data, self.rs, self.maxeval,
+                                                      self.nsample, self.exp_des, self.search)
+                    self.controller.strategy = strat
+
                 elif self.stratlist.currentText() == "SyncStrategyPenalty":
-                    self.controller.strategy = \
-                        SyncStrategyPenalty(0, self.data, self.rs, self.maxeval,
-                                            self.nsample, self.exp_des, self.search)
+                    self.penalty = float(self.penaltyline.text())
+                    strat = SyncStrategyPenalty(0, self.data, self.rs, self.maxeval,
+                                                self.nsample, self.exp_des, self.search,
+                                                penalty=self.penalty)
+                    self.controller.strategy = strat
+
                 self.controller.strategy = CheckWorkerStrategy(self.controller, self.controller.strategy)
                 # Threads
                 if self.controllerlist.currentText() == "ThreadController":
@@ -1006,31 +1106,30 @@ class myGUI(QtGui.QWidget):
             try:
                 self.stopbtn.setEnabled(True)
 
-                def feasible_merit(record):
-                    """Merit function for ordering final answers -- kill infeasible x"""
-                    x = record.params[0].reshape((1, record.params[0].shape[0]))
-                    if hasattr(self.data, 'eval_ineq_constraints') and \
-                                    np.max(self.data.eval_ineq_constraints(x)) > 0.0:
-                        return np.inf
-                    return record.value
-
                 self.numeval = 0
                 self.xbest = None
                 self.fbest = np.inf
 
-                self.manager = Manager(self.controller)
+                if self.stratlist.currentText() == "SyncStrategyPenalty":
+                    def feasible_merit(record):
+                        xx = np.zeros((1, record.params[0].shape[0]))
+                        xx[0, :] = record.params[0]
+                        return record.value + strat.penalty_fun(strat.to_unit_box(xx))[0, 0]
+                else:
+                    def feasible_merit(record):
+                        return record.value
+
+                self.manager = Manager(self.controller, self.maxeval, feasible_merit, self.plotprogcb.isChecked())
 
                 self.on_timer_activated()
                 self.myThread.run_timer = True
-
                 self.printMessage("Optimization initialized\n")
-
                 self.printProblemInfo()  # Print some information to the logfile
 
-                self.manager.run(self, feasible_merit)
+                self.manager.run(self)
             except Exception, err:
-                self.printMessage("Optimization failed: "
-                                  + err.message + "\n", "red")
+                self.printMessage("Optimization failed: " +
+                                  err.message + "\n", "red")
 
             self.myThread.run_timer = False
             time.sleep(1)
@@ -1042,6 +1141,7 @@ class myGUI(QtGui.QWidget):
 
             # Force redraw
             QtGui.QApplication.processEvents()
+
 
 def GUI():
     # Use logger

@@ -16,7 +16,7 @@ class AckleyUnit:
         self.xup = 1 * np.ones(dim)
         self.dim = dim
         self.info = str(dim)+"-dimensional Ackley function on the unit sphere \n" +\
-                             "Global optimum: f(1,0,...,0) = " +\
+                             "Global optimum: f(1,0,...,0) = ... = f(0,0,...,1) = " +\
                              str(np.round(20*(1-np.exp(-0.2/np.sqrt(dim))), 3))
         self.min = 20*(1 - np.exp(-0.2/np.sqrt(dim)))
         self.integer = []

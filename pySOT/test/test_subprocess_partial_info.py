@@ -8,7 +8,7 @@ import logging
 from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
-from subprocess import Popen, PIPE
+from subprocess32 import Popen, PIPE
 import os.path
 
 
@@ -75,7 +75,7 @@ def main():
     print("Experimental design: Latin Hypercube")
     print("Ensemble surrogates: Cubic RBF")
 
-    assert os.path.isfile("./sumfun_ext"), "You need to build sphere_ext"
+    assert os.path.isfile("./sumfun_ext"), "You need to build sumfun_ext"
 
     nthreads = 4
     maxeval = 500

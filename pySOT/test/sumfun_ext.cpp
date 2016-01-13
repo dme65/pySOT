@@ -26,17 +26,17 @@ int main(int argc, char** argv) {
             ss.ignore();
     }
 
-    double ssum = 0.0;
     double prod = 1.0;
     for(int i=0; i<vect.size(); i++) {
         prod *= vect[i];
     }
 
+    double ssum = 0.0;
     for(int i=1; i < 1000; i++) {
         ssum += (float(i)/1000) * std::abs(sin(prod*(float(i)/1000)));
         if (i % 100 == 0) {
             printf("%g\n", ssum);
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep for 0.1 seconds
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Sleep for 10 ms
         }
     }
 
