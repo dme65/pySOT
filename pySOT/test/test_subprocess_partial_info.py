@@ -70,15 +70,15 @@ def main():
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
+    print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DyCORS")
     print("Experimental design: Latin Hypercube")
-    print("Ensemble surrogates: Cubic RBF")
+    print("Surrogate: Cubic RBF")
 
     assert os.path.isfile("./sumfun_ext"), "You need to build sumfun_ext"
 
     nthreads = 4
-    maxeval = 500
+    maxeval = 200
     nsamples = nthreads
 
     data = SumfunExt(dim=10)

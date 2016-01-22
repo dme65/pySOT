@@ -11,7 +11,7 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_projection.py
 	python test_ensemble.py
 	python test_mixed_integer_constraints.py
-	python test_multisearch.py
+	python test_multisampling.py
 	python test_simple.py
 	python test_subprocess.py
 	python test_subprocess_files.py

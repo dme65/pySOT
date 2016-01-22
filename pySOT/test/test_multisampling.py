@@ -1,6 +1,6 @@
 """
-.. module:: test_multisearch
-  :synopsis: Test multi-search strategy
+.. module:: test_multisampling
+  :synopsis: Test multisampling strategy
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -42,7 +42,7 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            search_procedure=MultiSearchStrategy(sp, [0, 0, 1, 0, 0, 2]))
+            search_procedure=MultiSampling(sp, [0, 0, 1, 0, 0, 2]))
 
     result = controller.run()
     best, xbest = result.value, result.params[0]

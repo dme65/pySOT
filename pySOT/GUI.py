@@ -19,7 +19,7 @@ import time
 from sot_sync_strategies import *
 from experimental_design import *
 from rs_capped import RSCapped
-from sampling_strategies import *
+from sampling_methods import *
 from ensemble_surrogate import *
 from rbf_interpolant import *
 from rbf_surfaces import *
@@ -76,7 +76,7 @@ class myThread(QtCore.QThread):
 # ======================= Dynamic Plot Update =======================
 
 
-class DynamicUpdate():
+class DynamicUpdate:
 
     def __init__(self):
         plt.ion()
@@ -388,7 +388,7 @@ class myGUI(QtGui.QWidget):
         self.penaltyline.setDisabled(True)
 
         # Search strategy
-        self.searchlbl = QtGui.QLabel("Search Strategy", self)
+        self.searchlbl = QtGui.QLabel("Sampling Method", self)
         self.searchlist = QtGui.QComboBox(self)
         self.searchlist.addItem("CandidateDYCORS")
         self.searchlist.addItem("CandidateDDS")
@@ -711,7 +711,7 @@ class myGUI(QtGui.QWidget):
             self.simerr.adjustSize()
             self.siminp = False
         elif (not self.threadline.text().isdigit()) or int(text) > int(self.threadline.text()):
-            self.simerr.setText("Must be less than\nnumber of threads!")
+            #self.simerr.setText("Must be less than\nnumber of threads!")
             self.simerr.adjustSize()
             self.siminp = False
         else:
@@ -991,7 +991,7 @@ class myGUI(QtGui.QWidget):
                 unique_names = list(set(names))
                 if len(unique_names) == 1:
                     if len(names) > 1:
-                        self.printMessage("Multiple search strategies added, but only one unique. "
+                        self.printMessage("Multiple sampling methods added, but only one unique. "
                                           "Initiating one such instance.\n", "blue")
                     search_strategy_class = globals()[unique_names[0]]
                     self.search = search_strategy_class(data=self.data)
@@ -1005,7 +1005,7 @@ class myGUI(QtGui.QWidget):
                         search_strategies.append((search_strategy_class(data=self.data)))
                     for i in range(len(names)):
                         weights.append(dictionary[names[i]])
-                    self.search = MultiSearchStrategy(search_strategies, weights)
+                    self.search = MultiSampling(search_strategies, weights)
 
             except Exception, err:
                 self.printMessage("Failed to initialize search strategy: " +
@@ -1114,7 +1114,7 @@ class myGUI(QtGui.QWidget):
                     def feasible_merit(record):
                         xx = np.zeros((1, record.params[0].shape[0]))
                         xx[0, :] = record.params[0]
-                        return record.value + strat.penalty_fun(strat.to_unit_box(xx))[0, 0]
+                        return record.value + strat.penalty_fun(xx)[0, 0]
                 else:
                     def feasible_merit(record):
                         return record.value

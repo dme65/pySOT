@@ -326,7 +326,7 @@ The general framework for a Surrogate Optimization algorithm can be seen in Algo
 Generate an initial experimental design\;{\label{restart}}
 Evaluate the points in the experimental design\;
 Build a Surrogate model from the data\;
-\Repeat{Stopping criterion not met}{
+\Repeat{Stopping criterion met}{
 	\If{Restart criterion met}{
 		Reset the Surrogate model and the Sample point strategy\;
 		\KwGoTo \ref{restart}\;

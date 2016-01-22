@@ -54,7 +54,7 @@ def main():
     print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DyCORS")
     print("Experimental design: Latin Hypercube")
-    print("Ensemble surrogates: Cubic RBF")
+    print("Surrogate: Cubic RBF")
 
     assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
 

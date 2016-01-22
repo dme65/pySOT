@@ -7,11 +7,12 @@ from experimental_design import *
 from rbf_interpolant import *
 from rbf_surfaces import *
 from rs_capped import *
-from sampling_strategies import *
+from sampling_methods import *
 from test_problems import *
 from sot_sync_strategies import *
 from ensemble_surrogate import EnsembleSurrogate
 from poly_regression import *
+
 try:
     from GUI import GUI
 except ImportError:

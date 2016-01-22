@@ -27,24 +27,18 @@ def main():
     print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    maxeval = 200
+    maxeval = 500
+    penalty = 1e6
     nsamples = nthreads
 
     data = LinearMI()
     print(data.info)
 
-    def feasible_merit(record):
-        "Merit function for ordering final answers -- kill infeasible x"
-        x = record.params[0].reshape((1, record.params[0].shape[0]))
-        if np.max(data.eval_ineq_constraints(x)) > 0:
-            return np.inf
-        return record.value
-
     exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1))
     response_surface = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
 
     # Use a multi-search strategy for candidate points
-    search_proc = MultiSearchStrategy(
+    search_proc = MultiSampling(
         [CandidateDYCORS(data=data, numcand=100*data.dim),
          CandidateUniform(data=data, numcand=100*data.dim),
          CandidateDYCORS_INT(data=data, numcand=100*data.dim),
@@ -59,20 +53,28 @@ def main():
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=exp_design,
-            search_procedure=search_proc)
+            search_procedure=search_proc,
+            penalty=penalty)
 
     # Launch the threads
     for _ in range(nthreads):
         worker = BasicWorkerThread(controller, data.objfunction)
         controller.launch_worker(worker)
 
+    # Use penalty based merit
+    def feasible_merit(record):
+        xx = np.zeros((1, record.params[0].shape[0]))
+        xx[0, :] = record.params[0]
+        return record.value + controller.strategy.penalty_fun(xx)[0, 0]
+
     result = controller.run(merit=feasible_merit)
     best, xbest = result.value, result.params[0]
 
     print('Best value: {0}'.format(best))
-    print('Best solution: {0}\n'.format(
+    print('Best solution: {0}'.format(
         np.array_str(xbest, max_line_width=np.inf,
                      precision=5, suppress_small=True)))
+    print('Feasible: {0}\n'.format(np.max(data.eval_ineq_constraints(np.atleast_2d(xbest))) <= 0.0))
 
 
 if __name__ == '__main__':

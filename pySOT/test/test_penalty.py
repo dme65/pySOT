@@ -53,8 +53,7 @@ def main():
     def feasible_merit(record):
         xx = np.zeros((1, record.params[0].shape[0]))
         xx[0, :] = record.params[0]
-        return record.value + controller.strategy.penalty_fun(controller.strategy.to_unit_box(xx))[0, 0]
-
+        return record.value + controller.strategy.penalty_fun(xx)[0, 0]
     result = controller.run(merit=feasible_merit)
     best, xbest = result.value, result.params[0]
 
