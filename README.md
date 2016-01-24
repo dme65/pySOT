@@ -21,4 +21,4 @@ A: You need to install PySide and then reinstall pySOT
 
 Q: I can't find the MARS interpolant
 
-Q: You need to install py-earth (https://github.com/jcrudy/py-earth) and reinstall pySOT
+A: You need to install py-earth (https://github.com/jcrudy/py-earth) and reinstall pySOT
