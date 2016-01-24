@@ -64,7 +64,7 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-            search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
+            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             proj_fun=projection
         )
 

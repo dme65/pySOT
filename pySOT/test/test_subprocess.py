@@ -72,7 +72,7 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
+            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
 
     # Launch the threads and give them access to the objective function

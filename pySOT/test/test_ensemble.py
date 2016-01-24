@@ -53,7 +53,7 @@ def main():
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            search_procedure=CandidateSRBF(data=data, numcand=100*data.dim),
+            sampling_method=CandidateSRBF(data=data, numcand=100*data.dim),
             extra=extra)
 
     # Launch the threads and give them access to the objective function

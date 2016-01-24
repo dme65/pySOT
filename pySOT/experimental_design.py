@@ -100,7 +100,29 @@ class SymmetricLatinHypercube(object):
         return xsample
 
 
+class TwoFactorial(object):
+
+    def __init__(self, dim):
+        assert dim >= 3, "dim may be no less than 3"
+        self.dim = dim
+        self.npts = 2 ** dim
+
+    def generate_points(self):
+        return 0.5*(1 + pydoe.ff2n(self.dim))
+
+
+class BoxBehnken(object):
+
+    def __init__(self, dim):
+        self.dim = dim
+        self.npts = pydoe.bbdesign(self.dim, center=1).shape[0]
+
+    def generate_points(self):
+        return 0.5*(1 + pydoe.bbdesign(self.dim, center=1))
+
+
 # ========================= For Test =======================
+
 
 def _main():
     print("========================= LHD =======================")
@@ -110,6 +132,16 @@ def _main():
     print("\n========================= SLHD =======================")
     slhd = SymmetricLatinHypercube(3, 10)
     print(slhd.generate_points())
+
+    print("\n========================= 2-Factorial =======================")
+    twofact = TwoFactorial(3)
+    print(twofact.generate_points())
+    print(twofact.npts)
+
+    print("\n========================= Box-Behnken =======================")
+    bb = BoxBehnken(3)
+    print(bb.generate_points())
+    print(bb.npts)
 
 if __name__ == "__main__":
     _main()

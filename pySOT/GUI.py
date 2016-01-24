@@ -84,6 +84,8 @@ class DynamicUpdate:
         self.ax = None
         self.pts = None
         self.lines = None
+        self.min_x = None
+        self.max_x = None
 
     def on_launch(self, min_x, max_x):
         self.figure, self.ax = plt.subplots()
@@ -91,10 +93,15 @@ class DynamicUpdate:
         self.lines, = self.ax.plot([], [], 'r-', linewidth=4.0)  # Lines
         self.ax.set_xlim(min_x, max_x)
         self.ax.grid()
+        self.min_x = min_x
+        self.max_x = max_x
         plt.xlabel('Evaluations')
         plt.ylabel('Function Value')
 
     def on_running(self, xdata, ydata):
+        if not plt.fignum_exists(self.figure.number):
+            self.on_launch(self.min_x, self.max_x)
+
         self.lines.set_xdata(xdata)
         ycummin = np.minimum.accumulate(ydata)
         self.lines.set_ydata(ycummin)

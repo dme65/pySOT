@@ -53,7 +53,7 @@ def main():
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=exp_design,
-            search_procedure=search_proc,
+            sampling_method=search_proc,
             penalty=penalty)
 
     # Launch the threads

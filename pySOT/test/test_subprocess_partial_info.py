@@ -43,9 +43,9 @@ class DummySim(ProcessWorkerThread):
             if output:  # New intermediate output
                 try:
                     val = float(output.strip())  # Try to parse output
-                    if val > 300:  # Terminate if too large
+                    if val > 350:  # Terminate if too large
                         self.process.terminate()
-                        self.finish_success(record, 300)
+                        self.finish_success(record, 350)
                         return
                 except ValueError:  # If the output is nonsense we terminate
                     logging.warning("Incorrect output")
@@ -91,7 +91,7 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
+            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
 
     # Launch the threads and give them access to the objective function
