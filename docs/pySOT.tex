@@ -118,7 +118,7 @@ rulesepcolor=\color{blue},#1
 	\pagestyle{fancy}
 	\fancyhead{}
 	\fancyfoot{}
-	\fancyhead[C]{Surrogate Optimization Toolbox in Python (pySOT) - 0.1.15 $\bullet$ Tutorial $\bullet$ David Eriksson, David Bindel, Christine Shoemaker $\bullet$ \today}
+	\fancyhead[C]{Surrogate Optimization Toolbox in Python (pySOT) - 0.1.18 $\bullet$ Tutorial $\bullet$ David Eriksson, David Bindel, Christine Shoemaker $\bullet$ \today}
 	\fancyfoot[RO,LE]{\thepage}
 
 %%% ---- MATLAB CODE ---- %%%
@@ -161,7 +161,7 @@ rulesepcolor=\color{blue},#1
 %%%% Title
 \title{\vspace{-15mm}%
 	\fontsize{18pt}{10pt}\selectfont
-	\textbf{Surrogate Optimization Toolbox (pySOT) - 0.1.15 \\ Tutorial}
+	\textbf{Surrogate Optimization Toolbox (pySOT) - 0.1.18 \\ Tutorial}
 	}	
 \author{%
 	\Large\textsc{David Eriksson} \\[2mm]
@@ -183,6 +183,21 @@ rulesepcolor=\color{blue},#1
 
 \section{Change history:}
 \begin{itemize}
+
+\item (\textbf{0.1.18})
+\begin{itemize}
+\item Significant restructuring of the code base
+\item make\_points now takes an argument that specifies the number of new points to be generated
+\item Added Box-Behnken and 2-factorial to the experimental designs
+\item Simplified the penalty method strategy by moving evals and derivs into a surrogate wrapper
+\end{itemize}
+
+\item (\textbf{0.1.17})
+\begin{itemize}
+\item Added the possibility to input the penalty for the penalty method in the GUI
+\item Added the possibility of making a performance plot using matplotlib that adds new points dynamically as evaluations are finished
+\item Switched from subprocess to subprocess32
+\end{itemize}
 
 \item (\textbf{0.1.16})
 \begin{itemize}
@@ -390,8 +405,13 @@ make html
 These are the the components and the supported options:
 \subsection{Experimental design} 
 \label{expdes}
-The experimental design generates the initial points to be evaluated. A well-chosen experimental design is critical in order to fit a Surrogate model that captures the behavior of the underlying objective function. The following experimental designs are supported:
+The experimental design generates the initial points to be evaluated. A well-chosen experimental design is critical in order to fit a Surrogate model that captures the behavior of the underlying objective function. Any implementation must have the following method
 \begin{itemize}
+\item generate\_\,points(): Returns an experimental design of size $npts \times d$ where npts is the number of points in the initial design, which was specified when the object was created 
+\end{itemize}
+The following experimental designs are supported:
+\begin{itemize}
+
 \item \textbf{LatinHypercube}. Arguments:
 \begin{itemize}
 \item \textbf{dim:} Number of dimensions
@@ -403,6 +423,7 @@ from pySOT import LatinHypercube
 exp_des = LatinHypercube(dim=3, npts=10)
 \end{python}
 creates a Latin hypercube design with 10 points in 3 dimensions
+
 \item \textbf{SymmetricLatinHypercube} Arguments:
 \begin{itemize}
 \item \textbf{dim:} Number of dimensions
@@ -415,11 +436,54 @@ exp_des = SymmetricLatinHypercube(dim=3, npts=10)
 \end{python}
 creates a symmetric Latin hypercube design with 10 points in 3 dimensions
 
+\item \textbf{TwoFactorial}. The corners of the unit hypercube. Arguments:
+\begin{itemize}
+\item \textbf{dim:} Number of dimensions
+\end{itemize} 
+\ \newline Example: 
+\begin{python}
+from pySOT import TwoFactorial
+exp_des = TwoFactorial(dim=3)
+\end{python}
+creates a symmetric Latin hypercube design with $2^3$ points in 3 dimensions
+
+\item \textbf{BoxBehnken}. Box-Behnken design with one center point. Arguments:
+\begin{itemize}
+\item \textbf{dim:} Number of dimensions
+\end{itemize} 
 \end{itemize}
+\ \newline Example: 
+\begin{python}
+from pySOT import BoxBehnken
+exp_des = BoxBehnken(dim=3)
+\end{python}
+creates a symmetric BoxBehnken design with $13$ points in 3 dimensions.
 
 \subsection{Surrogate model} 
 \label{surrogate}
-The surrogate model approximates the underlying objective function given all of the points that have been evaluated. The following surrogate models are supported:
+The surrogate model approximates the underlying objective function given all of the points that have been evaluated. Any implementation of
+a surrogate model must have the following attributes and methods
+\begin{itemize}
+\item[] {Attributes}: 
+\begin{itemize}
+\item nump: Number of data points (integer)
+\item maxp: Maximum number of data points (integer)
+\end{itemize}
+\item[] {Required methods}:
+\begin{itemize}
+\item reset(): Resets the surrogate model
+\item get\_\,x(): Returns a numpy array of size $nump \times d$ of the data points
+\item get\_\,fx(): Returns a numpy array of length $nump$ with the function values
+\item add\_\,point(x,\,f): Adds a point $x$ with value $f$ to the surrogate model
+\item eval(x): Evaluates the surrogate model at one point $x$
+\item evals(x): Evaluates the surrogate model at multiple points
+\end{itemize}
+\item[] {Optional methods}:
+\begin{itemize}
+\item deriv(x): Returns a numpy array with the gradient at one point $x$
+\end{itemize}
+\end{itemize}
+The following surrogate models are supported:
 \begin{itemize}
 \item \textbf{RBFInterpolant}. A radial basis function interpolant. Arguments:
 \begin{itemize}
@@ -548,14 +612,30 @@ class LinearMI:
 
 \subsection{Generation of next point to evaluate} 
 \label{search}
-We provide several different methods for selecting the next point to evaluate. All methods in this version are based in generating candidate points by perturbing the best solution found so far or in some cases just choose a random point. We also provide the option of using many different strategies in the same experiment and how to cycle between the different strategies. We start by listing all the different options and describe shortly how they work.
+We provide several different methods for selecting the next point to evaluate. All methods in this version are based in generating candidate points by perturbing the best solution found so far or in some cases just choose a random point. We also provide the option of using many different strategies in the same experiment and how to cycle between the different strategies. Each implementation of this object is required to have the following attributes and methods
+\begin{itemize}
+\item[] {Required attributes}:
+\begin{itemize}
+\item \textit{proposed\_points}: Numpy array of the points that have been proposed for evaluation
+\end{itemize}
+\item[] {Required methods}:
+\begin{itemize}
+\item \textit{init(start\_\,sample,\,fhat,\,budget)}: This initializes the sampling strategy by providing the points that were evaluated in the experimental design phase, the response surface, and also provides  the evaluation budget.
+\item \textit{remove\_\,point(x)}: Removes point $x$ from list of proposed\_points if the evaluation crashed or was never carried out by the strategy. Returns True if the point was removed and False if the removal failed.
+\item \textit{make\_\,points(npts, xbest, sigma, subset=None, proj\_\,fun=None)}: This is the method that proposes \textit{npts} new evaluations to the strategy. It needs to know the number of points to propose, the best data point evaluated so far, the preferred sample radius of the strategy (w.r.t the unit box), the coordinates that the strategy wants to perturb, and a way to project points onto the feasible region. 
+\end{itemize}
+\end{itemize}
+We now list the different options and describe shortly how they work.
 \begin{itemize}
 \item \textbf{CandidateSRBF:} Generate perturbations around the best solution found so far
 \item \textbf{CandidateSRBF\_INT:} Uses CandidateSRBF but only perturbs the integer variables
 \item \textbf{CandidateSRBF\_CONT:} Uses CandidateSRBF but only perturbs the continuous variables
-\item \textbf{CandidateDYCORS} Uses a DDS strategy which perturbs each coordinate with some iteration dependent probability. This probability is a monotonically decreasing function with the number of iteration.
+\item \textbf{CandidateDYCORS} Uses a DYCORS strategy which perturbs each coordinate with some iteration dependent probability. This probability is a monotonically decreasing function with the number of iteration.
 \item \textbf{CandidateDYCORS\_CONT:} Uses CandidateDYCORS but only perturbs the continuous variables
 \item \textbf{CandidateDYCORS\_INT:} Uses CandidateDYCORS but only perturbs the integer variables
+\item \textbf{CandidateDDS}: Uses the DDS strategy where only a few candidate points are generated and the one with the best surrogate prediction is picked for evaluation
+\item \textbf{CandidateDDS\_CONT:} Uses CandidateDDS but only perturbs the continuous variables
+\item \textbf{CandidateDDS\_INT:} Uses CandidateDDS but only perturbs the integer variables
 \item \textbf{CandidateUniform:} Chooses a new point uniformly from the box-constrained domain
 \item \textbf{CandidateUniform\_CONT:} Given the best solution found so far the continuous variables are chosen uniformly from the box-constrained domain
 \item \textbf{CandidateUniform\_INT:} Given the best solution found so far the integer variables are chosen uniformly from the box-constrained domain
@@ -567,12 +647,12 @@ from pySOT import LinearMI, MultiSearchStrategy, CandidateDYCORS, \
 			  CandidateUniform
 
 data = LinearMI()  # Optimization problem
-search_strategies = [CandidateDYCORS(data=data, numcand=100*data.dim),
+sampling_methods = [CandidateDYCORS(data=data, numcand=100*data.dim),
                      CandidateDYCORS_CONT(data=data, numcand=100*data.dim),
                      CandidateDYCORS_INT(data=data, numcand=100*data.dim),
                      CandidateUniform(data=data, numcand=100*data.dim)]
-weights = [0, 1, 2, 3]
-search_strategy = MultiSearchStrategy(search_strategies, weights)
+cycle = [0, 1, 2, 3]
+sampling_methods = MultiSampling(sampling_methods, cycle)
 \end{python}
 
 \section{POAP}
@@ -648,7 +728,7 @@ Dimensions & Problem type & Search Strategies \\
 Non-bound constraints & Optimization Strategy \\
   \hline  
   No & SyncStrategyNoConstraints \\
-  Yes & SyncStrategyPenalty \\
+  Yes & SyncStrategyPenalty or SyncStrategyProjection \\
   \hline
 \end{tabular}
 \end{center}
@@ -739,462 +819,7 @@ The four figures in Figure \ref{fig:gui} show what the GUI looks like and how th
  \end{figure}
  
 \section{Examples}
-This section provides several examples that shows how to use POAP and pySOT to solve optimization problems.
-
-\subsection{First example (Hello World)}
-This example is a continuous optimization problem of the 10-dimensional Ackley-function which has only bound constraints. We are using 4 threads and 1000 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2(dim+1) points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyNoConstraints strategy, since there are only bound constraints. We launch 4 BasicWorkerThread, start the optimization and finally print the result to the screen.
-
-\begin{python}
-import logging
-from pySOT import *
-from poap.controller import ThreadController, BasicWorkerThread
-import numpy as np
-import os.path
-
-if not os.path.exists("./logfiles"):
-    os.makedirs("logfiles")
-logging.basicConfig(filename="./logfiles/test_simple.log",
-                    level=logging.INFO)
-print("Number of threads: 4")
-print("Maximum number of evaluations: 1000")
-print("Search strategy: Candidate DyCORS")
-print("Experimental design: Latin Hypercube")
-print("Ensemble surrogates: Cubic RBF")
-
-nthreads = 4
-maxeval = 1000
-nsamples = nthreads
-
-data = Ackley(dim=10)
-print(data.info)
-
-# Create a strategy and a controller
-controller = ThreadController()
-controller.strategy = \
-    SyncStrategyNoConstraints(
-        worker_id=0, data=data,
-        maxeval=maxeval, nsamples=nsamples,
-        exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-        response_surface=RBFInterpolant(surftype=CubicRBFSurface,
-                                        maxp=maxeval),
-        search_procedure=CandidateDYCORS(data=data,
-                                         numcand=100*data.dim))
-
-# Launch the threads and give them access to the objective function
-for _ in range(nthreads):
-    worker = BasicWorkerThread(controller, data.objfunction)
-    controller.launch_worker(worker)
-
-# Run the optimization strategy
-result = controller.run()
-
-print('Best value found: {0}'.format(result.value))
-print('Best solution found: {0}'.format(
-    np.array_str(result.params[0], max_line_width=np.inf,
-                 precision=5, suppress_small=True)))
-\end{python}
-
-\subsection{Projection onto the unit sphere}
-This example is a continuous optimization problem of the 10-dimensional Ackley function with the domain constrained to the unit sphere. We are using 4 threads and 500 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyProjection strategy. POAP doesn't check feasibility, so we need to modify the run command to supply a filter that makes POAP discard infeasible points when looking for the best solution at the end of the run. The feasible\_merit method simply sets infeasible points to have infinite function value so that only feasible points are considered. If for example small constraint violations are accepted the user can provide a merit function that is more suitable such a case.
-\begin{python}
-
-class AckleyUnit:
-    def __init__(self, dim=10):
-        self.xlow = -np.ones(dim)
-        self.xup = np.ones(dim)
-        self.dim = dim
-        self.info = str(dim)+"-dimensional Ackley function on unit sphere \n" +\
-                             "Global optimum: f(1,0,...,0) = " +\
-                             str(np.round(20*(1-np.exp(-0.2/np.sqrt(dim))), 3))
-        self.min = 20*(1 - np.exp(-0.2/np.sqrt(dim)))
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-        validate(self)
-
-    def objfunction(self, x):
-        n = float(len(x))
-        return -20.0 * np.exp(-0.2*np.sqrt(np.sum(x**2)/n)) - \
-            np.exp(np.sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
-
-    def eval_eq_constraints(self, x):
-        return np.linalg.norm(x) - 1
-
-
-def main():
-    if not os.path.exists("./logfiles"):
-        os.makedirs("logfiles")
-    logging.basicConfig(filename="./logfiles/test_projection.log",
-                        level=logging.INFO)
-
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 1000")
-    print("Search strategy: CandidateDYCORS")
-    print("Experimental design: Latin Hypercube")
-    print("Ensemble surrogates: Cubic RBF")
-
-    nthreads = 4
-    maxeval = 500
-    nsamples = nthreads
-
-    data = AckleyUnit(dim=10)
-    print(data.info)
-
-    def projection(x):
-        return x / np.linalg.norm(x)
-
-    # Create a strategy and a controller
-    controller = ThreadController()
-    controller.strategy = \
-        SyncStrategyProjection(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(surftype=CubicRBFSurface, 
-                                            maxp=maxeval),
-            search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
-            proj_fun=projection
-        )
-
-    # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.objfunction)
-        controller.launch_worker(worker)
-
-    # Run the optimization strategy
-    result = controller.run()
-
-    print('Best value found: {0}'.format(result.value))
-    print('Best solution found: {0}'.format(
-        np.array_str(result.params[0], max_line_width=np.inf,
-                     precision=5, suppress_small=True)))
-    print('||x||_2 = {0}\n'.format(np.linalg.norm(result.params[0])))
-\end{python}
-
-\subsection{Continuous problem with non-bound constraints using the penalty method}
-This example is a continuous optimization problem of the 10-dimensional Keane's bump function which has two non-bound constraints. We are using 4 threads and 500 evaluations. To generate new points to evaluate we use Candidate DyCORS. The experimental design is created using a Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyPenalty strategy, with the default penalty $10^6$.
-
-\begin{python}
-import logging
-from pySOT import *
-from poap.controller import ThreadController, BasicWorkerThread
-import numpy as np
-import os.path
-
-if not os.path.exists("./logfiles"):
-    os.makedirs("logfiles")
-logging.basicConfig(filename="./logfiles/test_constraints.log",
-                    level=logging.INFO)
-print("Number of threads: 4")
-print("Maximum number of evaluations: 500")
-print("Search strategy: CandidateDycors")
-print("Experimental design: Latin Hypercube")
-print("Surrogate: Cubic RBF")
-
-nthreads = 4
-maxeval = 500
-nsamples = nthreads
-
-data = Keane(dim=10)
-print(data.info)
-
-def feasible_merit(record):
-    """Merit function for ordering final answers -- kill infeasible x"""
-    x = record.params[0].reshape((1, record.params[0].shape[0]))
-    if np.max(data.eval_ineq_constraints(x)) > 0:
-        return np.inf
-    return record.value
-
-# Create a strategy and a controller
-controller = ThreadController()
-controller.strategy = \
-    SyncStrategyPenalty(
-        worker_id=0, data=data,
-        maxeval=maxeval, nsamples=nsamples,
-        response_surface=RSCapped(RBFInterpolant(surftype=CubicRBFSurface,
-                                                 maxp=maxeval)),
-        exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-        search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim))
-
-# Launch the threads
-for _ in range(nthreads):
-    worker = BasicWorkerThread(controller, data.objfunction)
-    controller.launch_worker(worker)
-
-result = controller.run(merit=feasible_merit)
-best, xbest = result.value, result.params[0]
-
-print('Best value: {0}'.format(best))
-print('Best solution: {0}'.format(
-    np.array_str(xbest, max_line_width=np.inf,
-                 precision=5, suppress_small=True)))
-\end{python}
-
-\subsection{Ensemble Surrogates}
-This example is a continuous optimization problem of the 3-dimensional Hartman3-function which has only bound constraints. We are using 4 threads and 50 evaluations. To generate new points to evaluate we use Candidate SRBF, since the optimization problem is low-dimensional. The experimental design is created using a Latin Hypercube with 2dim+1 points. We also add the extra point [0.1, 0.5, 0.8], which we pretend is a known good solution to the problem. The response surface is an ensemble surrogate consisting of a cubic radial basis function with a linear tail, a linear radial basis function with constant tail, a thin-plate radial basis function with linear tail, and a MARS interpolant. We also redirect the stream from stdout and let pySOT print all messages to the text file surrogate\_optimizer.log placed in the current directory. We use the ThreadController and the SyncStrategyNoConstraints strategy, since there are only bound constraints. We launch 4 BasicWorkerThread, start the optimization and finally print the result to the screen.
-
-\begin{python}
-import logging
-from pySOT import *
-from poap.controller import ThreadController, BasicWorkerThread
-import numpy as np
-import os.path
-
-if not os.path.exists("./logfiles"):
-    os.makedirs("logfiles")
-logging.basicConfig(filename="./logfiles/test_ensemble.log",
-                    level=logging.INFO)
-print("Number of threads: 4")
-print("Maximum number of evaluations: 50")
-print("Search strategy: Candidate SRBF")
-print("Experimental design: Latin Hypercube + point [0.1, 0.5, 0.8]")
-print("Surrogate: Cubic RBF, Linear RBF, Thin-plate RBF, MARS")
-
-nthreads = 4
-maxeval = 50
-nsamples = nthreads
-
-data = Hartman3()
-print(data.info)
-
-# Use 3 differents RBF's and MARS as an ensemble surrogate
-models = [
-    RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-    RBFInterpolant(surftype=LinearRBFSurface, maxp=maxeval),
-    RBFInterpolant(surftype=TPSSurface, maxp=maxeval)
-]
-response_surface = EnsembleSurrogate(models, maxeval)
-
-# Add an additional point to the experimental design. If a good
-# solution is already known you can add this point to the
-# experimental design
-extra = np.atleast_2d([0.1, 0.5, 0.8])
-
-# Create a strategy and a controller
-controller = ThreadController()
-controller.strategy = \
-    SyncStrategyNoConstraints(
-        worker_id=0, data=data,
-        response_surface=response_surface,
-        maxeval=maxeval, nsamples=nsamples,
-        exp_design=LatinHypercube(dim=data.dim, npts=2*data.dim+1),
-        search_procedure=CandidateSRBF(data=data, numcand=200*data.dim),
-        extra=extra)
-
-# Launch the threads and give them access to the objective function
-for _ in range(nthreads):
-    worker = BasicWorkerThread(controller, data.objfunction)
-    controller.launch_worker(worker)
-
-# Run the optimization strategy
-result = controller.run()
-
-response_surface.compute_weights()
-print('Final weights: {0}'.format(
-    np.array_str(response_surface.weights, max_line_width=np.inf,
-                 precision=5, suppress_small=True)))
-
-print('Best value found: {0}'.format(result.value))
-print('Best solution found: {0}'.format(
-    np.array_str(result.params[0], max_line_width=np.inf,
-                 precision=5, suppress_small=True)))
-\end{python}
-
-\subsection{Mixed-integer problem with non-bound constraints}
-This example is a mixed-integer optimization problem of a 5-dimensional problem with 3 inequality constraints. The first three variables are discrete and the last 2 are continuous. We are using 4 threads and 200 evaluations. To generate new points to evaluate we use a Multi-search strategy consisting of CandidateDyCORS, CandidateDyCORS\_INT, CandidateDyCORS\_CONT, and CandidateUniform. The experimental design is created using a Symmetric Latin Hypercube with 2dim+1 points. The response surface is a cubic radial basis function with a linear tail. We use the ThreadController and the SyncStrategyPenalty strategy, with the default penalty $10^6$. We submit the same merit function as in the previous example with constraints. The best solution is finally printed to the screen.
-
-\begin{python}
-import logging
-from pySOT import *
-from poap.controller import ThreadController, BasicWorkerThread
-import numpy as np
-import os.path
-
-if not os.path.exists("./logfiles"):
-    os.makedirs("logfiles")
-logging.basicConfig(filename="./logfiles/test_mixed_integer_constraints.log",
-                    level=logging.INFO)
-print("Number of threads: 4")
-print("Maximum number of evaluations: 200")
-print("Search strategy: CandidateDyCORS, CandidateDyCORS_INT"
-      ", CandidateDyCORS_CONT, CandidateUniform")
-print("Experimental design: Symmetric Latin Hypercube")
-print("Surrogate: Cubic RBF")
-
-nthreads = 4
-maxeval = 200
-nsamples = nthreads
-
-data = LinearMI()
-print(data.info)
-
-def feasible_merit(record):
-    "Merit function for ordering final answers -- kill infeasible x"
-    x = record.params[0].reshape((1, record.params[0].shape[0]))
-    if np.max(data.eval_ineq_constraints(x)) > 0:
-        return np.inf
-    return record.value
-
-exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*data.dim+1)
-response_surface = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
-
-
-# Use a multi-search strategy for candidate points
-search_proc = MultiSearchStrategy(
-    [CandidateDyCORS(data=data, numcand=200*data.dim),
-     CandidateUniform(data=data, numcand=200*data.dim),
-     CandidateDyCORS_INT(data=data, numcand=200*data.dim),
-     CandidateDyCORS_CONT(data=data, numcand=200*data.dim)],
-    [0, 1, 2, 3])
-
-# Create a strategy and a controller
-controller = ThreadController()
-controller.strategy = \
-    SyncStrategyPenalty( 
-        worker_id=0, data=data,
-        response_surface=response_surface,
-        maxeval=maxeval, nsamples=nsamples,
-        exp_design=exp_design,
-        search_procedure=search_proc)
-
-# Launch the threads
-for _ in range(nthreads): 
-    worker = BasicWorkerThread(controller, data.objfunction)
-    controller.launch_worker(worker)
-
-result = controller.run(merit=feasible_merit)
-best, xbest = result.value, result.params[0]
-
-print('Best value: {0}'.format(best))
-print('Best solution: {0}'.format(
-    np.array_str(xbest, max_line_width=np.inf,
-                 precision=5, suppress_small=True)))
-\end{python}
-
-\subsection{External C++ objective function}
-This last example shows how to use POAP and pySOT with an external objective function. We consider an objective function written in C++ that computes the sum of square of a given input, which is an easy convex optimization problem. The program takes its input as a string $'x_1,x_2,\ldots,x_n'$. With a probability of 0.9 the program prints the value of the sum of squares to the screen. With probability 0.1 the program prints nothing and terminates, which is supposed to imitate that the evaluation crashed. The C++ program that is compiled with the name sphere\_ext is provided below:
-\lstset { %
-    language=C++,
-    backgroundcolor=\color{black!5}, % set backgroundcolor
-    basicstyle=\footnotesize,% basic font setting
-}
-\begin{lstlisting}
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <unistd.h>
-#include <numeric>
-#include <random>
-
-int main(int argc, char** argv) {
-	// Random number generator
-	std::random_device rand_dev;
-	std::mt19937 generator(rand_dev());
-	std::uniform_real_distribution<float>  distr(0.0, 1.0);
-
-	// Pretend the simulation crashes with probability 0.1
-  	if(distr(generator) > 0.1) {
-
-		// Convert input to a standard vector
-		std::vector<float> vect;
-		std::stringstream ss(argv[1]);
-		float f;
-
-		while (ss >> f) {
-    			vect.push_back(f);
-			if (ss.peek() == ',')
-    	    			ss.ignore();
-		}
-   		printf("%g\n", std::inner_product(vect.begin(), vect.end(), 
-   	 				          vect.begin(), 0.0 ));
-	}
-	return 0;
-}
-\end{lstlisting}
-We will use the subprocess library in Python to launch the objective function evaluations to our compiled C++ program. The help method array2str converts a numpy array to a string \textquotesingle$x_1,x_2,\ldots,x_n$\textquotesingle, which is what our C++ program wants as an input. The class SphereExt is the basic objective function class and the DummySim class overloads the evaluation method for a ProcessWorkerThread. In case the objective function evaluation fails, a message is printed to the screen just to illustrate that things are working correctly.
-
-\lstset { %
-    language=python,
-    backgroundcolor=\color{white}, % set backgroundcolor
-    basicstyle=\footnotesize,% basic font setting 
-}
-\begin{python}
-import logging
-from pySOT import *
-from poap.controller import ThreadController, ProcessWorkerThread
-import numpy as np
-from subprocess import Popen, PIPE
-import os.path
-
-def array2str(x):
-    return ",".join(np.char.mod('%f', x))
-
-
-class SphereExt:
-    def __init__(self, dim=10):
-        self.xlow = -15 * np.ones(dim)
-        self.xup = 20 * np.ones(dim)
-        self.dim = dim
-        self.info = str(dim)+"-dimensional Sphere function \n" + \
-                    "Global optimum: f(0,0,...,0) = 0"
-        self.min = 0
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-
-
-class DummySim(ProcessWorkerThread):
-
-    def handle_eval(self, record):
-        self.process = Popen(['./sphere_ext', array2str(record.params[0])],
-                             stdout=PIPE)
-        out = self.process.communicate()[0]
-        try:
-            val = float(out)  # This raises ValueError if out is not a float
-            self.finish_success(record, val)
-        except ValueError:
-            logging.warning("Function evaluation crashed/failed")
-            self.finish_failure(record)
-
-if not os.path.exists("./logfiles"):
-    os.makedirs("logfiles")
-logging.basicConfig(filename="./logfiles/test_subprocess.log",
-                    level=logging.INFO)
-
-print("Number of threads: 4")
-print("Maximum number of evaluations: 200")
-print("Search strategy: Candidate DyCORS")
-print("Experimental design: Latin Hypercube")
-print("Ensemble surrogates: Cubic RBF")
-
-assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
-nthreads = 4
-maxeval = 200
-nsamples = nthreads
-
-data = SphereExt(dim=10)
-print(data.info)
-
-# Create a strategy and a controller
-controller = ThreadController()
-controller.strategy = \
-    SyncStrategyNoConstraints(
-        worker_id=0, data=data,
-        maxeval=maxeval, nsamples=nsamples,
-        exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-        search_procedure=CandidateDYCORS(data=data, numcand=100*data.dim),
-        response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
-            
-# Launch the threads and give them access to the objective function
-for _ in range(nthreads):
-    controller.launch_worker(DummySim(controller))
-
-# Run the optimization strategy
-result = controller.run()
-
-print('Best value found: {0}'.format(result.value))
-print('Best solution found: {0}'.format(
-    np.array_str(result.params[0], max_line_width=np.inf,
-                 precision=5, suppress_small=True)))
-\end{python}
+The GitHub repository contains several examples for how to use pySOT.
 
 \section{Hierarchy of POAP + pySOT}
 \begin{figure}[!ht] 
@@ -1207,9 +832,8 @@ print('Best solution found: {0}'.format(
 
 \section{Future changes}
 \begin{itemize}
+\item Add support for continuing from a logfile
 \item Add an asynchronous strategy
-\item Add Heuristic Algorithms to search on the surrogate
-\item Add more experimental designs
 \item Add more methods for handling constraints, especially a barrier method
 \item Support for Python 3.x
 \end{itemize}

@@ -38,7 +38,7 @@ def main():
     response_surface = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
 
     # Use a multi-search strategy for candidate points
-    search_proc = MultiSampling(
+    sampling_method = MultiSampling(
         [CandidateDYCORS(data=data, numcand=100*data.dim),
          CandidateUniform(data=data, numcand=100*data.dim),
          CandidateDYCORS_INT(data=data, numcand=100*data.dim),
@@ -53,7 +53,7 @@ def main():
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=exp_design,
-            sampling_method=search_proc,
+            sampling_method=sampling_method,
             penalty=penalty)
 
     # Launch the threads

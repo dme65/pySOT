@@ -46,26 +46,13 @@ import scipy.stats as stats
 
 
 class MultiSampling(object):
-    """ A collection of Search Strategies and weights so that the user
-        can use multiple search strategies for the same optimization
+    """ A collection of Sampling Methods and weights so that the user
+        can use multiple sampling methods for the same optimization
         problem. This object keeps an internal list of proposed points
         in order to be able to compute the minimum distance from a point
         to all proposed evaluations. This list has to be reset each time
-        the optimization algorithm restarts.
-
-        :ivar sampling_strategies: List of search strategies
-        :ivar cycle: List of integer weights that will be iterated in
-            order to determine what search strategy to use next.
-            If for example the weights [0 0 1] are used, then
-            search strategy 0 will be used two times, then
-            strategy 1 is used after which the cycling restarts.
-        :ivar proposed_points: List of all points proposed by this strategy
-        :ivar currentWeight: Current weights
-        :ivar data: Optimization problem object
-        :ivar avoid: Points to avoid
-    """
+        the optimization algorithm restarts"""
     def __init__(self, strategy_list, cycle):
-        # Check so that the weights are correct
         if cycle is None:
             cycle = range(len(strategy_list))
         if (not all(isinstance(i, int) for i in cycle)) or \
@@ -84,14 +71,12 @@ class MultiSampling(object):
         self.n0 = None
 
     def init(self, start_sample, fhat, budget):
-        """Initialize the multi-search strategy
+        """Initilize the sampling method by providing the points in the
+        experimental design, the surrogate model, and the evaluation budget
 
-        :param start_sample: Points in the initial design that
-            will be evaluated before the adaptive sampling starts
+        :param start_sample: Points in the experimental design
+        :param fhat: Surrogate model
         :param budget: Evaluation budget
-        :param issync: True if the strategy is synchronous
-        :param fhat: Response surface the approximates the objective function
-        :param avoid: Points to avoid
         """
         self.proposed_points = start_sample
         self.fhat = fhat
@@ -102,7 +87,9 @@ class MultiSampling(object):
     def remove_point(self, x):
         """Remove x from proposed_points. Useful if x was never evaluated.
 
-        :param x: Point to remove
+        :param x: Point to be removed
+
+        :return: True if points was removed, False otherwise
         """
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
@@ -116,12 +103,13 @@ class MultiSampling(object):
         """Create new candidate points. This call is ignored by the optimization
         based search strategies.
 
-        :param xbest: Best solution found
-        :param sigma: Current stdDev used to generate candidate points
-        :param evals: Routine for predicting function values
-        :param derivs: Routine for predicting derivatives
+        :param npts: Number of points to select
+        :param xbest: Best solution found so far
+        :param sigma: Current sampling radius w.r.t the unit box
+        :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
-        """
+
+        :return: Points selected for evaluation"""
 
         new_points = np.zeros((npts, self.data.dim))
 
@@ -154,6 +142,10 @@ class MultiSampling(object):
 
 def candidate_merit_weighted_distance(cand, npts=1):
     """Weighted distance merit function for the candidate points based methods
+    :param cand: Candidate point object
+    :param npts: Number of points selected for evaluation
+
+    :return: Points selected for evaluation
     """
 
     new_points = np.ones((npts,  cand.data.dim))
@@ -185,13 +177,12 @@ class CandidateSRBF(object):
     :ivar data: Optimization object
     :ivar weights: Weights used in the merit function
     :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
     :ivar proposed_points: List of points proposed by any search strategy
         since the last restart
     """
 
     def __init__(self, data, numcand=None):
-        """Initialize the multi-search strategy
+        """Initialize the SRBF method
 
         :param data: Optimization object
         :param numcand: Number of candidate points to generate
@@ -214,6 +205,13 @@ class CandidateSRBF(object):
         self.fhat = None
 
     def init(self, start_sample, fhat, budget):
+        """Initialize the sampling method by providing the points in the
+        experimental design, the surrogate model, and the evaluation budget
+
+        :param start_sample: Points in the experimental design
+        :param fhat: Surrogate model
+        :param budget: Evaluation budget
+        """
         self.proposed_points = start_sample
         self.n0 = start_sample.shape[0]
         self.budget = budget
@@ -225,7 +223,7 @@ class CandidateSRBF(object):
 
         :param x: Point to be removed
 
-        :returns: True if points was removed, False otherwise
+        :return: True if points was removed, False otherwise
         """
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
@@ -245,12 +243,13 @@ class CandidateSRBF(object):
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         """Create new candidate points based on the best solution and the current value of sigma.
 
+        :param npts: Number of points to select
         :param xbest: Best solution found so far
-        :param sigma: Current radius, i.e. stdDev used to generate candidate points
-        :param eval: Routine for predicting function values
-        :param deriv: Routine for predicting derivatives
+        :param sigma: Current sampling radius w.r.t the unit box
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+
+        :return: Points selected for evaluation
         """
 
         if subset is None:
@@ -286,32 +285,23 @@ class CandidateUniform(CandidateSRBF):
     def __generate_cand__(self, scalefactors, xbest, subset):
         self.xcand = np.ones((self.numcand, self.data.dim)) * xbest
         self.xcand[:, subset] = np.random.uniform(
-            self.data.xlow[subset], self.data.xup[subset],
-                (self.numcand, len(subset)))
+            self.data.xlow[subset], self.data.xup[subset], (self.numcand, len(subset)))
 
 
 class CandidateDYCORS(CandidateSRBF):
     """This is an implementation of DyCORS method to generate
-    candidate points. The DyCORS method uses the DDS algorithm
-    which only perturbs a subset of the dimensions when
-    perturbing the best solution. The probability for a
-    dimension to be perturbed decreases after each
-    evaluation and is capped in order to guarantee
-    global convergence.
+    candidate points. The DyCORS method only perturbs a subset
+    of the dimensions when perturbing the best solution. The
+    probability for a dimension to be perturbed decreases after
+    each evaluation and is capped in order to guarantee
+    global convergence."""
 
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
-    """
     def __init__(self, data, numcand=None):
-        """Initialize the DYCORS strategy
+        """Initialize the DYCORS method
 
         :param data: Optimization object
-        :param numcand:  Number of candidate points to generate
-        """
+        :param numcand:  Number of candidate points to generate"""
+
         CandidateSRBF.__init__(self, data, numcand=numcand)
         self.minprob = np.min([1.0, 1.0/self.data.dim])
 
@@ -339,12 +329,21 @@ class CandidateDYCORS(CandidateSRBF):
 
 
 class CandidateDDS(CandidateDYCORS):
+    """This is an implementation of DDS method to generate
+    candidate points. Only a few candidate points are generated
+    and the candidate point with the lowest value predicted
+    by the surrogate model is selected. The DDS method only
+    perturbs a subset of the dimensions when perturbing the
+    best solution. The probability for a dimension to be
+    perturbed decreases after each evaluation and is capped
+    in order to guarantee global convergence."""
+
     def __init__(self, data, numcand=None):
-        """Initialize the DYCORS strategy
+        """Initialize the DDS method
 
         :param data: Optimization object
-        :param numcand:  Number of candidate points to generate
-        """
+        :param numcand:  Number of candidate points to generate"""
+
         CandidateDYCORS.__init__(self, data, numcand=numcand)
         self.weights = np.array([1.0])
         self.numcand = max([0.5*data.dim, 2])
@@ -356,30 +355,25 @@ class CandidateDDS(CandidateDYCORS):
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         """Create new candidate points based on the best solution and the current value of sigma.
 
+        :param npts: Number of points to select
         :param xbest: Best solution found so far
-        :param sigma: Current radius, i.e. stdDev used to generate candidate points
-        :param evals: Routine for predicting function values
-        :param derivs: Routine for predicting derivatives
+        :param sigma: Current sampling radius w.r.t the unit box
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
-        """
-        return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=0.2,
-                                           subset=subset, proj_fun=proj_fun)
+
+        :return: Points selected for evaluation"""
+
+        new_points = np.zeros((npts, self.data.dim))
+        for i in range(npts):
+            new_points[i, :] = CandidateDYCORS.make_points(self, npts=1, xbest=xbest, sigma=0.2,
+                                                           subset=subset, proj_fun=proj_fun)
+        return new_points
 
 
 class CandidateSRBF_INT(CandidateSRBF):
-    """Candidate points are generated by perturbing
-    ONLY the discrete variables using the SRBF strategy
-
-    :ivar usecand: Indicates that this method is candidate based
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
+    """Candidate points are generated by perturbing ONLY the discrete
+    variables using the SRBF strategy
     """
-
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
@@ -391,16 +385,7 @@ class CandidateSRBF_INT(CandidateSRBF):
 
 class CandidateDYCORS_INT(CandidateDYCORS):
     """Candidate points are generated by perturbing ONLY the discrete
-    variables using the DyCORS strategy
-
-    :ivar usecand: Indicates that this method is candidate based
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
-    """
+    variables using the DYCORS strategy"""
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
@@ -411,18 +396,22 @@ class CandidateDYCORS_INT(CandidateDYCORS):
                                                subset=self.data.continuous, proj_fun=proj_fun)
 
 
+class CandidateDDS_INT(CandidateDDS):
+    """Candidate points are generated by perturbing
+    ONLY the discrete variables using the DDS strategy"""
+
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+        if len(self.data.integer) > 0:
+            return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
+                                            subset=self.data.integer, proj_fun=proj_fun)
+        else:
+            return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
+                                            subset=self.data.continuous, proj_fun=proj_fun)
+
+
 class CandidateUniform_INT(CandidateUniform):
     """Candidate points are generated by perturbing ONLY
-    the discrete variables using the uniform perturbations
-
-    :ivar usecand: Indicates that this method is candidate based
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
-    """
+    the discrete variables using the uniform perturbations"""
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         if len(self.data.integer) > 0:
@@ -435,16 +424,7 @@ class CandidateUniform_INT(CandidateUniform):
 
 class CandidateSRBF_CONT(CandidateSRBF):
     """Candidate points are generated by perturbing ONLY
-    the continuous variables using the SRBF strategy
-
-    :ivar usecand: Indicates that this method is candidate based
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
-    """
+    the continuous variables using the SRBF strategy"""
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
@@ -457,15 +437,7 @@ class CandidateSRBF_CONT(CandidateSRBF):
 
 class CandidateDYCORS_CONT(CandidateDYCORS):
     """Candidate points are generated by perturbing ONLY
-    the continuous variables using the DyCORS strategy
-
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
-    """
+    the continuous variables using the DYCORS strategy"""
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
@@ -476,18 +448,22 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
                                                subset=self.data.integer, proj_fun=proj_fun)
 
 
+class CandidateDDS_CONT(CandidateDDS):
+    """Candidate points are generated by perturbing
+    ONLY the discrete variables using the DDS strategy"""
+
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+        if len(self.data.continuous) > 0:
+            return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
+                                            subset=self.data.continuous, proj_fun=proj_fun)
+        else:
+            return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
+                                            subset=self.data.integer, proj_fun=proj_fun)
+
+
 class CandidateUniform_CONT(CandidateUniform):
     """Candidate points are generated by perturbing ONLY
-    the continuous variables using uniform perturbations
-
-    :ivar usecand: Indicates that this method is candidate based
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar xsample: The proposed evaluations since
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
-    """
+    the continuous variables using uniform perturbations"""
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
         if len(self.data.continuous) > 0:
@@ -503,10 +479,9 @@ class CandidateUniform_CONT(CandidateUniform):
 
 class GeneticAlgorithm(object):
     def __init__(self, data):
-        """Initialize the multi-search strategy
+        """Initialize the Genetic Algorithm method
 
         :param data: Optimization object
-        :param numcand: Number of candidate points to generate
         """
 
         self.data = data
@@ -517,11 +492,27 @@ class GeneticAlgorithm(object):
         self.fhat = None
 
     def init(self, start_sample, fhat, budget):
+        """Initialize the sampling method by providing the points in the
+        experimental design, the surrogate model, and the evaluation budget
+
+        :param start_sample: Points in the experimental design
+        :param fhat: Surrogate model
+        :param budget: Evaluation budget
+        """
+
         self.proposed_points = start_sample
         self.budget = budget
         self.fhat = fhat
 
     def remove_point(self, x):
+        """Remove x from the list of proposed points.
+        Useful if x was never evaluated.
+
+        :param x: Point to be removed
+
+        :return: True if points was removed, False otherwise
+        """
+
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
             self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
@@ -529,6 +520,15 @@ class GeneticAlgorithm(object):
         return False
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+        """Create new points to evaluate using the GA
+
+        :param npts: Number of points to select
+        :param xbest: Best solution found so far (ignored)
+        :param sigma: Current sampling radius w.r.t the unit box (ignored)
+        :param subset: Coordinates to perturb
+        :param proj_fun: Routine for projecting infeasible points onto the feasible region
+
+        :return: Points selected for evaluation"""
 
         new_points = np.zeros((npts, self.data.dim))
         for i in range(npts):
@@ -582,10 +582,9 @@ class MultiStartGradient(object):
     def __init__(self, data, method='L-BFGS-B', num_restarts=30):
         """Initialize the Multi-Start Gradient object
 
-        Args:
-            data: Optimization object
-            method: What optimization method to use (see above)
-            num_restarts: Number of random starting points
+        :param data: Optimization object
+        :param method: Optimization method to use for the surrogate
+        :param num_restarts: Number of restarts
         """
 
         self.data = data
@@ -606,12 +605,27 @@ class MultiStartGradient(object):
             self.method = 'L-BFGS-B'
 
     def init(self, start_sample, fhat, budget):
+        """Initialize the sampling method by providing the points in the
+        experimental design, the surrogate model, and the evaluation budget
+
+        :param start_sample: Points in the experimental design
+        :param fhat: Surrogate model
+        :param budget: Evaluation budget
+        """
+
         self.proposed_points = start_sample
         self.budget = budget
         self.fhat = fhat
 
     def remove_point(self, x):
-        """ Remove x from self.porposed_points."""
+        """Remove x from the list of proposed points.
+        Useful if x was never evaluated.
+
+        :param x: Point to be removed
+
+        :return: True if points was removed, False otherwise
+        """
+
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
             self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
@@ -619,6 +633,15 @@ class MultiStartGradient(object):
         return False
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+        """Create new points to evaluate using the Multi-Start Gradient method
+
+        :param npts: Number of points to select
+        :param xbest: Best solution found so far (ignored)
+        :param sigma: Current sampling radius w.r.t the unit box (ignored)
+        :param subset: Coordinates to perturb
+        :param proj_fun: Routine for projecting infeasible points onto the feasible region
+
+        :return: Points selected for evaluation"""
 
         def eval(x):
             return self.fhat.eval(x).ravel()

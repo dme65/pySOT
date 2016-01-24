@@ -33,7 +33,7 @@ def main():
     print(data.info)
 
     # Create a strategy and a controller
-    sp = [CandidateDYCORS(data=data, numcand=100*data.dim),
+    sampling_method = [CandidateDYCORS(data=data, numcand=100*data.dim),
           GeneticAlgorithm(data=data), MultiStartGradient(data=data)]
     controller = SerialController(data.objfunction)
     controller.strategy = \
@@ -42,7 +42,7 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            sampling_method=MultiSampling(sp, [0, 0, 1, 0, 0, 2]))
+            sampling_method=MultiSampling(sampling_method, [0, 0, 1, 0, 0, 2]))
 
     result = controller.run()
     best, xbest = result.value, result.params[0]
