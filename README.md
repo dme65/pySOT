@@ -10,17 +10,28 @@ There are several examples that show how to use pySOT: https://github.com/dme65/
 
 pySOT has been downloaded 12,492 times from 2015-June-4 to 2016-January-24
 
+## Installation
+
+Make sure you have Python 2.7.x and pip installed. The easiest way to install pySOT is using: 
+
+```
+pip install pySOT
+```
+
+## Examples
+Several pySOT examples can be found at: https://github.com/dme65/pySOT/tree/master/pySOT/test
+
 ## FAQ
 
 Q: I can't find the GUI  
-A: You need to install PySide and then reinstall pySOT
+A: You need to install PySide
 
 Q: I can't find the MARS interpolant  
-A: You need to install py-earth (https://github.com/jcrudy/py-earth) and reinstall pySOT
+A: You need to install py-earth (https://github.com/jcrudy/py-earth)
 
 Q: I used pySOT for my research and want to cite it  
 A: There is currently no published paper on pySOT so we recommend citing pySOT like this: *D. Eriksson, D. Bindel, and C. Shoemaker. Surrogate Optimization Toolbox (pySOT). github.com/dme65/pySOT, 2015*
 
 Q: Is there support for Python 3?  
-A: pySOT curerntly doesn't support Python 3, mainly because of some pySOT dependencies lacking Python 3 support.
+A: pySOT currently doesn't support Python 3, mainly because of some pySOT dependencies lacking Python 3 support.
 
