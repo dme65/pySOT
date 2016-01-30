@@ -39,36 +39,36 @@ ntpath.basename("a/b/c")
 # =========================== Timing ==============================
 
 
-class timerThread(QtCore.QThread):
-    timeElapsed = QtCore.Signal(int)
+class TimerThread(QtCore.QThread):
+    time_elapsed = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        super(timerThread, self).__init__(parent)
-        self.timeStart = None
+        super(TimerThread, self).__init__(parent)
+        self.time_start = None
 
-    def start(self, timeStart):
-        self.timeStart = timeStart
+    def start(self, time_start):
+        self.time_start = time_start
 
-        return super(timerThread, self).start()
+        return super(TimerThread, self).start()
 
     def run(self):
         while self.parent().isRunning():
-            self.timeElapsed.emit(time.time() - self.timeStart)
+            self.time_elapsed.emit(time.time() - self.time_start)
             time.sleep(1)
 
 
-class myThread(QtCore.QThread):
-    timeElapsed = QtCore.Signal(int)
+class MyThread(QtCore.QThread):
+    time_elapsed = QtCore.Signal(int)
     run_timer = False
 
     def __init__(self, parent=None):
-        super(myThread, self).__init__(parent)
+        super(MyThread, self).__init__(parent)
 
-        self.timerThread = timerThread(self)
-        self.timerThread.timeElapsed.connect(self.timeElapsed.emit)
+        self.timer_thread = TimerThread(self)
+        self.timer_thread.time_elapsed.connect(self.time_elapsed.emit)
 
     def run(self):
-        self.timerThread.start(time.time())
+        self.timer_thread.start(time.time())
 
         while self.run_timer:
             time.sleep(1)
@@ -238,8 +238,8 @@ class myGUI(QtGui.QWidget):
         # Controller
         self.controller = None
         self.manager = None
-        self.myThread = myThread(self)
-        self.myThread.timeElapsed.connect(self.on_myThread_timeElapsed)
+        self.myThread = MyThread(self)
+        self.myThread.time_elapsed.connect(self.on_myThread_timeElapsed)
 
         # Title
         self.titlelbl = QtGui.QLabel("Surrogate Optimization Toolbox (pySOT)", self)
@@ -440,13 +440,14 @@ class myGUI(QtGui.QWidget):
         self.taillist.show()
 
         # Capping
-        self.rsclbl = QtGui.QLabel("Capped Surface", self)
+        self.rsclbl = QtGui.QLabel("Wrapper", self)
         self.rsclist = QtGui.QComboBox(self)
-        self.rsclist.addItem("Yes")
-        self.rsclist.addItem("No")
+        self.rsclist.addItem("None")
+        self.rsclist.addItem("RSCapped")
+        self.rsclist.addItem("RSUnitBox")
         self.rsclist.move(540, 280)
         self.rsclbl.move(420, 285)
-        self.rsclist.setCurrentIndex(1)
+        self.rsclist.setCurrentIndex(0)
         self.rsclist.show()
 
         # Optimization button
@@ -533,7 +534,7 @@ class myGUI(QtGui.QWidget):
         # Surrogates
         self.rsadd = QtGui.QPushButton('Add', self)
         self.rsadd.clicked.connect(self.rsAdd)
-        self.rsadd.move(625, 282)
+        self.rsadd.move(705, 252)
         self.rsadd.resize(50, 20)
 
         self.rsremove = QtGui.QPushButton('Remove', self)
@@ -608,8 +609,10 @@ class myGUI(QtGui.QWidget):
         else:
             str = self.rslist.currentText() + ", "
             str += self.taillist.currentText()
-            if self.rsclist.currentText() == "Yes":
+            if self.rsclist.currentText() == "RSCapped":
                 str += ", Median Cap"
+            elif self.rsclist.currentText() == "RSUnitBox":
+                str += ", Unit Box"
 
         # Check if string already exists
         for r in range(self.rstable.rowCount()):
@@ -1052,12 +1055,19 @@ class myGUI(QtGui.QWidget):
                             elif name[1] == " ConstantTail":
                                 pass
 
+                            print name
                             # Build RBF (with cap if necessary)
                             if len(name) == 3:
-                                rs.append(
-                                    RSCapped(
-                                        RBFInterpolant(surftype=surf_,
-                                                       maxp=self.maxeval)))
+                                if name[2] == " Median Cap":
+                                    rs.append(
+                                        RSCapped(
+                                            RBFInterpolant(surftype=surf_,
+                                                           maxp=self.maxeval)))
+                                elif name[2] == " Unit Box":
+                                    rs.append(
+                                        RSUnitbox(
+                                            RBFInterpolant(surftype=surf_,
+                                                           maxp=self.maxeval), self.data))
                             else:
                                 rs.append(
                                     RBFInterpolant(surftype=surf_,

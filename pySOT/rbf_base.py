@@ -144,7 +144,7 @@ class BaseRBFSystem(object):
     def refactor(self):
         """Compute factorization
         """
-        eta = 1e-16 * np.eye(self.M.shape[0]) * la.norm(self.M, 1) * la.norm(self.M, np.inf)
+        eta = min(1e-5, 1e-16 * np.sqrt(la.norm(self.M, 1) * la.norm(self.M, np.inf))) * np.eye(self.M.shape[0])
         self.lupiv = la.lu_factor(self.M + eta)
 
     def solve(self, rhs):

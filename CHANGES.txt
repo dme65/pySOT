@@ -1,3 +1,6 @@
+v0.1.19, 2016-01-30
+	Too much regularization was added to the RBF surface when the volume of the domain was large. This has been fixed.
+
 v0.1.18, 2016-01-24
 	Significant restructuring of the code base
 	make_points now takes an argument that specifies the number of new points to be generated

@@ -20,13 +20,13 @@ def main():
                         level=logging.INFO)
 
     print("\nNumber of threads: 1")
-    print("Maximum number of evaluations: 200")
-    print("Search strategy: CandidateDYCORS, Generic Algorithm, Multi-Start Gradient")
+    print("Maximum number of evaluations: 500")
+    print("Search strategy: CandidateDYCORS, Genetic Algorithm, Multi-Start Gradient")
     print("Experimental design: Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
     nthreads = 1
-    maxeval = 200
+    maxeval = 500
     nsamples = nthreads
 
     data = Ackley(dim=10)
@@ -34,15 +34,15 @@ def main():
 
     # Create a strategy and a controller
     sampling_method = [CandidateDYCORS(data=data, numcand=100*data.dim),
-          GeneticAlgorithm(data=data), MultiStartGradient(data=data)]
+                       GeneticAlgorithm(data=data), MultiStartGradient(data=data)]
     controller = SerialController(data.objfunction)
     controller.strategy = \
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            sampling_method=MultiSampling(sampling_method, [0, 0, 1, 0, 0, 2]))
+            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim + 1)),
+            sampling_method=MultiSampling(sampling_method, [0, 1, 2]))
 
     result = controller.run()
     best, xbest = result.value, result.params[0]

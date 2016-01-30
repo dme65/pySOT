@@ -8,6 +8,7 @@
 """
 
 import numpy as np
+from utils import from_unit_box, to_unit_box
 
 
 class RSCapped(object):
@@ -36,8 +37,9 @@ class RSCapped(object):
                 return fvalues
             self.transformation = transformation
         self.model = model
-        self.fvalues = np.zeros((100, 1))
+        self.fvalues = np.zeros((model.maxp, 1))
         self.nump = 0
+        self.maxp = model.maxp
 
     @property
     def x(self):
@@ -133,8 +135,9 @@ class RSPenalty(object):
         """
         self.needs_update = False
         self.model = model
-        self.fvalues = np.zeros((100, 1))
+        self.fvalues = np.zeros((model.maxp, 1))
         self.nump = 0
+        self.maxp = model.maxp
         self.eval_method = evals
         self.deriv_method = derivs
 
@@ -205,3 +208,95 @@ class RSPenalty(object):
         """
 
         return self.deriv_method(self.model, xx)
+
+
+class RSUnitbox(object):
+    """Cap adapter for RBF response surface.
+
+    This adapter takes an existing response surface and replaces it
+    with a modified version in which any function values above the
+    median are replaced by the median value.
+
+    :ivar model: Original response surface
+    :ivar fvalues: Function values
+    """
+
+    def __init__(self, model, data):
+        """Initialize the response surface adapter
+
+        :param model: Original response surface object
+        """
+        self.needs_update = False
+        self.model = model
+        self.fvalues = np.zeros((model.maxp, 1))
+        self.nump = 0
+        self.maxp = model.maxp
+        self.data = data
+
+    @property
+    def x(self):
+        return self.get_x()
+
+    @property
+    def fx(self):
+        return self.get_fx()
+
+    def reset(self):
+        """Reset the capped response surface
+        """
+        self.model.reset()
+        self.fvalues[:] = 0
+        self.nump = 0
+
+    def add_point(self, xx, fx):
+        """Add a new function evaluation
+
+        :param xx: Point to add
+        :param fx: The function value of the point to add
+        """
+        if self.nump >= self.fvalues.shape[0]:
+            self.fvalues.resize(2*self.fvalues.shape[0], 1)
+        self.fvalues[self.nump] = fx
+        self.nump += 1
+        self.needs_update = True
+        self.model.add_point(to_unit_box(xx, self.data), fx)
+
+    def get_x(self):
+        """Get the list of data points
+
+        :return: List of data points
+        """
+        return from_unit_box(self.model.get_x(), self.data)
+
+    def get_fx(self):
+        """Get the list of function values for the data points.
+
+        :return: List of function values
+        """
+        return self.model.get_fx()
+
+    def eval(self, xx, d=None):
+        """Evaluate the capped rbf interpolant at the point xx
+
+        :param xx: Point where to evaluate
+        :return: Value of the capped rbf interpolant at x
+        """
+        return self.model.eval(to_unit_box(xx, self.data))
+
+    def evals(self, xx, d=None):
+        """Evaluate the capped rbf interpolant at the points xx
+
+        :param xx: Points where to evaluate
+        :return: Values of the capped rbf interpolant at x
+        """
+
+        return self.model.evals(to_unit_box(xx, self.data))
+
+    def deriv(self, xx, d=None):
+        """Evaluate the derivative of the rbf interpolant at x
+
+        :param x: Data point
+        :return: Derivative of the rbf interpolant at x
+        """
+
+        return self.model.deriv(to_unit_box(xx, self.data))

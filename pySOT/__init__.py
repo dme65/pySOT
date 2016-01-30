@@ -6,7 +6,7 @@ except ImportError:
 from experimental_design import *
 from rbf_interpolant import *
 from rbf_surfaces import *
-from rs_capped import *
+from rs_capped import RSCapped, RSUnitbox
 from sampling_methods import *
 from test_problems import *
 from sot_sync_strategies import *
