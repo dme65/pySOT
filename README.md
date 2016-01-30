@@ -6,8 +6,6 @@ The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
 
 Link to the pySOT documentation: https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf
 
-There are several examples that show how to use pySOT: https://github.com/dme65/pySOT/tree/master/pySOT/test
-
 pySOT has been downloaded 12,492 times from 2015-June-4 to 2016-January-24
 
 ## Installation
