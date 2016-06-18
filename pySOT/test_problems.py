@@ -13,8 +13,7 @@
 import random
 from time import time
 import numpy as np
-from poap.controller import ProcessWorkerThread
-import importlib
+from utils import check_opt_prob
 
 # ========================= 3-dimensional =======================
 
@@ -44,7 +43,7 @@ class Hartman3:
         self.min = -3.86278
         self.integer = []
         self.continuous = np.arange(0, 3)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Hartman 3 function  at x
@@ -106,7 +105,7 @@ class Rastrigin:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Rastrigin function  at x
@@ -152,7 +151,7 @@ class Ackley:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Ackley function  at x
@@ -180,7 +179,7 @@ class Michalewicz:
         self.min = np.NaN
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Michalewicz function  at x
@@ -203,7 +202,7 @@ class Levy:
                              "Global optimum: ?"
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Levy function  at x
@@ -252,7 +251,7 @@ class Griewank:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Griewank function  at x
@@ -300,7 +299,7 @@ class Rosenbrock:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Rosenbrock function  at x
@@ -348,7 +347,7 @@ class Schwefel:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Schwefel function  at x
@@ -393,7 +392,7 @@ class Sphere:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Sphere function  at x
@@ -437,7 +436,7 @@ class Exponential:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Exponential function  at x
@@ -487,7 +486,7 @@ class StyblinskiTang:
         self.min = -39.16599*dim
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the StyblinskiTang function  at x
@@ -533,7 +532,7 @@ class Quartic:
         self.continuous = np.arange(0, dim)
         self.prng = random.Random()
         self.prng.seed(time())
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Quartic function  at x
@@ -582,7 +581,7 @@ class Whitley:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the Whitley function  at x
@@ -637,7 +636,7 @@ class SchafferF7:
         self.min = 0
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         """Evaluate the SchafferF7 function  at x
@@ -696,7 +695,7 @@ class Keane:
         self.continuous = np.arange(0, dim)
         self.info = str(dim)+"-dimensional Keane bump function \n" +\
                              "Global optimum: -0.835 for large n"
-        validate(self)
+        check_opt_prob(self)
 
     # Compute the value of the constraint functions at the given point
     # Returns an array of size npts x nconstraints
@@ -749,7 +748,7 @@ class LinearMI:
         self.info = str(self.dim)+"-dimensional Linear MI \n" +\
                                   "Global optimum: f(1,0,0,0,0) = -1\n" +\
                                   str(len(self.integer)) + " integer variables"
-        validate(self)
+        check_opt_prob(self)
 
     def eval_ineq_constraints(self, x):
         vec = np.zeros((x.shape[0], 3))
