@@ -118,7 +118,8 @@ rulesepcolor=\color{blue},#1
 	\pagestyle{fancy}
 	\fancyhead{}
 	\fancyfoot{}
-	\fancyhead[C]{Surrogate Optimization Toolbox in Python (pySOT) - 0.1.19 $\bullet$ Tutorial $\bullet$ David Eriksson, David Bindel, Christine Shoemaker $\bullet$ \today}
+	\fancyhead[C]{Surrogate Optimization Toolbox in Python (pySOT) - 0.1.20 $\bullet$ 
+	Tutorial $\bullet$ David Eriksson, David Bindel, Christine Shoemaker $\bullet$ \today}
 	\fancyfoot[RO,LE]{\thepage}
 
 %%% ---- MATLAB CODE ---- %%%
@@ -161,7 +162,7 @@ rulesepcolor=\color{blue},#1
 %%%% Title
 \title{\vspace{-15mm}%
 	\fontsize{18pt}{10pt}\selectfont
-	\textbf{Surrogate Optimization Toolbox (pySOT) - 0.1.19 \\ Tutorial}
+	\textbf{Surrogate Optimization Toolbox (pySOT) - 0.1.20 \\ Tutorial}
 	}	
 \author{%
 	\Large\textsc{David Eriksson} \\[2mm]
@@ -184,149 +185,178 @@ rulesepcolor=\color{blue},#1
 \section{Change history:}
 \begin{itemize}
 
-\item (\textbf{0.1.20})
-\begin{itemize}
-\item Added some basic input checking (evaluations, dimensionality, etc)
-\item Added an example with a MATLAB engine in case the optimization problems is in MATLAB
-\item Fixed a bug in the polynomial regression
-\item Moved the merit function out of sampling\_methods.py
-\end{itemize}
+	\item (\textbf{0.1.20})
+	\begin{itemize}
+		\item Added some basic input checking (evaluations, dimensionality, etc)
+		\item Added an example with a MATLAB engine in case the optimization problems is in MATLAB
+		\item Fixed a bug in the polynomial regression
+		\item Moved the merit function out of sampling\_methods.py
+	\end{itemize}
 
-\item (\textbf{0.1.19})
-\begin{itemize}
-\item 	Too much regularization was added to the RBF surface when the volume of the domain was large. This has been fixed.
-\end{itemize}
+	\item (\textbf{0.1.19})
+	\begin{itemize}
+		\item 	Too much regularization was added to the RBF surface when the volume of the domain was large.
+	\end{itemize}
 
-\item (\textbf{0.1.18})
-\begin{itemize}
-\item Significant restructuring of the code base
-\item make\_points now takes an argument that specifies the number of new points to be generated
-\item Added Box-Behnken and 2-factorial to the experimental designs
-\item Simplified the penalty method strategy by moving evals and derivs into a surrogate wrapper
-\end{itemize}
+	\item (\textbf{0.1.18})
+	\begin{itemize}
+		\item Significant restructuring of the code base
+		\item make\_points now takes an argument that specifies the number of new points to be generated
+		\item Added Box-Behnken and 2-factorial to the experimental designs
+		\item Simplified the penalty method strategy by moving evals and derivs into a surrogate wrapper
+	\end{itemize}
 
-\item (\textbf{0.1.17})
-\begin{itemize}
-\item Added the possibility to input the penalty for the penalty method in the GUI
-\item Added the possibility of making a performance plot using matplotlib that adds new points dynamically as evaluations are finished
-\item Switched from subprocess to subprocess32
-\end{itemize}
+	\item (\textbf{0.1.17})
+	\begin{itemize}
+		\item Added the possibility to input the penalty for the penalty method in the GUI
+		\item Added the possibility of making a performance plot using matplotlib that adds new points 
+		dynamically as evaluations are finished
+		\item Switched from subprocess to subprocess32
+	\end{itemize}
 
-\item (\textbf{0.1.16})
-\begin{itemize}
-\item Added a projection strategy
-\end{itemize}
+	\item (\textbf{0.1.16})
+	\begin{itemize}
+		\item Added a projection strategy
+	\end{itemize}
 
-\item (\textbf{0.1.15})
-\begin{itemize}
-\item Added an example test\_subprocess\_files that shows how to use pySOT in case the objective function needs to read the input from a textfile
-\end{itemize}
+	\item (\textbf{0.1.15})
+	\begin{itemize}
+		\item Added an example test\_subprocess\_files that shows how to use pySOT in 
+		case the objective function needs to read the input from a textfile
+	\end{itemize}
 
-\item (\textbf{0.1.14}) 
-\begin{itemize}
-\item Updated the Tutorial to reflect the changes for the last few months
-\item Simplified the object creation from strings in the GUI by importing directly from the namespace.
-\end{itemize}
+	\item (\textbf{0.1.14}) 
+	\begin{itemize}
+		\item Updated the Tutorial to reflect the changes for the last few months
+		\item Simplified the object creation from strings in the GUI by importing directly from the namespace.
+	\end{itemize}
 
-\item (\textbf{0.1.13}) 
-\begin{itemize}
-\item Allowed to still import the rest of pySOT when PySide is not found. In this case, the GUI will be unavailable.
-\end{itemize}
+	\item (\textbf{0.1.13}) 
+	\begin{itemize}
+		\item Allowed to still import the rest of pySOT when PySide is not found. In this case, the 
+		GUI will be unavailable.
+	\end{itemize}
 
-\item (\textbf{0.1.12}) 
-\begin{itemize}
-\item The capping can now take in a general transformation that is used to transform the function values. Default is median capping.
-\item The Genetic Algorithm now defaults to initialize the population using a symmetric latin hypercube design
-\item DYCORS uses the remaining evaluation budget to change the probabilities after a restart instead of using the total budget 
-\end{itemize}
+	\item (\textbf{0.1.12}) 
+	\begin{itemize}
+		\item The capping can now take in a general transformation that is used to transform the function 
+		values. Default is median capping.
+		\item The Genetic Algorithm now defaults to initialize the population using a symmetric Latin hypercube
+		\item DYCORS uses the remaining evaluation budget to change the probabilities after a restart instead 
+		of using the total budget 
+	\end{itemize}
 
-\item (\textbf{0.1.11}) 
-\begin{itemize}
-\item Fixed a bug in the capped response surface
-\item pySOT now internally works on the unit hypercube
-\item The distance can be passed to the RBF after being computed when generating candidate points so it is not computed twice anymore
-\item Fixed some bugs in the candidate functions
-\item GA and Multi-Search gradient perturb the best solution in the case when the best solution is a previously evaluated point
-\item Added an additional test for the multi-search strategy
-\end{itemize}
+	\item (\textbf{0.1.11}) 
+	\begin{itemize}
+		\item Fixed a bug in the capped response surface
+		\item pySOT now internally works on the unit hypercube
+		\item The distance can be passed to the RBF after being computed when generating candidate points 
+		so it is not computed twice anymore
+		\item Fixed some bugs in the candidate functions
+		\item GA and Multi-Search gradient perturb the best solution in the case when the best solution is a 
+		previously evaluated point
+		\item Added an additional test for the multi-search strategy
+	\end{itemize}
 
-\item (\textbf{0.1.10}) 
-\begin{itemize}
-\item README.md not uploaded to pypi which caused the pip install to fail
-\end{itemize}
+	\item (\textbf{0.1.10}) 
+	\begin{itemize}
+		\item README.md not uploaded to pypi which caused the pip install to fail
+	\end{itemize}
 
-\item (\textbf{0.1.9}) 
-\begin{itemize}
-\item Fixed a bug in the merit function and several bugs in the DYCORS strategy
-\item Added a DDS candidate based strategy for searching on the surrogate
-\end{itemize}
+	\item (\textbf{0.1.9}) 
+	\begin{itemize}
+		\item Fixed a bug in the merit function and several bugs in the DYCORS strategy
+		\item Added a DDS candidate based strategy for searching on the surrogate
+	\end{itemize}
 
-\item (\textbf{0.1.8}) 
-\begin{itemize}
-\item Multi Start Gradient method that uses the L-BFGS-B algorithm to search on the surroagate
-\end{itemize}
+	\item (\textbf{0.1.8}) 
+	\begin{itemize}
+		\item Multi Start Gradient method that uses the L-BFGS-B algorithm to search on the surroagate
+	\end{itemize}
 
-\item (\textbf{0.1.7}) 
-\begin{itemize}
-\item Fixed some parameters (and bugs) to improve the DYCORS results. Using DYCORS together with the genetic algorithm is recommended.
-\item Added polynomial regression (not yet in the GUI)
-\item Changed so that candidate points are generated using truncated normal distribution to avoid projections onto the boundary
-\item Removed some accidental scikit dependencies in the ensemble surrogate
-\end{itemize}
+	\item (\textbf{0.1.7}) 
+	\begin{itemize}
+		\item Fixed some parameters (and bugs) to improve the DYCORS results. Using DYCORS together 
+		with the genetic algorithm is recommended.
+		\item Added polynomial regression (not yet in the GUI)
+		\item Changed so that candidate points are generated using truncated normal distribution to avoid 
+		projections onto the boundary
+		\item Removed some accidental scikit dependencies in the ensemble surrogate
+	\end{itemize}
 
-\item (\textbf{0.1.6}) 
-\begin{itemize}
-\item GUI inactivates all buttons but the stop button while running
-\item Bug fixes
-\end{itemize}
+	\item (\textbf{0.1.6}) 
+	\begin{itemize}
+		\item GUI inactivates all buttons but the stop button while running
+		\item Bug fixes
+	\end{itemize}
 
-\item (\textbf{0.1.5}) 
-\begin{itemize}
-\item GUI now has support for multiple search strategies and ensemble surrogates
-\item Reallocation bug in the ensemble surrogates fixed
-\item Genetic algorithm added to search on the surrogate
-\end{itemize}
+	\item (\textbf{0.1.5}) 
+	\begin{itemize}
+		\item GUI now has support for multiple search strategies and ensemble surrogates
+		\item Reallocation bug in the ensemble surrogates fixed
+		\item Genetic algorithm added to search on the surrogate
+	\end{itemize}
 
-\item (\textbf{0.1.4}) 
-\begin{itemize}
-\item GUI now has improved error handling 
-\item Strategies informs the user if they get constraints when not expecting constraints (and the other way) before the run starts
-\end{itemize}
+	\item (\textbf{0.1.4}) 
+	\begin{itemize}
+		\item GUI now has improved error handling 
+		\item Strategies informs the user if they get constraints when not expecting constraints 
+		(and the other way) before the run starts
+	\end{itemize}
 
-\item (\textbf{0.1.3}) 
-\begin{itemize}
-\item Experimental (but not documented) GUI added. You need PySide to use it.
-\item Changes in testproblems.py to allow external objective functions that implement ProcessWorkerThread
-\item Added GUI test examples in documentation (Ackley.py, Keane.py, SphereExt.py)
-\end{itemize}
+	\item (\textbf{0.1.3}) 
+	\begin{itemize}
+		\item Experimental (but not documented) GUI added. You need PySide to use it.
+		\item Changes in testproblems.py to allow external objective functions that implement 
+		ProcessWorkerThread
+		\item Added GUI test examples in documentation (Ackley.py, Keane.py, SphereExt.py)
+	\end{itemize}
 
-\item (\textbf{0.1.2})
-\begin{itemize}
-\item 	Changed to using the logging module for all the logging in order to conform to the changes in POAP 0.1.9
-\item The quiet and stream arguments in the strategies were removed and the tests updated accordingly
-\item Turned sleeping of in the sub process test, to avoid platform dependency issues
-\end{itemize}
+	\item (\textbf{0.1.2})
+	\begin{itemize}
+		\item 	Changed to using the logging module for all the logging in order to conform to the 
+		changes in POAP 0.1.9
+		\item The quiet and stream arguments in the strategies were removed and the tests 
+		updated accordingly
+		\item Turned sleeping of in the sub process test, to avoid platform dependency issues
+	\end{itemize}
 
-\item (\textbf{0.1.1})
-\begin{itemize}
-\item surrogate\_optimizer.py was removed, so the user now has to create his own controller
-\item constraint\_method.py is gone, and the constraint handling is handled in specific strategies instead
-\item 	There are now two strategies, SyncStrategyNoConstraints and SyncStrategyPenalty
-\item The search strategies now take a method for providing surrogate predictions rather than keeping a copy of the response surface
-\item It is now possible for the user to provide additional points to be added to the initial design, in case a 'good starting point' is known.
-\item Ensemble surrogates have been added to the toolbox
-\item 	The strategies takes an additional option 'quiet' so that all of the printing can be avoided if the user wants
-\item There is also an option 'stream' in case the printing should be redirected somewhere else, for example to a text file. Default is printing to stdout.
-\item 	Several examples added to pySOT.test
-\end{itemize}
-\item (\textbf{0.1.0})
-\begin{itemize}
-\item 	Initial release
-\end{itemize}
+	\item (\textbf{0.1.1})
+	\begin{itemize}
+		\item surrogate\_optimizer.py was removed, so the user now has to create his own controller
+		\item constraint\_method.py is gone, and the constraint handling is handled in specific 
+		strategies instead
+		\item 	There are now two strategies, SyncStrategyNoConstraints and SyncStrategyPenalty
+		\item The search strategies now take a method for providing surrogate predictions rather 
+		than keeping a copy of the response surface
+		\item It is now possible for the user to provide additional points to be added to the initial 
+		design, in case a 'good starting point' is known.
+		\item Ensemble surrogates have been added to the toolbox
+		\item 	The strategies takes an additional option 'quiet' so that all of the printing can be 
+		avoided if the user wants
+		\item There is also an option 'stream' in case the printing should be redirected somewhere 
+		else, for example to a text file. Default is printing to stdout.
+		\item 	Several examples added to pySOT.test
+	\end{itemize}
+	
+	\item (\textbf{0.1.0})
+	\begin{itemize}
+		\item 	Initial release
+	\end{itemize}
 \end{itemize}
 
 \section{Introduction}
-This is a tutorial (user guide) for the Surrogate Optimization Toolbox (pySOT) for global deterministic optimization problems. The main purpose of the toolbox is for optimization of computationally expensive black-box objective functions with continuous and/or integer variables. We support inequality constraints of any form through a penalty method approach, but cannot yet efficiently handle equality constraints. All variables are assumed to have bound constraints in some form where none of the bounds are infinity. The tighter the bounds, the more efficient are the algorithms since it reduces the search region and increases the quality of the constructed surrogate. The longer the objective functions take to evaluate, the more efficient are these algorithms. For this reason, this toolbox may not be very efficient for problems with computationally cheap function evaluations. Surrogate models are intended to be used when function evaluations take from several minutes to several hours or more. The toolbox is based on the following published papers that should be cited when the toolbox is used for own research purposes:
+This is a tutorial (user guide) for the Surrogate Optimization Toolbox (pySOT) for global deterministic 
+optimization problems. The main purpose of the toolbox is for optimization of computationally expensive 
+black-box objective functions with continuous and/or integer variables. We support inequality constraints 
+of any form through a penalty method approach, but cannot yet efficiently handle equality constraints. 
+All variables are assumed to have bound constraints in some form where none of the bounds are infinity. 
+The tighter the bounds, the more efficient are the algorithms since it reduces the search region and 
+increases the quality of the constructed surrogate. The longer the objective functions take to evaluate, 
+the more efficient are these algorithms. For this reason, this toolbox may not be very efficient for problems 
+with computationally cheap function evaluations. Surrogate models are intended to be used when function
+ evaluations take from several minutes to several hours or more. The toolbox is based on the following 
+ published papers that should be cited when the toolbox is used for own research purposes:
 \begin{enumerate}
 \item Stochastic RBF: \cite{regis2007stochastic}
 \item Parallel Stochastic RBF: \cite{regis2009parallel}
@@ -335,13 +365,20 @@ This is a tutorial (user guide) for the Surrogate Optimization Toolbox (pySOT) f
 \item Surrogate optimization for Mixed-Integer problems: \cite{muller2013so}
 \item Surrogate optimization for Integer problems: \cite{muller2014so}
 \end{enumerate}
-For easier understanding of the algorithms in this toolbox, it is recommended and helpful to read these papers. If you have any questions, or you encounter any bugs, please feel free to either submit a bug report on Github (recommended) or to contact me at the email address: dme65@cornell.edu. Keep an eye on the Github repository for updates and changes to both the toolbox and the documentation.
+For easier understanding of the algorithms in this toolbox, it is recommended and helpful to read these 
+papers. If you have any questions, or you encounter any bugs, please feel free to either submit a bug 
+report on Github (recommended) or to contact me at the email address: dme65@cornell.edu. Keep 
+an eye on the Github repository for updates and changes to both the toolbox and the documentation.
 
 \section{Licensing} Please refer to LICENSE.txt
 
 \section{Surrogate Model Algorithms}
-Surrogates models (or response surfaces) are used to approximate an underlying function that has been evaluated for a set of points. During the optimization phase information from the surrogate model is used in order to guide the search for improved solutions, which has the advantage of not needing as many function evaluations to find a good solution. Most surrogate model algorithms consist of the same steps as shown in the algorithm below.
-The general framework for a Surrogate Optimization algorithm can be seen in Algorithm \ref{alg:sync_algo}
+Surrogates models (or response surfaces) are used to approximate an underlying function that has 
+been evaluated for a set of points. During the optimization phase information from the surrogate model 
+is used in order to guide the search for improved solutions, which has the advantage of not needing as
+many function evaluations to find a good solution. Most surrogate model algorithms consist of the same 
+steps as shown in the algorithm below. The general framework for a Surrogate Optimization algorithm 
+can be seen in Algorithm \ref{alg:sync_algo}
 
 \begin{algorithm}[!h]
 %\SetAlgoNoLine
@@ -367,18 +404,32 @@ Build a Surrogate model from the data\;
 \label{alg:sync_algo}
 \end{algorithm} 
 
-\noindent Typically used stopping criteria are a maximum number of allowed function evaluations (used in this toolbox), a maximum allowed CPU time, or a maximum number of failed iterative improvement trials.
+\noindent Typically used stopping criteria are a maximum number of allowed function evaluations 
+(used in this toolbox), a maximum allowed CPU time, or a maximum number of failed iterative 
+improvement trials.
 
 \section{Installation}
-Before starting you will need Python 2.7.x and pip. You must also have numpy and scipy installed and we recommend installing the Anaconda package \newline (https://www.continuum.io/downloads). \newline \ \newline Next you need to decide what optional packages you want:
+Before starting you will need Python 2.7.x and pip. You must also have numpy and scipy 
+installed and we recommend installing the Anaconda package \newline 
+(https://www.continuum.io/downloads). \newline \ \newline Next you need to decide what 
+optional packages you want:
+
 \begin{itemize}
-\item If you want to use MARS you need to install the py-earth toolbox \newline (http://github.com/jcrudy/py-earth)  
-\item If you want to use the GUI you need to install PySide (pip install PySide)
+\item If you want to use MARS you need to install the py-earth toolbox 
+\newline (http://github.com/jcrudy/py-earth). It is possible to install py-earth with pip:
+\begin{python}
+pip install https://github.com/jcrudy/py-earth/archive/master.zip
+\end{python}
+\item If you want to use the GUI you need to install PySide. This can be done with pip:
+\begin{python}
+pip install PySide
+\end{python}
 \end{itemize}
 
 \noindent There are currently two ways to install pySOT.
 \begin{enumerate}
-\item \textbf{(Recommended)} The easiest way to install pySOT is through pip in which case the following command should suffice (you may need sudo for UNIX):
+\item \textbf{(Recommended)} The easiest way to install pySOT is through pip in which case 
+the following command should suffice:
 \begin{python}
 pip install pySOT
 \end{python}
@@ -407,7 +458,9 @@ python setup.py install
 \end{enumerate}
 
 \section{Sphinx documentation}
-The necessary files to build the Sphinx documentation are provided in the docs subdirectory. We use the napoleon extension so you need to make sure you have this package. This can be done through pip
+The necessary files to build the Sphinx documentation are provided in the docs subdirectory. 
+We use the napoleon extension so you need to make sure you have this package. This can 
+be done through pip
 \begin{python}
 pip install sphinxcontrib-napoleon
 \end{python}
@@ -420,9 +473,13 @@ make html
 These are the the components and the supported options:
 \subsection{Experimental design} 
 \label{expdes}
-The experimental design generates the initial points to be evaluated. A well-chosen experimental design is critical in order to fit a Surrogate model that captures the behavior of the underlying objective function. Any implementation must have the following method
+The experimental design generates the initial points to be evaluated. A well-chosen 
+experimental design is critical in order to fit a Surrogate model that captures the behavior 
+of the underlying objective function. Any implementation must have the following method
 \begin{itemize}
-\item generate\_\,points(): Returns an experimental design of size $npts \times d$ where npts is the number of points in the initial design, which was specified when the object was created 
+\item generate\_\,points(): Returns an experimental design of size $npts \times d$ where
+ npts is the number of points in the initial design, which was specified when the object 
+ was created 
 \end{itemize}
 The following experimental designs are supported:
 \begin{itemize}
@@ -476,8 +533,9 @@ creates a symmetric BoxBehnken design with $13$ points in 3 dimensions.
 
 \subsection{Surrogate model} 
 \label{surrogate}
-The surrogate model approximates the underlying objective function given all of the points that have been evaluated. Any implementation of
-a surrogate model must have the following attributes and methods
+The surrogate model approximates the underlying objective function given all of the 
+points that have been evaluated. Any implementation of a surrogate model must 
+have the following attributes and methods
 \begin{itemize}
 \item[] {Attributes}: 
 \begin{itemize}
@@ -516,7 +574,8 @@ from pySOT import RBFInterpolant, CubicRBFSurface
 fhat = RBFInterpolant(surftype=CubicRBFSurface, maxp=500)
 \end{python}
 creates a cubic RBF with a linear tail with a capacity for 500 points.  \newline \ \newline
-\textbf{Note:} The RBF surfaces automatically applies damping to the RBF system in order to keep the system well-conditioned. 
+\textbf{Note:} The RBF surfaces automatically applies damping to the RBF system 
+in order to keep the system well-conditioned. 
 \item \textbf{KrigingInterpolant:} A Kriging interpolant. Arguments:
 \begin{itemize}
 \item \textbf{maxp:} Maximum number of points (can grow). Default is 100
@@ -527,7 +586,8 @@ from pySOT import KrigingInterpolant
 fhat = KrigingInterpolant(maxp=500)
 \end{python}
 creates a Kriging interpolant with a capacity of 500 points.
-\item \textbf{MARSInterpolant:} Generate a Multivariate Adaptive Regression Splines (MARS) model. Arguments:
+\item \textbf{MARSInterpolant:} Generate a Multivariate Adaptive 
+Regression Splines (MARS) model. Arguments:
 \begin{itemize}
 \item \textbf{maxp:} Maximum number of points (can grow). Default is 100
 \end{itemize}
@@ -537,16 +597,27 @@ from pySOT import MARSInterpolant
 fhat = MARSInterpolant(maxp=500)
 \end{python}
 creates a MARS interpolant with a capacity of 500 points.
-\item \textbf{EnsembleSurrogate:} We also provide the option of using multiple surrogates for the same problem. Suppose we have $M$ surrogate models, then the ensemble surrogate takes the form
+\item \textbf{EnsembleSurrogate:} We also provide the option of using multiple surrogates 
+for the same problem. Suppose we have $M$ surrogate models, then the ensemble 
+surrogate takes the form
 \begin{equation*}
 s(x) = \sum_{j=1}^M w_j s_j(x)
 \end{equation*}
-where $w_j$ are non-negative weights that sum to 1. Hence the value of the ensemble surrogate is the weighted prediction of the $M$ surrogate models. We use leave-one-out for each surrogate model to predict the function value at the removed point and then compute several statistics such as correlation with the true function values, RMSE, etc.  Based on these statistics we use Dempster-Shafer Theory to compute the pignistic probability for each model, and take this probability as the weight. Surrogate models that does a good job predicting the removed points will generally be given a large weight. The arguments are:
+where $w_j$ are non-negative weights that sum to 1. Hence the value of the ensemble 
+surrogate is the weighted prediction of the $M$ surrogate models. We use leave-one-out 
+for each surrogate model to predict the function value at the removed point and then 
+compute several statistics such as correlation with the true function values, RMSE, etc. 
+Based on these statistics we use Dempster-Shafer Theory to compute the pignistic 
+probability for each model, and take this probability as the weight. Surrogate models 
+that does a good job predicting the removed points will generally be given a large 
+weight. The arguments are:
+
 \begin{itemize}
-\item \textbf{model\_list:} A list of surrogate model objects to be used.
-\item \textbf{maxp:} Maximum number of points (can grow). Default is 100
+	\item \textbf{model\_list:} A list of surrogate model objects to be used.
+	\item \textbf{maxp:} Maximum number of points (can grow). Default is 100
 \end{itemize}
 \ \newline Example: 
+
 \begin{python}
 from pySOT import RBFInterpolant, CubicRBFSurface, LinearRBFSurface, \ 
 		  TPSSurface, EnsembleSurrogate
@@ -559,16 +630,25 @@ models = [
 
 response_surface = EnsembleSurrogate(model_list=models, maxp=500)
 \end{python}
-creates an ensemble surrogate with three surrogate models, namely a Cubic RBF Interpolant, a Linear RBF Interpolant, and a TPS RBF Interpolant.
+creates an ensemble surrogate with three surrogate models, namely a 
+Cubic RBF Interpolant, a Linear RBF Interpolant, and a TPS RBF Interpolant.
 \end{itemize}
-\textbf{Note:} The user is responsible for resetting the response surface after each experiment and this is done by calling the reset() method.
+\textbf{Note:} The user is responsible for resetting the response surface after 
+each experiment and this is done by calling the reset() method.
 
-\subsection{Capped RBF model} Functions with very large function values can cause the fitted surface to oscillate wildly. In the case of the RBFInterpolant we therefore provide a capped version that transforms the function values. The default is to replace all function values larger than the median of the function values by the median, but it is possible to provide an other transformation. Arguments: \\
+\subsection{Capped RBF model} Functions with very large function values can 
+cause the fitted surface to oscillate wildly. In the case of the RBFInterpolant we 
+therefore provide a capped version that transforms the function values. The 
+default is to replace all function values larger than the median of the function 
+values by the median, but it is possible to provide an other transformation. Arguments: \\
+
 \begin{itemize}
-\item \textbf{model}: Surrogate model.
-\item \textbf{transformation:} Function value transformation
+	\item \textbf{model}: Surrogate model.
+	\item \textbf{transformation:} Function value transformation
 \end{itemize}
+
 \ \newline Example: 
+
 \begin{python}
 from pySOT import RSCapped, RBFInterpolant, CubicRBFSurface
 
@@ -581,14 +661,24 @@ def transform(fvalues):
 fhat = RSCapped(RBFInterpolant(model=CubicRBFSurface, maxp=500), \ 
 		transformation=transform)
 \end{python}
-creates a cubic RBF with a linear tail with a capacity for 500 points with capping that transforms inf and nan to the largest finite function value found so far.
 
-\subsection{Scaled RBF model} If the domain is large the linear system of equations for the RBF coefficients gets very ill-conditioned. One way of dealing with this problem is to rescale to domain to the unit hypercube, but the sampling methods may want to know exactly what the domain looks like. For this purpose we provide a wrapper for the surrogate model that internally rescales the domain to the unit hypercube, which keeps the interpolant stable while not affecting the other objects.  Arguments: \\
+creates a cubic RBF with a linear tail with a capacity for 500 points with capping that 
+transforms inf and nan to the largest finite function value found so far.
+
+\subsection{Scaled RBF model} If the domain is large the linear system of equations 
+for the RBF coefficients gets very ill-conditioned. One way of dealing with this problem 
+is to rescale to domain to the unit hypercube, but the sampling methods may want to 
+know exactly what the domain looks like. For this purpose we provide a wrapper for 
+the surrogate model that internally rescales the domain to the unit hypercube, which 
+keeps the interpolant stable while not affecting the other objects.  Arguments: \\
+
 \begin{itemize}
-\item \textbf{model}: Surrogate model.
-\item \textbf{data:} Optimization problem object
+	\item \textbf{model}: Surrogate model.
+	\item \textbf{data:} Optimization problem object
 \end{itemize}
+
 \ \newline Example: 
+
 \begin{python}
 from pySOT import RSUnitBox, RBFInterpolant, CubicRBFSurface
 
@@ -596,25 +686,40 @@ from pySOT import RSUnitBox, RBFInterpolant, CubicRBFSurface
 fhat = RSUnitBox(RBFInterpolant(model=CubicRBFSurface, maxp=500), \ 
 		data=data)
 \end{python}
-creates a cubic RBF with a linear tail with a capacity for 500 points with capping that transforms inf and nan to the largest finite function value found so far.
+creates a cubic RBF with a linear tail with a capacity for 500 points with capping that 
+transforms inf and nan to the largest finite function value found so far.
 
 
 \subsection{Objective function} 
 \label{objfun}
-The objective function is its own object and must have certain attributes and methods in order to work with the framework. We start by giving an example of a mixed-integer optimization problem with constraints. The following attributes must always be specified in the objective function class:
+The objective function is its own object and must have certain attributes and methods 
+in order to work with the framework. We start by giving an example of a mixed-integer 
+optimization problem with constraints. The following attributes must always be 
+specified in the objective function class:
 \begin{itemize}
 \item \textbf{xlow:} Lower bounds for the variables.
 \item \textbf{xup:} Upper bounds for the variables.
 \item \textbf{dim:} Number of dimensions
-\item \textbf{integer:} Specifies the integer variables. If no variables have integer constraints, set to [\,]
-\item \textbf{continuous:} Specifies the continuous variables. If no variables are continuous, set to [\,]
+\item \textbf{integer:} Specifies the integer variables. If no variables have 
+integer constraints, set to [\,]
+\item \textbf{continuous:} Specifies the continuous variables. If no variables 
+are continuous, set to [\,]
 \end{itemize}
 \ \newline The following methods must also exist.
 \begin{itemize}
-\item \textbf{objfunction:} Takes one input in the form of an numpy.ndarray with shape (1, dim), which corresponds to one point in dim dimensions. Returns the value (a scalar) of the objective function at this point.
-\item \textbf{eval\_ineq\_constraints:}  Only necessary if there are non-constraints. All constraints must be inequality constraints and the must be written in the form $g_i(x) \leq 0$. The function takes one input in the form of an numpy.ndarray of shape (n, dim), which corresponds to $n$ points in dim dimensions. Returns an numpy.ndarray of size $n \times M$ where $M$ is the number of inequality constraints.
+\item \textbf{objfunction:} Takes one input in the form of an numpy.ndarray with 
+shape (1, dim), which corresponds to one point in dim dimensions. Returns the 
+value (a scalar) of the objective function at this point.
+\item \textbf{eval\_ineq\_constraints:}  Only necessary if there are non-constraints. 
+All constraints must be inequality constraints and the must be written in the form 
+$g_i(x) \leq 0$. The function takes one input in the form of an numpy.ndarray of 
+shape (n, dim), which corresponds to $n$ points in dim dimensions. Returns an 
+numpy.ndarray of size $n \times M$ where $M$ is the number of inequality constraints.
 \end{itemize}
-\ \newline \noindent What follows is an example of an objective function in 5 dimensions with 3 integer and 2 continuous variables. There are also 3 inequality constraints that are not bound constraints which means that we need to implement the eval\_ineq\_constraints method.
+\ \newline \noindent What follows is an example of an objective function in 5 dimensions 
+with 3 integer and 2 continuous variables. There are also 3 inequality constraints that are 
+not bound constraints which means that we need to implement the 
+eval\_ineq\_constraints method.
 \begin{python}
 import numpy as np
 
@@ -639,41 +744,84 @@ class LinearMI:
             raise ValueError('Dimension mismatch')
         return - x[0] + 3 * x[1] + 1.5 * x[2] + 2 * x[3] - 0.5 * x[4]
 \end{python}
-\textbf{Note:} The method \textit{validate} which is available in pySOT is helpful in order to test that the objective function is compatible with the framework. \newline
+\textbf{Note:} The method \textit{validate} which is available in pySOT is helpful 
+in order to test that the objective function is compatible with the framework. \newline
 
 \subsection{Generation of next point to evaluate} 
 \label{search}
-We provide several different methods for selecting the next point to evaluate. All methods in this version are based in generating candidate points by perturbing the best solution found so far or in some cases just choose a random point. We also provide the option of using many different strategies in the same experiment and how to cycle between the different strategies. Each implementation of this object is required to have the following attributes and methods
+We provide several different methods for selecting the next point to evaluate. All 
+methods in this version are based in generating candidate points by perturbing the 
+best solution found so far or in some cases just choose a random point. We also 
+provide the option of using many different strategies in the same experiment and 
+how to cycle between the different strategies. Each implementation of this object 
+is required to have the following attributes and methods
 \begin{itemize}
 \item[] {Required attributes}:
 \begin{itemize}
-\item \textit{proposed\_points}: Numpy array of the points that have been proposed for evaluation
+\item \textit{proposed\_points}: Numpy array of the points that have been proposed 
+for evaluation
 \end{itemize}
 \item[] {Required methods}:
 \begin{itemize}
-\item \textit{init(start\_\,sample,\,fhat,\,budget)}: This initializes the sampling strategy by providing the points that were evaluated in the experimental design phase, the response surface, and also provides  the evaluation budget.
-\item \textit{remove\_\,point(x)}: Removes point $x$ from list of proposed\_points if the evaluation crashed or was never carried out by the strategy. Returns True if the point was removed and False if the removal failed.
-\item \textit{make\_\,points(npts, xbest, sigma, subset=None, proj\_\,fun=None)}: This is the method that proposes \textit{npts} new evaluations to the strategy. It needs to know the number of points to propose, the best data point evaluated so far, the preferred sample radius of the strategy (w.r.t the unit box), the coordinates that the strategy wants to perturb, and a way to project points onto the feasible region. 
+\item \textit{init(start\_\,sample,\,fhat,\,budget)}: This initializes the sampling strategy 
+by providing the points that were evaluated in the experimental design phase, the 
+response surface, and also provides  the evaluation budget.
+\item \textit{remove\_\,point(x)}: Removes point $x$ from list of proposed\_points if 
+the evaluation crashed or was never carried out by the strategy. Returns True if the 
+point was removed and False if the removal failed.
+\item \textit{make\_\,points(npts, xbest, sigma, subset=None, proj\_\,fun=None)}: 
+This is the method that proposes \textit{npts} new evaluations to the strategy. It 
+needs to know the number of points to propose, the best data point evaluated so 
+far, the preferred sample radius of the strategy (w.r.t the unit box), the coordinates 
+that the strategy wants to perturb, and a way to project points onto the feasible region. 
 \end{itemize}
 \end{itemize}
 We now list the different options and describe shortly how they work.
 \begin{itemize}
-\item \textbf{CandidateSRBF:} Generate perturbations around the best solution found so far
-\item \textbf{CandidateSRBF\_INT:} Uses CandidateSRBF but only perturbs the integer variables
-\item \textbf{CandidateSRBF\_CONT:} Uses CandidateSRBF but only perturbs the continuous variables
-\item \textbf{CandidateDYCORS} Uses a DYCORS strategy which perturbs each coordinate with some iteration dependent probability. This probability is a monotonically decreasing function with the number of iteration.
-\item \textbf{CandidateDYCORS\_CONT:} Uses CandidateDYCORS but only perturbs the continuous variables
-\item \textbf{CandidateDYCORS\_INT:} Uses CandidateDYCORS but only perturbs the integer variables
-\item \textbf{CandidateDDS}: Uses the DDS strategy where only a few candidate points are generated and the one with the best surrogate prediction is picked for evaluation
-\item \textbf{CandidateDDS\_CONT:} Uses CandidateDDS but only perturbs the continuous variables
-\item \textbf{CandidateDDS\_INT:} Uses CandidateDDS but only perturbs the integer variables
-\item \textbf{CandidateUniform:} Chooses a new point uniformly from the box-constrained domain
-\item \textbf{CandidateUniform\_CONT:} Given the best solution found so far the continuous variables are chosen uniformly from the box-constrained domain
-\item \textbf{CandidateUniform\_INT:} Given the best solution found so far the integer variables are chosen uniformly from the box-constrained domain
+\item \textbf{CandidateSRBF:} Generate perturbations around the best solution 
+found so far
+\item \textbf{CandidateSRBF\_INT:} Uses CandidateSRBF but only perturbs the 
+integer variables
+\item \textbf{CandidateSRBF\_CONT:} Uses CandidateSRBF but only perturbs 
+the continuous variables
+\item \textbf{CandidateDYCORS} Uses a DYCORS strategy which perturbs 
+each coordinate with some iteration dependent probability. This probability is 
+a monotonically decreasing function with the number of iteration.
+\item \textbf{CandidateDYCORS\_CONT:} Uses CandidateDYCORS but only 
+perturbs the continuous variables
+\item \textbf{CandidateDYCORS\_INT:} Uses CandidateDYCORS but only 
+perturbs the integer variables
+\item \textbf{CandidateDDS}: Uses the DDS strategy where only a few candidate 
+points are generated and the one with the best surrogate prediction is picked 
+for evaluation
+\item \textbf{CandidateDDS\_CONT:} Uses CandidateDDS but only perturbs 
+the continuous variables
+\item \textbf{CandidateDDS\_INT:} Uses CandidateDDS but only perturbs the 
+integer variables
+\item \textbf{CandidateUniform:} Chooses a new point uniformly from the 
+box-constrained domain
+\item \textbf{CandidateUniform\_CONT:} Given the best solution found so far 
+the continuous variables are chosen uniformly from the box-constrained domain
+\item \textbf{CandidateUniform\_INT:} Given the best solution found so far the 
+integer variables are chosen uniformly from the box-constrained domain
 \end{itemize}
-The CandidateDYCORS algorithm is the bread-and-butter algorithm for any problems with more than 5 dimensions whilst CandidateSRBF is recommended for problems with only a few dimensions. It is sometimes efficient in mixed-integer problems to perturb the integer and continuous variables separately and we therefore provide such method for each of these algorithms. Finally, uniformly choosing a new point has the advantage of creating diversity to avoid getting stuck in a local minima. Each method needs an objective function object as described in the previous section (the input name is data) and how many perturbations should be generated around the best solution found so far (the input name is numcand). Around 100 points per dimension, but no more than 5000, is recommended. Next is an example on how to generate a multi-start strategy that uses CandidateDYCORS, CandidateDYCORS\_CONT, CandidateDYCORS\_INT, and CandidateUniform and that cycles evenly between the methods i.e., the first point is generated using CandidateDYCORS, the second using CandidateDYCORS\_CONT and so on.
+The CandidateDYCORS algorithm is the bread-and-butter algorithm for any 
+problems with more than 5 dimensions whilst CandidateSRBF is recommended 
+for problems with only a few dimensions. It is sometimes efficient in mixed-integer 
+problems to perturb the integer and continuous variables separately and we 
+therefore provide such method for each of these algorithms. Finally, uniformly 
+choosing a new point has the advantage of creating diversity to avoid getting 
+stuck in a local minima. Each method needs an objective function object as 
+described in the previous section (the input name is data) and how many 
+perturbations should be generated around the best solution found so far 
+(the input name is numcand). Around 100 points per dimension, but no more 
+than 5000, is recommended. Next is an example on how to generate a multi-start 
+strategy that uses CandidateDYCORS, CandidateDYCORS\_CONT, 
+CandidateDYCORS\_INT, and CandidateUniform and that cycles evenly between 
+the methods i.e., the first point is generated using CandidateDYCORS, the 
+second using CandidateDYCORS\_CONT and so on.
 \begin{python}
-from pySOT import LinearMI, MultiSearchStrategy, CandidateDYCORS, \
+from pySOT import LinearMI, MultiSampling, CandidateDYCORS, \
 			  CandidateDYCORS_CONT, CandidateDYCORS_INT, \
 			  CandidateUniform
 
@@ -687,7 +835,15 @@ sampling_methods = MultiSampling(sampling_methods, cycle)
 \end{python}
 
 \section{POAP}
-pySOT uses POAP, which an event-driven framework for building and combining asynchronous optimization strategies. There are two main components in POAP, namely controllers and strategies. The controller is  capable of asking workers to run function evaluations and the strategy decides where to evaluate next. POAP works with external black-box objective functions and handles potential crashes in the objective function evaluation. There is also a logfile from which all function evaluations can be accessed after the run finished. In its simplest form, an optimization code with POAP that evaluates a function predetermined set of points using NUM\_WORKERS threads may look the following way:
+pySOT uses POAP, which an event-driven framework for building and combining a
+synchronous optimization strategies. There are two main components in POAP, 
+namely controllers and strategies. The controller is  capable of asking workers to 
+run function evaluations and the strategy decides where to evaluate next. POAP 
+works with external black-box objective functions and handles potential crashes 
+in the objective function evaluation. There is also a logfile from which all function 
+evaluations can be accessed after the run finished. In its simplest form, an 
+optimization code with POAP that evaluates a function predetermined set of 
+points using NUM\_WORKERS threads may look the following way:
 
 \begin{python}
 from poap.strategy import FixedSampleStrategy
@@ -709,45 +865,79 @@ result = controller.run()
 print 'Best result: {0} at {1}'.format(result.value, result.params)
 \end{python}
 
-\subsection{Controller} pySOT needs only the ThreadController, where we create a team of workers (threads) that carry our objective function evaluations. If the objective function is an external program we use workers of the class ProcessWorkerThread, whilst if the objective function isn't external we can just use the BasicWorkerThread class.
+\subsection{Controller} pySOT needs only the ThreadController, where we create 
+a team of workers (threads) that carry our objective function evaluations. If the 
+objective function is an external program we use workers of the class 
+ProcessWorkerThread, whilst if the objective function isn't external we can just 
+use the BasicWorkerThread class.
 
 \subsection{Strategies} pySOT provides two strategies:
 \begin{itemize}
-\item \textbf{SyncStrategyNoConstraints:} This strategy is to be used in case there are only bound constraints and no additional constraints. The arguments to this strategy are:
+\item \textbf{SyncStrategyNoConstraints:} This strategy is to be used in case 
+there are only bound constraints and no additional constraints. The arguments 
+to this strategy are:
 \begin{itemize}
-\item \textbf{worker\_id:} An idea that the controller can use to distinguish between multiple simultaneously running optimization problems.
+\item \textbf{worker\_id:} An idea that the controller can use to distinguish between 
+multiple simultaneously running optimization problems.
 \item \textbf{data:} Objective function object, as described in Section \ref{objfun}
-\item \textbf{response\_surface:} Response surface object, as described in Section \ref{surrogate}
+\item \textbf{response\_surface:} Response surface object, as described in 
+Section \ref{surrogate}
 \item \textbf{maxeval:} Maximum number of function evaluations
-\item \textbf{nsamples:} Maximum number of simultaneous function evaluations (can be set to the number of workers/threads)
-\item \textbf{exp\_design:} Experimental design to do the initial evaluations, as described in Section \ref{expdes}. Default is a Latin Hypercube with 2dim+1 points
-\item \textbf{search\_procedure} Method to propose new evaluations, as described in Section \ref{search}. Default is Candidate DyCORS with 100dim candidate points.
-\item \textbf{extra:} Additional point to be added to the experimental design. If a good solution is known, you can use this argument to make sure this point is evaluated early. 
+\item \textbf{nsamples:} Maximum number of simultaneous function evaluations 
+(can be set to the number of workers/threads)
+\item \textbf{exp\_design:} Experimental design to do the initial evaluations, as 
+described in Section \ref{expdes}. Default is a Latin Hypercube with 2dim+1 points
+\item \textbf{search\_procedure} Method to propose new evaluations, as described in 
+Section \ref{search}. Default is Candidate DyCORS with 100dim candidate points.
+\item \textbf{extra:} Additional point to be added to the experimental design. If a good 
+solution is known, you can use this argument to make sure this point is evaluated early. 
 \end{itemize}
-\item \textbf{SyncStrategyPenalty:} If there are additional non-bound constraints we provide a penalty based strategy. This strategy assumes that it makes sense to evaluate the objective function outside the feasible region. The strategy also assumes that there is a method eval\_ineq\_constraints that works exactly as described in Section \ref{objfun}. The strategy takes the same argument as SyncStrategyNoConstraints plus one addition argument which is the penalty to be used in the penalty method. Given a penalty $\mu$ set by the user we try to solve the box-constrained optimization problem 
+\item \textbf{SyncStrategyPenalty:} If there are additional non-bound constraints we 
+provide a penalty based strategy. This strategy assumes that it makes sense to evaluate 
+the objective function outside the feasible region. The strategy also assumes that there 
+is a method eval\_ineq\_constraints that works exactly as described in Section \ref{objfun}. 
+The strategy takes the same argument as SyncStrategyNoConstraints plus one addition 
+argument which is the penalty to be used in the penalty method. Given a penalty $\mu$ 
+set by the user we try to solve the box-constrained optimization problem 
 \begin{align*}
-\underset{x}{\operatorname{minimize}} \qquad &\widetilde{f}(x)=f(x)+\mu \sum_{i=1}^M \max(0,g_i(x))^2 \\
+\underset{x}{\operatorname{minimize}} 
+\qquad &\widetilde{f}(x)=f(x)+\mu \sum_{i=1}^M \max(0,g_i(x))^2 \\
 \operatorname{subject\;to:} \qquad &-\infty<\ell_i \leq x_i \leq u_i<\infty, \quad i = 1,\ldots,n \\
 \end{align*}
-where $x \in \Rb^n$ and there are $M$ inequality constraints of the form $g_i(x) \leq 0,$ for $i=1,\ldots,M$. If you want the resulting solution to be feasible, just set $\mu$ to a very large value. This will force the algorithms to work there way towards a feasible solution. Candidate points are generated based on the solution with the smallest value of $\widetilde{f}$. In order to rank function value prediction by the response surface we set all infeasible solutions to have the same prediction as the worst feasible candidate point. The reason for this is that large penalties make it impossible for the weighted distance criteria to distinguish between feasible points. This modified approach will make the algorithm prefer feasible candidate points over infeasible candidate points as long as the function value is weighted higher than the minimum distance.
-\item \textbf{SyncStrategyProjection:} If there is an easy way to project infeasible points onto the feasible region we also provide a strategy that uses this projection operator in order to only evaluate feasible points. The user is responsible for making sure that the projection operator returns a feasible point. Candidate points are all projected onto the feasible region before the merit function is evaluated.
+where $x \in \Rb^n$ and there are $M$ inequality constraints of the form $g_i(x) \leq 0,$ for 
+$i=1,\ldots,M$. If you want the resulting solution to be feasible, just set $\mu$ to a very large 
+value. This will force the algorithms to work there way towards a feasible solution. Candidate 
+points are generated based on the solution with the smallest value of $\widetilde{f}$. In order 
+to rank function value prediction by the response surface we set all infeasible solutions to have 
+the same prediction as the worst feasible candidate point. The reason for this is that large 
+penalties make it impossible for the weighted distance criteria to distinguish between feasible 
+points. This modified approach will make the algorithm prefer feasible candidate points over 
+infeasible candidate points as long as the function value is weighted higher than the minimum 
+distance.
+\item \textbf{SyncStrategyProjection:} If there is an easy way to project infeasible points onto 
+the feasible region we also provide a strategy that uses this projection operator in order to 
+only evaluate feasible points. The user is responsible for making sure that the projection 
+operator returns a feasible point. Candidate points are all projected onto the feasible region 
+before the merit function is evaluated.
 \end{itemize}
 
 \section{Guidelines for selecting parameters and components}
 \begin{center}
 \begin{tabular}{ c c | c }
-  \hline			
-Dimensions & Problem type & Search Strategies \\
-  \hline  
-  $\leq 10$ & Continuous & CandidateSRBF \\
-   $> 10$ & Continuous & CandidateDYCORS\\
-   \hline
-     $\leq 10$ & Integer & CandidateSRBF\_INT \\
-   $> 10$ & Integer & CandidateDYCORS\_INT \\
-   \hline
-   $\leq 10$ & Mixed &  \multirow{1}{*}{[CandidateSRBF,} \\ & & CandidateSRBF\_INT,  \\ & & CandidateSRBF\_CONT] \\
-      $> 10$ & Mixed &  \multirow{1}{*}{[CandidateDYCORS,} \\ & & CandidateDYCORS\_INT, \\ & & CandidateDYCORS\_CONT] \\
-      \hline
+  	\hline			
+	Dimensions & Problem type & Search Strategies \\
+	\hline  
+   	$\leq 10$ & Continuous & CandidateSRBF \\
+   	$> 10$ & Continuous & CandidateDYCORS\\
+   	\hline
+   	$\leq 10$ & Integer & CandidateSRBF\_INT \\
+   	$> 10$ & Integer & CandidateDYCORS\_INT \\
+   	\hline
+   	$\leq 10$ & Mixed &  \multirow{1}{*}{[CandidateSRBF,} \\ & & 
+   	CandidateSRBF\_INT,  \\ & & CandidateSRBF\_CONT] \\
+   	$> 10$ & Mixed &  \multirow{1}{*}{[CandidateDYCORS,} \\ & & 
+   	CandidateDYCORS\_INT, \\ & & CandidateDYCORS\_CONT] \\
+   	\hline
 \end{tabular}
 \end{center}
 
@@ -768,24 +958,28 @@ Non-bound constraints & Optimization Strategy \\
 
 \begin{center}
 \begin{tabular}{ c | c }
-  \hline			
-Evaluation budget & Experimental design \\
-  \hline  
-  $< 10 \text{dim}$ & Latin Hypercube with $\text{dim}+1$ points \\
-  $\geq 10 \text{dim}$ & Symmetric Latin Hypercube with $2\text{dim}+1$ points \\
-  \hline
+  	\hline			
+	Evaluation budget & Experimental design \\
+  	\hline  
+  	$< 10 \text{dim}$ & Latin Hypercube with $\text{dim}+1$ points \\
+  	$\geq 10 \text{dim}$ & Symmetric Latin Hypercube with $2\text{dim}+1$ points \\
+  	\hline
 \end{tabular}
 \end{center}
 
 \ \newline
 
 \begin{itemize}
-\item \textbf{Response surface:} By default we recommend the CubicRBFSurface (with capping if necessary). We recommend not using Kriging since it is very slow.
-\item \textbf{Number of threads:}  Setting both the number of simultaneous evaluations and the number of threads to the number of available cores.
+\item \textbf{Response surface:} By default we recommend the CubicRBFSurface 
+(with capping if necessary). We recommend not using Kriging since it is very slow.
+\item \textbf{Number of threads:}  Setting both the number of simultaneous evaluations 
+and the number of threads to the number of available cores.
 \end{itemize}
 
 \section{Graphical user interface}
-pySOT comes with a graphical user interface (GUI) built in PySide. In order to use the GUI you need to have PySide installed together with all other dependencies of pySOT. Initializing the GUI is as easy as typing from the terminal:
+pySOT comes with a graphical user interface (GUI) built in PySide. In order to use the 
+GUI you need to have PySide installed together with all other dependencies of pySOT. 
+Initializing the GUI is as easy as typing from the terminal:
 \begin{python}
 python
 from pySOT import GUI
@@ -795,7 +989,11 @@ or more compactly:
 \begin{python}
 python -c 'from pySOT import GUI; GUI()'
 \end{python}
-The objective function has to be implemented in a separate file and this file must satisfy the requirements mentioned above for an objective function. In addition, the separate python implementation is only allowed to contain one class and this class has to have the same name as the file name (excluding .py). As an example, this is an implementation of the Ackley function in a separate file with file name Ackley.py:
+The objective function has to be implemented in a separate file and this file must satisfy 
+the requirements mentioned above for an objective function. In addition, the separate 
+python implementation is only allowed to contain one class and this class has to have 
+the same name as the file name (excluding .py). As an example, this is an implementation 
+of the Ackley function in a separate file with file name Ackley.py:
 
 \begin{python}
 import numpy as np
@@ -819,7 +1017,10 @@ class Ackley:
 \end{python}
 Note that both the file name and the class names are the same.
 \FloatBarrier
-The four figures in Figure \ref{fig:gui} show what the GUI looks like and how the optimization results are reported to the user. If the user want a search strategy that uses DYCORS, DYCORS, SRBF, DYCORS, DYCORS, SRBF, ... this can be achieved in the GUI by adding CandidateDYCORS twice and CandidateSRBF once.
+The four figures in Figure \ref{fig:gui} show what the GUI looks like and how the optimization 
+results are reported to the user. If the user want a search strategy that uses DYCORS, 
+DYCORS, SRBF, DYCORS, DYCORS, SRBF, ... this can be achieved in the GUI by 
+adding CandidateDYCORS twice and CandidateSRBF once.
 \begin{figure}
         \centering
         \begin{subfigure}{0.49\textwidth}\centering%no!\hfill
