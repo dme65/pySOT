@@ -56,7 +56,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param maxeval: Function evaluation budget
         :param nsamples: Number of simultaneous fevals allowed
         :param exp_design: Experimental design
-        :param search_procedure: Search procedure for finding
+        :param sampling_method: Sampling method for finding
             points to evaluate
         :param extra: Points to be added to the experimental design
         """
@@ -66,6 +66,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.fhat = response_surface
         if self.fhat is None:
             self.fhat = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
+
         self.maxeval = maxeval
         self.nsamples = nsamples
         self.extra = extra
@@ -107,10 +108,28 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.sample_initial()
 
     def check_input(self):
+        self.check_common()
         assert not hasattr(self.data, "eval_ineq_constraints"), "Objective function has constraints,\n" \
             "SyncStrategyNoConstraints can't handle constraints"
         assert not hasattr(self.data, "eval_eq_constraints"), "Objective function has constraints,\n" \
             "SyncStrategyNoConstraints can't handle constraints"
+
+    def check_common(self):
+        # Check evaluation budget
+        if self.extra is None:
+            assert self.maxeval >= self.design.npts, \
+                "Experimental design is larger than the evaluation budget"
+        else:
+            assert self.maxeval >= self.design.npts + self.extra.shape[0], \
+                "Experimental design + extra points exceeds the evaluation budget"
+        # Check dimensionality
+        assert self.design.dim == self.data.dim, \
+            "Experimental design and optimization problem have different dimensions"
+        if self.extra is not None:
+            assert self.data.dim == self.extra.shape[1], \
+                "Extra point and optimization problem have different dimensions"
+        # Check that the optimization problem makes sense
+        check_opt_prob(self.data)
 
     def proj_fun(self, x):
         x = np.atleast_2d(x)
@@ -120,10 +139,14 @@ class SyncStrategyNoConstraints(BaseStrategy):
         """Record a completed evaluation to the log.
 
         :param record: Record of the function evaluation
+        :param penalty: Penalty for the given point
         """
         xstr = np.array_str(record.params[0], max_line_width=np.inf,
                             precision=5, suppress_small=True)
-        logger.info("Feasible {:.3e} @ {}".format(record.value, xstr))
+        if record.feasible:
+            logger.info("{} {:.3e} @ {}".format("True", record.value, xstr))
+        else:
+            logger.info("{} {:.3e} @ {}".format("False", record.value, xstr))
 
     def adjust_step(self):
         """Adjust the sampling radius sigma.
@@ -170,11 +193,11 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.fbest_old = None
         self.fbest = np.inf
         self.fhat.reset()
+
         start_sample = self.design.generate_points()
         assert start_sample.shape[1] == self.data.dim, \
             "Dimension mismatch between problem and experimental design"
         start_sample = from_unit_box(start_sample, self.data)
-        # Add extra evaluation points provided by the user
         if self.extra is not None:
             start_sample = np.vstack((start_sample, self.extra))
 
@@ -191,7 +214,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval - self.numeval)
         new_points = self.sampling.make_points(npts=nsamples, xbest=self.xbest, sigma=self.sigma,
-                                             proj_fun=self.proj_fun)
+                                               proj_fun=self.proj_fun)
         for i in range(nsamples):
             proposal = self.propose_eval(np.ravel(new_points[i, :]))
             self.resubmitter.rput(proposal)
@@ -225,10 +248,11 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param record: Evaluation record
         """
 
-        self.log_completion(record)
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
+        record.feasible = True
+        self.log_completion(record)
         self.fhat.add_point(record.params[0], record.value)
         if record.value < self.fbest:
             self.xbest = record.params[0]
@@ -308,6 +332,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.penalty = penalty
 
     def check_input(self):
+        self.check_common()
         assert hasattr(self.data, "eval_ineq_constraints"), "Objective function has no inequality constraints"
         assert not hasattr(self.data, "eval_eq_constraints"), "Objective function has equality constraints,\n" \
             "SyncStrategyPenalty can't handle equality constraints"
@@ -324,20 +349,6 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         vec **= 2
         return self.penalty * np.asmatrix(np.sum(vec, axis=1))
 
-    def log_completion(self, record, penalty):
-        """Record a completed evaluation to the log.
-
-        :param record: Record of the function evaluation
-        :param penalty: Penalty for the given point
-        """
-        xstr = np.array_str(record.params[0], max_line_width=np.inf,
-                            precision=5, suppress_small=True)
-        feas = "Feasible"
-        if penalty > 0.0:
-            feas = "Infeasible"
-        #logger.info("{} {:.3e} @ {}".format(feas, record.value + penalty, xstr))
-        logger.info("{} {:.3e} @ {}".format(feas, record.value, xstr))
-
     def on_complete(self, record):
         """Handle completed function evaluation.
 
@@ -352,7 +363,11 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         x = np.zeros((1, record.params[0].shape[0]))
         x[0, :] = record.params[0]
         penalty = self.penalty_fun(x)[0, 0]
-        self.log_completion(record, penalty)
+        if penalty > 0.0:
+            record.feasible = False
+        else:
+            record.feasible = True
+        self.log_completion(record)
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
@@ -399,6 +414,7 @@ class SyncStrategyProjection(SyncStrategyNoConstraints):
                                            sampling_method, extra)
 
     def check_input(self):
+        self.check_common()
         assert hasattr(self.data, "eval_ineq_constraints") or \
             hasattr(self.data, "eval_eq_constraints"), \
             "Objective function has no constraints"

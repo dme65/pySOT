@@ -67,18 +67,26 @@ class DummySim(ProcessWorkerThread):
 
         # Run the objective function and pass the filename of the input file
         self.process = Popen(['./sphere_ext_files', my_unique_filename], stdout=PIPE)
-        out = self.process.communicate()[0]
 
-        # Parse the output
-        try:
-            val = float(out)  # This raises ValueError if out is not a float
+        val = np.nan
+        while True:
+            output = self.process.stdout.readline()
+            if output == '' and self.process.poll() is not None:  # No new output
+                break
+            if output:  # New intermediate output
+                try:
+                    val = float(output.strip())  # Try to parse output
+                except ValueError:  # If the output is nonsense we ignore it
+                    pass
+
+        rc = self.process.poll()  # Check the return code
+        if rc < 0 or np.isnan(val):
+            logging.warning("Incorrect output or crashed evaluation")
+            os.remove(my_unique_filename)  # Remove input file
+            self.finish_cancelled(record)
+        else:
+            os.remove(my_unique_filename)  # Remove input file
             self.finish_success(record, val)
-            os.remove(my_unique_filename)  # Remove input file
-        except ValueError:
-            logging.warning("Function evaluation crashed/failed")
-            self.finish_failure(record)
-            os.remove(my_unique_filename)  # Remove input file
-
 
 def main():
     if not os.path.exists("./logfiles"):

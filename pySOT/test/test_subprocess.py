@@ -31,15 +31,24 @@ class SphereExt:
 class DummySim(ProcessWorkerThread):
 
     def handle_eval(self, record):
-        self.process = Popen(['./sphere_ext', array2str(record.params[0])],
-                             stdout=PIPE)
-        out = self.process.communicate()[0]
-        try:
-            val = float(out)  # This raises ValueError if out is not a float
+        self.process = Popen(['./sphere_ext', array2str(record.params[0])], stdout=PIPE)
+        val = np.nan
+        while True:
+            output = self.process.stdout.readline()
+            if output == '' and self.process.poll() is not None:  # No new output
+                break
+            if output:  # New intermediate output
+                try:
+                    val = float(output.strip())  # Try to parse output
+                except ValueError:  # If the output is nonsense we ignore it
+                    pass
+
+        rc = self.process.poll()  # Check the return code
+        if rc < 0 or np.isnan(val):
+            logging.warning("Incorrect output or crashed evaluation")
+            self.finish_cancelled(record)
+        else:
             self.finish_success(record, val)
-        except ValueError:
-            logging.warning("Function evaluation crashed/failed")
-            self.finish_failure(record)
 
 
 def main():

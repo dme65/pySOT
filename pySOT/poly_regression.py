@@ -28,8 +28,8 @@ class PolyRegression(object):
     def __init__(self, bounds, basisp, maxp=100):
         """Initialize the objects
 
-        :param bounds: a (dims,2) array of lower and upper bounds in each coord
-        :param basisp: an (nbasis,dims) array, where the ith basis function is
+        :param bounds: a (dims, 2) array of lower and upper bounds in each coord
+        :param basisp: a (nbasis, dims) array, where the ith basis function is
             prod_j L_basisp(i,j)(x_j), L_k = the degree k Legendre polynomial
         """
         self.nump = 0
@@ -47,6 +47,10 @@ class PolyRegression(object):
         self.fx = None
         self.updated = False
 
+    # FIXME
+    def poised_for_interpolation(self, X):
+        return True
+
     @property
     def dim(self):
         return self.bounds.shape[0]
@@ -56,10 +60,10 @@ class PolyRegression(object):
         """
         xx = np.copy(x)
         for k in range(x.shape[1]):
-            l = self.bounds[k,0]
-            u = self.bounds[k,1]
+            l = self.bounds[k, 0]
+            u = self.bounds[k, 1]
             w = u-l
-            xx[:,k] = (x[:,k]-l)/w + (x[:,k]-u)/w
+            xx[:, k] = (x[:, k]-l)/w + (x[:, k]-u)/w
         return xx
         
     def _alloc(self):
@@ -76,8 +80,8 @@ class PolyRegression(object):
         """
         if self.nump == 0:
             self._alloc()
-        elif self.nump+extra > self.maxp:
-            self.maxp = max(self.maxp*2, self.maxp+extra)
+        elif self.nump + extra > self.maxp:
+            self.maxp = max(self.maxp*2, self.maxp + extra)
             self.x.resize((self.maxp, self.dim))
             self.fx.resize((self.maxp, 1))
 
@@ -128,7 +132,7 @@ class PolyRegression(object):
         """
         dfx = np.dot(self._dplegendre(self._normalize(xx)), self.beta)
         for j in range(xx.shape[1]):
-            dfx[:,j] /= (self.bounds[j,1]-self.bounds[j,0])/2
+            dfx[:, j] /= (self.bounds[j, 1]-self.bounds[j, 0])/2
         return dfx
 
     def get_x(self):
@@ -157,7 +161,7 @@ class PolyRegression(object):
         self.nump += 1
         self.updated = False
 
-    def eval(self, xx):
+    def eval(self, xx, d=None):
         """Evaluate the regression surface at point xx
 
         :param xx: Point where to evaluate
@@ -171,7 +175,7 @@ class PolyRegression(object):
         fx = self._predict(xx)
         return fx[0]
 
-    def evals(self, xx):
+    def evals(self, xx, d=None):
         """Evaluate the regression surface at points xx
 
         :param xx: Points where to evaluate
@@ -181,9 +185,7 @@ class PolyRegression(object):
             self._fit()
         self.updated = True
 
-        fx = np.zeros(shape=(xx.shape[0], 1))
-        fx[:, 0] = self._predict(xx)
-        return fx
+        return np.atleast_2d(self._predict(xx))
 
     def deriv(self, x):
         """Evaluate the derivative of the regression surface at x

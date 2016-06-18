@@ -19,31 +19,33 @@ def main():
     logging.basicConfig(filename="./logfiles/test_ensemble.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 50")
+    print("\nNumber of threads: 5")
+    print("Maximum number of evaluations: 250")
     print("Search strategy: CandidateSRBF")
-    print("Experimental design: Latin Hypercube + point [0.1, 0.5, 0.8]")
-    print("Surrogate: Cubic RBF, Linear RBF, Thin-plate RBF, MARS")
+    print("Experimental design: Latin Hypercube + point [1,1,...,1]")
+    print("Ensemble Surrogate: Cubic RBF, PolyReg")
 
-    nthreads = 4
-    maxeval = 50
+    nthreads = 5
+    maxeval = 250
     nsamples = nthreads
 
-    data = Hartman3()
+    data = Ackley(dim=5)
     print(data.info)
 
-    # Use 3 differents RBF's and MARS as an ensemble surrogate
+    # Use RBF + PolyReg
+    bounds = np.vstack((data.xlow, data.xup)).T
+    basisp = basis_TD(data.dim, 2)  # use order 2 and no cross-terms
+
     models = [
         RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-        RBFInterpolant(surftype=LinearRBFSurface, maxp=maxeval),
-        RBFInterpolant(surftype=TPSSurface, maxp=maxeval)
+        PolyRegression(bounds, basisp)
     ]
     response_surface = EnsembleSurrogate(models, maxeval)
 
     # Add an additional point to the experimental design. If a good
     # solution is already known you can add this point to the
     # experimental design
-    extra = np.atleast_2d([0.1, 0.5, 0.8])
+    extra = np.ones((1, data.dim))
 
     # Create a strategy and a controller
     controller = ThreadController()
@@ -52,7 +54,7 @@ def main():
             worker_id=0, data=data,
             response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateSRBF(data=data, numcand=100*data.dim),
             extra=extra)
 

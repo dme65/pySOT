@@ -9,7 +9,6 @@ from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 
-
 class AckleyUnit:
     def __init__(self, dim=10):
         self.xlow = -1 * np.ones(dim)
@@ -21,7 +20,7 @@ class AckleyUnit:
         self.min = 20*(1 - np.exp(-0.2/np.sqrt(dim)))
         self.integer = []
         self.continuous = np.arange(0, dim)
-        validate(self)
+        check_opt_prob(self)
 
     def objfunction(self, x):
         n = float(len(x))
@@ -44,7 +43,7 @@ def main():
     print("Maximum number of evaluations: 1000")
     print("Search strategy: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
-    print("Ensemble surrogates: Cubic RBF")
+    print("Surrogateurrogates: Cubic RBF")
 
     nthreads = 4
     maxeval = 1000

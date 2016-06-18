@@ -36,11 +36,11 @@ We also support using multiple of these strategies and cycle
 
 import math
 from utils import *
-import numpy as np
 import scipy.spatial as scp
 from heuristic_algorithms import GeneticAlgorithm as GA
 from scipy.optimize import minimize
 import scipy.stats as stats
+from merit_functions import *
 
 # ========================= MultiSearch =======================
 
@@ -99,7 +99,8 @@ class MultiSampling(object):
             return True
         return False
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         """Create new candidate points. This call is ignored by the optimization
         based search strategies.
 
@@ -108,6 +109,7 @@ class MultiSampling(object):
         :param sigma: Current sampling radius w.r.t the unit box
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        :param merit: Merit function for selecting candidate points
 
         :return: Points selected for evaluation"""
 
@@ -126,7 +128,8 @@ class MultiSampling(object):
                 new_points[count:count+npoints[i], :] = \
                     self.sampling_strategies[i].make_points(npts=npoints[i], xbest=xbest,
                                                             sigma=sigma, subset=subset,
-                                                            proj_fun=proj_fun)
+                                                            proj_fun=proj_fun,
+                                                            merit=merit)
 
                 count += npoints[i]
                 # Update list of proposed points
@@ -136,36 +139,6 @@ class MultiSampling(object):
                             self.sampling_strategies[i].proposed_points
 
         return new_points
-
-# ====================== Candidate based search methods =====================
-
-
-def candidate_merit_weighted_distance(cand, npts=1):
-    """Weighted distance merit function for the candidate points based methods
-    :param cand: Candidate point object
-    :param npts: Number of points selected for evaluation
-
-    :return: Points selected for evaluation
-    """
-
-    new_points = np.ones((npts,  cand.data.dim))
-
-    for i in range(npts):
-        ii = cand.next_weight
-        weight = cand.weights[(ii+len(cand.weights)) % len(cand.weights)]
-        merit = weight*cand.fhvals + \
-            (1-weight)*(1.0 - unit_rescale(cand.dmerit))
-        merit[cand.dmerit < cand.dtol] = np.inf
-        jj = np.argmin(merit)
-        cand.fhvals[jj] = np.inf
-        new_points[i, :] = cand.xcand[jj, :]
-
-        # Update distances and weights
-        ds = scp.distance.cdist(cand.xcand, np.atleast_2d(new_points[i, :]))
-        cand.dmerit = np.minimum(cand.dmerit, ds)
-        cand.next_weight += 1
-
-    return new_points
 
 
 class CandidateSRBF(object):
@@ -240,7 +213,8 @@ class CandidateSRBF(object):
                 (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
                 loc=xbest[i], scale=ssigma, size=self.numcand)
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         """Create new candidate points based on the best solution and the current value of sigma.
 
         :param npts: Number of points to select
@@ -248,6 +222,7 @@ class CandidateSRBF(object):
         :param sigma: Current sampling radius w.r.t the unit box
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        :param merit: merit function for selecting candidate points
 
         :return: Points selected for evaluation
         """
@@ -273,7 +248,7 @@ class CandidateSRBF(object):
         self.dmerit = np.amin(np.asmatrix(dists), axis=1)
         self.fhvals = unit_rescale(fhvals)
 
-        xnew = candidate_merit_weighted_distance(self, npts)
+        xnew = merit(self, npts)
         self.proposed_points = np.vstack((self.proposed_points,
                                           np.asmatrix(xnew)))
         return xnew
@@ -304,9 +279,12 @@ class CandidateDYCORS(CandidateSRBF):
 
         CandidateSRBF.__init__(self, data, numcand=numcand)
         self.minprob = np.min([1.0, 1.0/self.data.dim])
+        assert data.dim > 1, "You can't use DYCORS on a 1d problem"
 
         def probfun(numevals, budget):
-            return min([20.0/data.dim, 1.0]) * (1.0-(np.log(numevals + 1.0) / np.log(budget)))
+            if budget < 2:
+                return 0
+            return min([20.0/data.dim, 1.0]) * (1.0 - (np.log(numevals + 1.0) / np.log(budget)))
         self.probfun = probfun
 
     def __generate_cand__(self, scalefactors, xbest, subset):
@@ -352,7 +330,8 @@ class CandidateDDS(CandidateDYCORS):
             return 1.0-(np.log(numevals + 1.0) / np.log(budget))
         self.probfun = probfun
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         """Create new candidate points based on the best solution and the current value of sigma.
 
         :param npts: Number of points to select
@@ -360,6 +339,7 @@ class CandidateDDS(CandidateDYCORS):
         :param sigma: Current sampling radius w.r.t the unit box
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        :param merit: merit function for selecting candidate points
 
         :return: Points selected for evaluation"""
 
@@ -374,104 +354,128 @@ class CandidateSRBF_INT(CandidateSRBF):
     """Candidate points are generated by perturbing ONLY the discrete
     variables using the SRBF strategy
     """
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.integer) > 0:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.integer, proj_fun=proj_fun)
+                                             subset=self.data.integer, proj_fun=proj_fun,
+                                             merit=merit)
         else:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.continuous, proj_fun=proj_fun)
+                                             subset=self.data.continuous, proj_fun=proj_fun,
+                                             merit=merit)
 
 
 class CandidateDYCORS_INT(CandidateDYCORS):
     """Candidate points are generated by perturbing ONLY the discrete
     variables using the DYCORS strategy"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.integer) > 0:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.integer, proj_fun=proj_fun)
+                                               subset=self.data.integer, proj_fun=proj_fun,
+                                               merit=merit)
         else:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.continuous, proj_fun=proj_fun)
+                                               subset=self.data.continuous, proj_fun=proj_fun,
+                                               merit=merit)
 
 
 class CandidateDDS_INT(CandidateDDS):
     """Candidate points are generated by perturbing
     ONLY the discrete variables using the DDS strategy"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.integer) > 0:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.integer, proj_fun=proj_fun)
+                                            subset=self.data.integer, proj_fun=proj_fun,
+                                            merit=merit)
         else:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.continuous, proj_fun=proj_fun)
+                                            subset=self.data.continuous, proj_fun=proj_fun,
+                                            merit=merit)
 
 
 class CandidateUniform_INT(CandidateUniform):
     """Candidate points are generated by perturbing ONLY
     the discrete variables using the uniform perturbations"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.integer) > 0:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.integer, proj_fun=proj_fun)
+                                                subset=self.data.integer, proj_fun=proj_fun,
+                                                merit=merit)
         else:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.continuous, proj_fun=proj_fun)
+                                                subset=self.data.continuous, proj_fun=proj_fun,
+                                                merit=merit)
 
 
 class CandidateSRBF_CONT(CandidateSRBF):
     """Candidate points are generated by perturbing ONLY
     the continuous variables using the SRBF strategy"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.continuous) > 0:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.continuous, proj_fun=proj_fun)
+                                             subset=self.data.continuous, proj_fun=proj_fun,
+                                             merit=merit)
         else:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.integer, proj_fun=proj_fun)
+                                             subset=self.data.integer, proj_fun=proj_fun,
+                                             merit=merit)
 
 
 class CandidateDYCORS_CONT(CandidateDYCORS):
     """Candidate points are generated by perturbing ONLY
     the continuous variables using the DYCORS strategy"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.continuous) > 0:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.continuous, proj_fun=proj_fun)
+                                               subset=self.data.continuous, proj_fun=proj_fun,
+                                               merit=merit)
         else:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.integer, proj_fun=proj_fun)
+                                               subset=self.data.integer, proj_fun=proj_fun,
+                                               merit=merit)
 
 
 class CandidateDDS_CONT(CandidateDDS):
     """Candidate points are generated by perturbing
     ONLY the discrete variables using the DDS strategy"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.continuous) > 0:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.continuous, proj_fun=proj_fun)
+                                            subset=self.data.continuous, proj_fun=proj_fun,
+                                            merit=merit)
         else:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.integer, proj_fun=proj_fun)
+                                            subset=self.data.integer, proj_fun=proj_fun,
+                                            merit=merit)
 
 
 class CandidateUniform_CONT(CandidateUniform):
     """Candidate points are generated by perturbing ONLY
     the continuous variables using uniform perturbations"""
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
         if len(self.data.continuous) > 0:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.continuous, proj_fun=proj_fun)
+                                                subset=self.data.continuous, proj_fun=proj_fun,
+                                                merit=merit)
         else:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.integer, proj_fun=proj_fun)
+                                                subset=self.data.integer, proj_fun=proj_fun,
+                                                merit=merit)
 
 
 ################################## Optimization based strategies ###################################
@@ -519,7 +523,7 @@ class GeneticAlgorithm(object):
             return True
         return False
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None, merit=None):
         """Create new points to evaluate using the GA
 
         :param npts: Number of points to select
@@ -527,6 +531,7 @@ class GeneticAlgorithm(object):
         :param sigma: Current sampling radius w.r.t the unit box (ignored)
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        :param merit: Merit function for selecting candidate points (ignored)
 
         :return: Points selected for evaluation"""
 
@@ -632,7 +637,7 @@ class MultiStartGradient(object):
             return True
         return False
 
-    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None):
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None, merit=None):
         """Create new points to evaluate using the Multi-Start Gradient method
 
         :param npts: Number of points to select
@@ -640,6 +645,7 @@ class MultiStartGradient(object):
         :param sigma: Current sampling radius w.r.t the unit box (ignored)
         :param subset: Coordinates to perturb
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        :param merit: Merit for selecting candidate points (ignored)
 
         :return: Points selected for evaluation"""
 

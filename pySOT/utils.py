@@ -33,3 +33,65 @@ def round_vars(data, x):
             ind = np.where(x[:, i] > data.xup[i])
             x[ind, i] -= 1
     return x
+
+
+def check_opt_prob(obj):
+    """Routine for checking that an implementation of the optimization problem
+    follows the standard. This method checks everything, but can't make
+    sure that the objective function and constraint methods return values
+    of the correct type since this would involve actually evaluating the
+    objective function which isn't feasible when the evaluations are
+    expensive. If some test fails, an exception is raised through assert.
+
+    :param obj: Objective function
+    """
+    assert hasattr(obj, "dim"), \
+        "Problem dimension required"
+    assert hasattr(obj, "xlow"), \
+        "Numpy array of lower bounds required"
+    assert isinstance(obj.xlow, np.ndarray), \
+        "Numpy array of lower bounds required"
+    assert hasattr(obj, "xup"), \
+        "Numpy array of upper bounds required"
+    assert isinstance(obj.xup, np.ndarray), \
+        "Numpy array of upper bounds required"
+    assert hasattr(obj, "integer"), \
+        "Integer variables must be specified"
+    if len(obj.integer) > 0:
+        assert isinstance(obj.integer, np.ndarray), \
+            "Integer variables must be specified"
+    else:
+        assert isinstance(obj.integer, np.ndarray) or \
+            isinstance(obj.integer, list), \
+            "Integer variables must be specified"
+    assert hasattr(obj, "continuous"), \
+        "Continuous variables must be specified"
+    if len(obj.continuous) > 0:
+        assert isinstance(obj.continuous, np.ndarray), \
+            "Continuous variables must be specified"
+    else:
+        assert isinstance(obj.continuous, np.ndarray) or \
+            isinstance(obj.continuous, list), \
+            "Continuous variables must be specified"
+
+    # Check for logical errors
+    assert isinstance(obj.dim, int) and obj.dim > 0, \
+        "Problem dimension must be a positive integer."
+    assert (len(obj.xlow) == obj.dim and
+            len(obj.xup) == obj.dim), \
+        "Incorrect size for xlow and xup"
+    assert all(obj.xlow[i] < obj.xup[i] for i in range(obj.dim)), \
+        "Lower bounds must be below upper bounds."
+    if len(obj.integer) > 0:
+        assert np.amax(obj.integer) < obj.dim and np.amin(obj.integer) >= 0, \
+            "Integer variable index can't exceed " \
+            "number of dimensions or be negative"
+    if len(obj.continuous) > 0:
+        assert np.amax(obj.continuous) < obj.dim and \
+               np.amin(obj.continuous) >= 0, \
+               "Continuous variable index can't exceed " \
+               "number of dimensions or be negative"
+    assert len(np.intersect1d(obj.continuous, obj.integer)) == 0, \
+        "A variable can't be both an integer and continuous"
+    assert len(obj.continuous)+len(obj.integer) == obj.dim, \
+        "All variables must be either integer or continuous"

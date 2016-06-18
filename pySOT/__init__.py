@@ -12,6 +12,7 @@ from test_problems import *
 from sot_sync_strategies import *
 from ensemble_surrogate import EnsembleSurrogate
 from poly_regression import *
+from merit_functions import *
 
 try:
     from GUI import GUI

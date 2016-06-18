@@ -22,7 +22,7 @@ def main():
     print("Maximum number of evaluations: 1000")
     print("Search strategy: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
-    print("Ensemble surrogates: Cubic RBF, domain scaled to unit box")
+    print("Surrogate: Cubic RBF, domain scaled to unit box")
 
     nthreads = 4
     maxeval = 1000
