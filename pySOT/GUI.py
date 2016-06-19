@@ -23,7 +23,7 @@ from sampling_methods import *
 from ensemble_surrogate import *
 from rbf_interpolant import *
 from rbf_surfaces import *
-from test_problems import validate
+from utils import check_opt_prob
 try:
     from kriging_interpolant import KrigingInterpolant
 except:
@@ -769,7 +769,7 @@ class myGUI(QtGui.QWidget):
                 return None
 
             self.data = class_()
-            validate(self.data)
+            check_opt_prob(self.data)
             # Check if the objective function is external
             if not hasattr(self.data, "objfunction"):
                 self.external = True
