@@ -385,21 +385,21 @@ can be seen in Algorithm \ref{alg:sync_algo}
 \LinesNumbered
 \SetKw{KwGoTo}{go to}
 
-\KwIn{Initial experimental design, Sample point strategy, Surrogate model, Stopping criterion, Restart criterion}
-\KwOut{Best solution and its corresponding function value}
-
-Generate an initial experimental design\;{\label{restart}}
-Evaluate the points in the experimental design\;
-Build a Surrogate model from the data\;
-\Repeat{Stopping criterion met}{
-	\If{Restart criterion met}{
-		Reset the Surrogate model and the Sample point strategy\;
-		\KwGoTo \ref{restart}\;
+\KwIn{Optimization problem, Experimental design, Adaptive sampling method, 
+	Surrogate model, Stopping criterion, Restart criterion}
+	\KwOut{Best solution and its corresponding function value}
+	Generate an initial experimental design\;{\label{restart}}
+	Evaluate the points in the experimental design\;
+	Build a Surrogate model from the data\;
+	\Repeat{Stopping criterion met}{
+		\If{Restart criterion met}{
+			Reset the Surrogate model and the Sample point strategy\;
+			\KwGoTo \ref{restart}\;
+		}
+		Use the adaptive sampling method to generate new point(s) to evaluate\;
+		Evaluate the point(s) generated using all computational resources\;
+		Update the Surrogate model\;
 	}
-	Use the Sample point strategy to generate new point(s) to evaluate\;
-	Evaluate the point(s) generated using all computational resources\;
-	Update the Surrogate model\;
-}
 \caption{Synchronous Surrogate Optimization Algorithm}
 \label{alg:sync_algo}
 \end{algorithm} 
@@ -410,7 +410,7 @@ improvement trials.
 
 \section{Installation}
 Before starting you will need Python 2.7.x and pip. You must also have numpy and scipy 
-installed and we recommend installing the Anaconda package \newline 
+installed and \textbf{we recommend installing Anaconda for Python 2.7} \newline 
 (https://www.continuum.io/downloads). \newline \ \newline Next you need to decide what 
 optional packages you want:
 
@@ -1058,7 +1058,7 @@ The GitHub repository contains several examples for how to use pySOT.
 	\centering
 	\resizebox{0.9\textwidth}{!}{ 
 		\includegraphics{RBFabstraction}} 
-	\caption{Overview of the pySOT hierarchy} 
+	\caption{Overview of pySOT and POAP} 
 \end{figure}
 \FloatBarrier
 
