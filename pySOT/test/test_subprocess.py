@@ -16,19 +16,7 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
-class SphereExt:
-    def __init__(self, dim=10):
-        self.xlow = -15 * np.ones(dim)
-        self.xup = 20 * np.ones(dim)
-        self.dim = dim
-        self.info = str(dim)+"-dimensional Sphere function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
-        self.min = 0
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-
-
-class DummySim(ProcessWorkerThread):
+class CppSim(ProcessWorkerThread):
 
     def handle_eval(self, record):
         self.process = Popen(['./sphere_ext', array2str(record.params[0])], stdout=PIPE)
@@ -71,7 +59,7 @@ def main():
     maxeval = 200
     nsamples = nthreads
 
-    data = SphereExt(dim=10)
+    data = Sphere(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
@@ -86,7 +74,7 @@ def main():
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        controller.launch_worker(DummySim(controller))
+        controller.launch_worker(CppSim(controller))
 
     # Run the optimization strategy
     result = controller.run()

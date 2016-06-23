@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def to_unit_box(x, data):
@@ -95,3 +96,25 @@ def check_opt_prob(obj):
         "A variable can't be both an integer and continuous"
     assert len(obj.continuous)+len(obj.integer) == obj.dim, \
         "All variables must be either integer or continuous"
+
+
+def progress_plot(controller, title=''):
+
+    # Extract function values from the controller, ignoring crashed evaluations
+    fvals = np.array([o.value for o in controller.fevals if o.value is not None])
+
+    plt.ion()
+    plt.figure()
+    plt.plot(np.arange(0, fvals.shape[0]), fvals, 'bo')  # Points
+    plt.plot(np.arange(0, fvals.shape[0]), np.minimum.accumulate(fvals),
+             'r-', linewidth=4.0)  # Best value found
+
+    # Set limits
+    ymin = np.min(fvals)
+    ymax = np.max(fvals)
+    plt.ylim(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin))
+
+    plt.xlabel('Evaluations')
+    plt.ylabel('Function Value')
+    plt.title(title)
+    plt.show()

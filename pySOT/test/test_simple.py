@@ -8,6 +8,7 @@ from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
+import time
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     print("Surrogate: Cubic RBF, domain scaled to unit box")
 
     nthreads = 4
-    maxeval = 1000
+    maxeval = 500
     nsamples = nthreads
 
     data = Ackley(dim=10)
@@ -53,7 +54,6 @@ def main():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
-
 
 if __name__ == '__main__':
     main()
