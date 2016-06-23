@@ -5,38 +5,23 @@
 """
 
 from pySOT import *
-from poap.controller import SerialController
+from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
 import os.path
 import matlab_wrapper
 
 
-matlab = matlab_wrapper.MatlabSession(options='-nojvm')
-#matlab = matlab_wrapper.MatlabSession(matlab_root='/Applications/MATLAB_R2014a.app', options='-nojvm')
-
-# You can try to specify the location of the matlabroot if the session doesn't start
-# On OSX it's necessary to specify this. Typing matlabroot in a MATLAB session tells you where the root
-# folder is. The following works on OSX:
-#   matlab = matlab_wrapper.MatlabSession(matlab_root='/Applications/MATLAB_R2014a.app', options='-nojvm')
-
-
-class AckleyExt:
-    def __init__(self, dim=10):
-        self.xlow = -15 * np.ones(dim)
-        self.xup = 20 * np.ones(dim)
-        self.dim = dim
-        self.info = str(dim) + "-dimensional Ackley function \n" + \
-            "Global optimum: f(0,0,...,0) = 0"
-        self.min = 0
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-        check_opt_prob(self)
-
-    def objfunction(self, x):
-        matlab.put('x', x)
-        matlab.eval('matlab_ackley')
-        val = matlab.get('val')
-        return val
+class MatlabWorker(ProcessWorkerThread):
+    def handle_eval(self, record):
+        try:
+            self.matlab.put('x', record.params[0])
+            self.matlab.eval('matlab_ackley')
+            val = self.matlab.get('val')
+            if np.isnan(val):
+                raise ValueError()
+            self.finish_success(record, val)
+        except:
+            self.finish_cancelled(record)
 
 
 def main():
@@ -47,26 +32,41 @@ def main():
     logging.basicConfig(filename="./logfiles/test_matlab_engine.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 1")
+    print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 500")
-    print("Search strategy: CandidateDYCORS")
+    print("Sampling method: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
-    print("Surrogates: Cubic RBF, domain scaled to unit box")
+    print("Surrogate: Cubic RBF, domain scaled to unit box")
 
+    nthreads = 4
     maxeval = 500
 
-    data = AckleyExt(dim=10)
+    data = Ackley(dim=10)
     print(data.info)
 
     # Use the serial controller (uses only one thread)
-    controller = SerialController(data.objfunction)
+    controller = ThreadController()
     controller.strategy = \
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
-            maxeval=maxeval, nsamples=1,
+            maxeval=maxeval, nsamples=nthreads,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RSUnitbox(RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),data),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
+
+    print("\nNOTE: You may need to specify the matlab_root keyword in "
+          "order \n      to start a MATLAB session using the matlab_wrapper "
+          "module\n")
+
+    # We need to tell MATLAB where the script is
+    mfile_location = os.getcwd()
+
+    # Launch the threads
+    for _ in range(nthreads):
+        worker = MatlabWorker(controller)
+        worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm')
+        worker.matlab.workspace.addpath(mfile_location)
+        controller.launch_worker(worker)
 
     # Run the optimization strategy
     result = controller.run()

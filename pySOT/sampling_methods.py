@@ -154,17 +154,20 @@ class CandidateSRBF(object):
         since the last restart
     """
 
-    def __init__(self, data, numcand=None):
+    def __init__(self, data, numcand=None, weights=None):
         """Initialize the SRBF method
 
         :param data: Optimization object
         :param numcand: Number of candidate points to generate
+        :param weights: Weights used for the merit function
         """
         self.data = data
         self.fhat = None
         self.xrange = self.data.xup - self.data.xlow
         self.dtol = 1e-3 * math.sqrt(data.dim)
-        self.weights = np.array([0.3, 0.5, 0.8, 0.95])
+        self.weights = weights
+        if self.weights is None:
+            self.weights = [0.3, 0.5, 0.8, 0.95]
         self.proposed_points = None
         self.dmerit = None
         self.xcand = None
@@ -176,6 +179,13 @@ class CandidateSRBF(object):
         self.budget = None
         self.n0 = None
         self.fhat = None
+
+        # Check that the inputs make sense
+        assert isinstance(self.numcand, int) and self.numcand > 0, \
+            "The number of candidate points has to be a positive integer"
+        assert (isinstance(self.weights, np.ndarray) or
+                isinstance(self.weights, list)) and max(self.weights) <= 1 \
+            and min(self.weights) >= 0, "Incorrect weights"
 
     def init(self, start_sample, fhat, budget):
         """Initialize the sampling method by providing the points in the
@@ -271,13 +281,13 @@ class CandidateDYCORS(CandidateSRBF):
     each evaluation and is capped in order to guarantee
     global convergence."""
 
-    def __init__(self, data, numcand=None):
+    def __init__(self, data, numcand=None, weights=None):
         """Initialize the DYCORS method
 
         :param data: Optimization object
         :param numcand:  Number of candidate points to generate"""
 
-        CandidateSRBF.__init__(self, data, numcand=numcand)
+        CandidateSRBF.__init__(self, data, numcand=numcand, weights=weights)
         self.minprob = np.min([1.0, 1.0/self.data.dim])
         assert data.dim > 1, "You can't use DYCORS on a 1d problem"
 
@@ -316,13 +326,13 @@ class CandidateDDS(CandidateDYCORS):
     perturbed decreases after each evaluation and is capped
     in order to guarantee global convergence."""
 
-    def __init__(self, data, numcand=None):
+    def __init__(self, data, numcand=None, weights=None):
         """Initialize the DDS method
 
         :param data: Optimization object
         :param numcand:  Number of candidate points to generate"""
 
-        CandidateDYCORS.__init__(self, data, numcand=numcand)
+        CandidateDYCORS.__init__(self, data, numcand=numcand, weights=weights)
         self.weights = np.array([1.0])
         self.numcand = max([0.5*data.dim, 2])
 
