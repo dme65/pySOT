@@ -98,13 +98,14 @@ def check_opt_prob(obj):
         "All variables must be either integer or continuous"
 
 
-def progress_plot(controller, title=''):
+def progress_plot(controller, title='', interactive=False):
 
     # Extract function values from the controller, ignoring crashed evaluations
     fvals = np.array([o.value for o in controller.fevals if o.value is not None])
 
-    plt.ion()
     plt.figure()
+    if interactive:
+        plt.ion()
     plt.plot(np.arange(0, fvals.shape[0]), fvals, 'bo')  # Points
     plt.plot(np.arange(0, fvals.shape[0]), np.minimum.accumulate(fvals),
              'r-', linewidth=4.0)  # Best value found

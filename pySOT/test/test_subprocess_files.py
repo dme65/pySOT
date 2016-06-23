@@ -1,6 +1,6 @@
 """
 .. module:: test_subprocess_files
-  :synopsis: Test an external objective function
+  :synopsis: Test an external objective function with input text files
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -59,8 +59,8 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 200")
-    print("Search strategy: Candidate DyCORS")
-    print("Experimental design: Latin Hypercube")
+    print("Sampling method: Candidate DYCORS")
+    print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
     assert os.path.isfile("./sphere_ext_files"), "You need to build sphere_ext"
@@ -78,7 +78,7 @@ def main():
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
 

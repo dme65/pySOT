@@ -21,8 +21,8 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 500")
-    print("Search strategy: CandidateDYCORS")
-    print("Experimental design: Latin Hypercube")
+    print("Sampling method: CandidateDYCORS")
+    print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
     nthreads = 4
@@ -40,7 +40,7 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             penalty=penalty)
 
@@ -54,6 +54,7 @@ def main():
         xx = np.zeros((1, record.params[0].shape[0]))
         xx[0, :] = record.params[0]
         return record.value + controller.strategy.penalty_fun(xx)[0, 0]
+
     result = controller.run(merit=feasible_merit)
     best, xbest = result.value, result.params[0]
 
