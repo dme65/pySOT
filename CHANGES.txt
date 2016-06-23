@@ -1,3 +1,9 @@
+v0.1.21, 2016-06-23
+	Added an option for supplying weights to the candidate point methods
+	Cleaned up some of the tests by appending attributes to the workers
+	Extended the MATLAB example to parallel
+	Added a help function for doing a progress plot
+
 v0.1.20, 2016-06-18
 	Added some basic input checking (evaluations, dimensionality, etc)
 	Added an example with a MATLAB engine in case the optimization problems is in MATLAB
