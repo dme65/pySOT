@@ -1,58 +1,69 @@
 """
-.. module:: test_simple
-  :synopsis: Test Simple
+.. module:: test_simple_mpi
+  :synopsis: Test Simple MPI
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
+try:
+    from mpi4py import MPI
+except:
+    print("You need to install mpi4py... Aborting")
+    exit()
+
 from pySOT import *
-from poap.controller import ThreadController, BasicWorkerThread
+from poap.mpiserve import MPIMasterHub, MPISimpleWorker
 import numpy as np
 import os.path
 
 
-def main():
+def main_worker(objfunction):
+    MPISimpleWorker(objfunction).run()
+
+
+def main_master(data, nworkers):
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_simple.log"):
-        os.remove("./logfiles/test_simple.log")
-    logging.basicConfig(filename="./logfiles/test_simple.log",
+    if os.path.exists("./logfiles/test_simple_mpi.log"):
+        os.remove("./logfiles/test_simple_mpi.log")
+    logging.basicConfig(filename="./logfiles/test_simple_mpi.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
+    print("\nNumber of workers: {0}".format(nprocs))
     print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS, with weight 0.5")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF, domain scaled to unit box")
 
-    nthreads = 4
     maxeval = 500
-    nsamples = nthreads
-
-    data = Ackley(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
-    controller = ThreadController()
-    controller.strategy = \
+    strategy = \
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
+            maxeval=maxeval, nsamples=nworkers,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RSUnitbox(RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval), data),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim, weights=[0.5]))
+    controller = MPIMasterHub(strategy)
 
-    # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.objfunction)
-        controller.launch_worker(worker)
-
-    # Run the optimization strategy
-    result = controller.run()
-
+    result = controller.optimize()
     print('Best value found: {0}'.format(result.value))
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 
+
 if __name__ == '__main__':
-    main()
+    # Optimization problem
+    data = Ackley(dim=10)
+
+    # Extract the rank
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    nprocs = comm.Get_size()
+
+    if rank == 0:
+        main_master(data, nprocs)
+    else:
+        main_worker(data.objfunction)

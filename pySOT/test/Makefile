@@ -17,6 +17,7 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_subprocess_files.py
 	python test_subprocess_partial_info.py
 	python test_matlab_engine.py
+	mpiexec -n 5 python test_simple_mpi.py
 
 clean:
 	rm sphere_ext
