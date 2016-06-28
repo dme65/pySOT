@@ -1,5 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+    plotting_on = True
+except:
+    plotting_on = False
+    pass
 
 
 def to_unit_box(x, data):
@@ -99,6 +104,9 @@ def check_opt_prob(obj):
 
 
 def progress_plot(controller, title='', interactive=False):
+    if not plotting_on:
+        print("Failed to import matplotlib.pyplot, aborting....\n")
+        return
 
     # Extract function values from the controller, ignoring crashed evaluations
     fvals = np.array([o.value for o in controller.fevals if o.value is not None])

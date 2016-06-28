@@ -21,6 +21,7 @@ class MatlabWorker(ProcessWorkerThread):
                 raise ValueError()
             self.finish_success(record, val)
         except:
+            logging.info("WARNING: Incorrect output or crashed evaluation")
             self.finish_cancelled(record)
 
 
@@ -55,7 +56,7 @@ def main():
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     print("\nNOTE: You may need to specify the matlab_root keyword in "
-          "order \n      to start a MATLAB session using the matlab_wrapper "
+          "order \n      to start a MATLAB  session using the matlab_wrapper "
           "module\n")
 
     # We need to tell MATLAB where the script is
@@ -73,7 +74,7 @@ def main():
 
     # Print the final result
     print('Best value found: {0}'.format(result.value))
-    print('Best solution found: {0}'.format(
+    print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 

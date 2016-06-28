@@ -28,7 +28,7 @@ def main_master(data, nworkers):
     logging.basicConfig(filename="./logfiles/test_simple_mpi.log",
                         level=logging.INFO)
 
-    print("\nNumber of workers: {0}".format(nprocs))
+    print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
     print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS, with weight 0.5")
     print("Experimental design: Symmetric Latin Hypercube")

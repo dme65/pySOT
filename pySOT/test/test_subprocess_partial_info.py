@@ -55,7 +55,7 @@ class CppSim(ProcessWorkerThread):
 
         rc = self.process.poll()  # Check the return code
         if rc < 0 or np.isnan(val):
-            logging.warning("Incorrect output or crashed evaluation")
+            logging.info("WARNING: Incorrect output or crashed evaluation")
             self.finish_cancelled(record)
         else:
             self.finish_success(record, val)
