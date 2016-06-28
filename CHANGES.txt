@@ -1,3 +1,8 @@
+v0.1.22, 2016-06-27
+	Added two tests for the MPI controller in POAP
+	Removed the accidental matplotlib dependency
+	Fixed some printouts in the tests
+
 v0.1.21, 2016-06-23
 	Added an option for supplying weights to the candidate point methods
 	Cleaned up some of the tests by appending attributes to the workers

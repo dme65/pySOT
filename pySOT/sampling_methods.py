@@ -1,5 +1,5 @@
 """
-.. module:: search_procedure
+.. module:: sampling_methods
   :synopsis: ways of finding the next point to evaluate
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
                  David Bindel <bindel@cornell.edu>
@@ -30,8 +30,8 @@ Candidate based methods:
         candidate points uniformly in the domain
 
 We also support using multiple of these strategies and cycle
-    between them which we call MultiSearchStrategy
-    - MultiSearchStrategy
+    between them which we call MultiSampling
+    - MultiSampling
 """
 
 import math

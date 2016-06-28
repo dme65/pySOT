@@ -21,7 +21,7 @@ def main():
 
     print("\nNumber of threads: 1")
     print("Maximum number of evaluations: 500")
-    print("Search strategy: CandidateDYCORS, Genetic Algorithm, Multi-Start Gradient")
+    print("Sampling method: CandidateDYCORS, Genetic Algorithm, Multi-Start Gradient")
     print("Experimental design: Latin Hypercube")
     print("Surrogate: Cubic RBF")
 

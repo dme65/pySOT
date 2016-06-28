@@ -21,7 +21,7 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 200")
-    print("Search strategy: CandidateDYCORS, CandidateDYCORS_INT"
+    print("Sampling methods: CandidateDYCORS, CandidateDYCORS_INT"
           ", CandidateDYCORS_CONT, CandidateUniform")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")

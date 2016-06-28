@@ -1,6 +1,6 @@
 """
 .. module:: test_subprocess_partial_info
-  :synopsis: Test an external objective function
+  :synopsis: Test an external objective function with partial info
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -28,7 +28,7 @@ class SumfunExt:
         self.continuous = np.arange(0, dim)
 
 
-class DummySim(ProcessWorkerThread):
+class CppSim(ProcessWorkerThread):
 
     def handle_eval(self, record):
         self.process = Popen(['./sumfun_ext', array2str(record.params[0])],
@@ -55,7 +55,7 @@ class DummySim(ProcessWorkerThread):
 
         rc = self.process.poll()  # Check the return code
         if rc < 0 or np.isnan(val):
-            logging.warning("Incorrect output or crashed evaluation")
+            logging.info("WARNING: Incorrect output or crashed evaluation")
             self.finish_cancelled(record)
         else:
             self.finish_success(record, val)
@@ -71,8 +71,8 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 200")
-    print("Search strategy: Candidate DyCORS")
-    print("Experimental design: Latin Hypercube")
+    print("Sampling method: Candidate DYCORS")
+    print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
     assert os.path.isfile("./sumfun_ext"), "You need to build sumfun_ext"
@@ -90,13 +90,13 @@ def main():
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
+            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        controller.launch_worker(DummySim(controller))
+        controller.launch_worker(CppSim(controller))
 
     # Run the optimization strategy
     result = controller.run()

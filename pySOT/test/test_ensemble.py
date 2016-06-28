@@ -21,8 +21,8 @@ def main():
 
     print("\nNumber of threads: 5")
     print("Maximum number of evaluations: 250")
-    print("Search strategy: CandidateSRBF")
-    print("Experimental design: Latin Hypercube + point [1,1,...,1]")
+    print("Sampling method: CandidateSRBF")
+    print("Experimental design: Symmetric Latin Hypercube + point [1,1,...,1]")
     print("Ensemble Surrogate: Cubic RBF, PolyReg")
 
     nthreads = 5

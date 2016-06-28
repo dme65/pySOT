@@ -1,5 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+    plotting_on = True
+except:
+    plotting_on = False
+    pass
 
 
 def to_unit_box(x, data):
@@ -98,13 +103,17 @@ def check_opt_prob(obj):
         "All variables must be either integer or continuous"
 
 
-def progress_plot(controller, title=''):
+def progress_plot(controller, title='', interactive=False):
+    if not plotting_on:
+        print("Failed to import matplotlib.pyplot, aborting....")
+        return
 
     # Extract function values from the controller, ignoring crashed evaluations
     fvals = np.array([o.value for o in controller.fevals if o.value is not None])
 
-    plt.ion()
     plt.figure()
+    if interactive:
+        plt.ion()
     plt.plot(np.arange(0, fvals.shape[0]), fvals, 'bo')  # Points
     plt.plot(np.arange(0, fvals.shape[0]), np.minimum.accumulate(fvals),
              'r-', linewidth=4.0)  # Best value found

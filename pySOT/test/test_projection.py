@@ -1,6 +1,6 @@
 """
-.. module:: test_simple
-  :synopsis: Test Simple
+.. module:: test_projection
+  :synopsis: Test Projection strategy
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -8,6 +8,7 @@ from pySOT import *
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
+
 
 class AckleyUnit:
     def __init__(self, dim=10):
@@ -41,9 +42,9 @@ def main():
 
     print("\nNumber of threads: 4")
     print("Maximum number of evaluations: 1000")
-    print("Search strategy: CandidateDYCORS")
+    print("Sampling method: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
-    print("Surrogateurrogates: Cubic RBF")
+    print("Surrogate: Cubic RBF")
 
     nthreads = 4
     maxeval = 1000
