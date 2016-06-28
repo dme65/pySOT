@@ -105,7 +105,7 @@ def check_opt_prob(obj):
 
 def progress_plot(controller, title='', interactive=False):
     if not plotting_on:
-        print("Failed to import matplotlib.pyplot, aborting....\n")
+        print("Failed to import matplotlib.pyplot, aborting....")
         return
 
     # Extract function values from the controller, ignoring crashed evaluations
