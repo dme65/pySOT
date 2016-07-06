@@ -2,9 +2,9 @@
 
 pySOT is an asynchronous parallel optimization toolbox for global deterministic optimization problems. The main purpose of the toolbox is for optimization of computationally expensive black-box objective functions with continuous and/or integer variables where the number of evaluations is limited. If there are several processors available it may make sense to evaluate the objective function using either asynchronous or synchronous parallel. pySOT uses the event-driven framework for asynchronous optimization strategies POAP (https://github.com/dbindel/POAP) to provide this functionality.
 
-The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
+The toolbox is hosted on GitHub: [https://github.com/dme65/pySOT](https://github.com/dme65/pySOT)
 
-Link to the pySOT documentation: https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf
+Link to the pySOT documentation: [https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf](https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf)
 
 pySOT has been downloaded 12,492 times from 2015-June-4 to 2016-January-24
 
@@ -17,7 +17,12 @@ pip install pySOT
 ```
 
 ## Examples
-Several pySOT examples can be found at: https://github.com/dme65/pySOT/tree/master/pySOT/test
+Several pySOT examples can be found at: 
+[https://github.com/dme65/pySOT/tree/master/pySOT/test](https://github.com/dme65/pySOT/tree/master/pySOT/test)
+
+## News
+A two-hour short course on how to use pySOT was given at the CMWR 2016 conference in Toronto. The slides and Python notebooks can be downloaded from: 
+[https://people.cam.cornell.edu/~dme65/talks.html](https://people.cam.cornell.edu/~dme65/talks.html)
 
 ## FAQ
 
