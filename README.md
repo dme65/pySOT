@@ -12,7 +12,7 @@ pySOT has been downloaded 12,492 times from 2015-June-4 to 2016-January-24
 
 Make sure you have Python 2.7.x and pip installed. The easiest way to install pySOT is using: 
 
-```
+``` bash
 pip install pySOT
 ```
 
@@ -23,6 +23,8 @@ Several pySOT examples can be found at:
 ## News
 A two-hour short course on how to use pySOT was given at the CMWR 2016 conference in Toronto. The slides and Python notebooks can be downloaded from: 
 [https://people.cam.cornell.edu/~dme65/talks.html](https://people.cam.cornell.edu/~dme65/talks.html)
+
+Check out the new C++ implementation of pySOT: [https://github.com/dme65/SOT](https://github.com/dme65/SOT)
 
 ## FAQ
 
