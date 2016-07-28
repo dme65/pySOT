@@ -40,7 +40,7 @@ def main():
         RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),
         PolyRegression(bounds, basisp)
     ]
-    response_surface = EnsembleSurrogate(models, maxeval)
+    response_surface = EnsembleSurrogate(model_list=models, maxp=maxeval)
 
     # Add an additional point to the experimental design. If a good
     # solution is already known you can add this point to the

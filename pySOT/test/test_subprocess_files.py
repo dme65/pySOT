@@ -19,34 +19,21 @@ def array2str(x):
 class CppSim(ProcessWorkerThread):
 
     def handle_eval(self, record):
+        try:
+            # Print to the input file
+            f = open(self.my_filename, 'w')
+            f.write(array2str(record.params[0]))
+            f.close()
 
-        # Print to the input file
-        f = open(self.my_filename, 'w')
-        f.write(array2str(record.params[0]))
-        f.close()
+            self.process = Popen(['./sphere_ext_files', self.my_filename], stdout=PIPE)
+            val = self.process.communicate()[0]
 
-        # Run the objective function and pass the filename of the input file
-        self.process = Popen(['./sphere_ext_files', self.my_filename], stdout=PIPE)
-
-        val = np.nan
-        while True:
-            output = self.process.stdout.readline()
-            if output == '' and self.process.poll() is not None:  # No new output
-                break
-            if output:  # New intermediate output
-                try:
-                    val = float(output.strip())  # Try to parse output
-                except ValueError:  # If the output is nonsense we ignore it
-                    pass
-
-        rc = self.process.poll()  # Check the return code
-        if rc < 0 or np.isnan(val):
+            self.finish_success(record, float(val))
+            os.remove(self.my_filename)  # Remove input file
+        except ValueError:
             logging.info("WARNING: Incorrect output or crashed evaluation")
             os.remove(self.my_filename)  # Remove input file
             self.finish_cancelled(record)
-        else:
-            os.remove(self.my_filename)  # Remove input file
-            self.finish_success(record, val)
 
 
 def main():

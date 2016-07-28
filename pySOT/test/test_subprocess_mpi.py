@@ -12,7 +12,7 @@ except:
 
 import logging
 from pySOT import *
-from poap.mpiserve import MPIMasterHub, MPIProcessWorker
+from poap.mpiserve import MPIController, MPIProcessWorker
 import numpy as np
 from subprocess32 import Popen, PIPE
 import os.path
@@ -24,24 +24,13 @@ def array2str(x):
 
 class CppSim(MPIProcessWorker):
     def eval(self, record_id, params, extra_args=None):
-        self.process = Popen(['./sphere_ext', array2str(params[0])], stdout=PIPE)
-        val = np.nan
-        while True:
-            output = self.process.stdout.readline()
-            if output == '' and self.process.poll() is not None:  # No new output
-                break
-            if output:  # New intermediate output
-                try:
-                    val = float(output.strip())  # Try to parse output
-                except ValueError:  # If the output is nonsense we ignore it
-                    pass
-
-        rc = self.process.poll()  # Check the return code
-        if rc < 0 or np.isnan(val):
+        try:
+            self.process = Popen(['./sphere_ext', array2str(params[0])], stdout=PIPE)
+            val = self.process.communicate()[0]
+            self.finish_success(record_id, float(val))
+        except ValueError:
             logging.info("WARNING: Incorrect output or crashed evaluation")
-            self.hub.finish_cancel(record_id)
-        else:
-            self.hub.finish_success(record_id, val)
+            self.finish_cancelled(record_id)
 
 
 def main_worker():
@@ -80,10 +69,10 @@ def main_master(nworkers):
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
 
-    controller = MPIMasterHub(strategy)
+    controller = MPIController(strategy)
 
     # Run the optimization strategy
-    result = controller.optimize()
+    result = controller.run()
     print('Best value found: {0}'.format(result.value))
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,

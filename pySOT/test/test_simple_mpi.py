@@ -11,7 +11,7 @@ except:
     exit()
 
 from pySOT import *
-from poap.mpiserve import MPIMasterHub, MPISimpleWorker
+from poap.mpiserve import MPIController, MPISimpleWorker
 import numpy as np
 import os.path
 
@@ -45,9 +45,9 @@ def main_master(data, nworkers):
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RSUnitbox(RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval), data),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim, weights=[0.5]))
-    controller = MPIMasterHub(strategy)
+    controller = MPIController(strategy)
 
-    result = controller.optimize()
+    result = controller.run()
     print('Best value found: {0}'.format(result.value))
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,

@@ -18,24 +18,13 @@ def array2str(x):
 
 class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
-        self.process = Popen(['./sphere_ext', array2str(record.params[0])], stdout=PIPE)
-        val = np.nan
-        while True:
-            output = self.process.stdout.readline()
-            if output == '' and self.process.poll() is not None:  # No new output
-                break
-            if output:  # New intermediate output
-                try:
-                    val = float(output.strip())  # Try to parse output
-                except ValueError:  # If the output is nonsense we ignore it
-                    pass
-
-        rc = self.process.poll()  # Check the return code
-        if rc < 0 or np.isnan(val):
-            logging.info("WARNING: Incorrect output or crashed evaluation")
+        try:
+            self.process = Popen(['./sphere_ext', array2str(record.params[0])], stdout=PIPE)
+            val = self.process.communicate()[0]
+            self.finish_success(record, float(val))
+        except ValueError:
             self.finish_cancelled(record)
-        else:
-            self.finish_success(record, val)
+            logging.info("WARNING: Incorrect output or crashed evaluation")
 
 
 def main():

@@ -203,20 +203,20 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         for j in range(min(start_sample.shape[0], self.maxeval - self.numeval)):
             start_sample[j, :] = self.proj_fun(start_sample[j, :])  # Project onto feasible region
-            proposal = self.propose_eval(start_sample[j, :])
+            proposal = self.propose_eval(np.copy(start_sample[j, :]))
             self.resubmitter.rput(proposal)
 
-        self.sampling.init(start_sample, self.fhat, self.maxeval - self.numeval)
+        self.sampling.init(np.copy(start_sample), self.fhat, self.maxeval - self.numeval)
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy
         """
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval - self.numeval)
-        new_points = self.sampling.make_points(npts=nsamples, xbest=self.xbest, sigma=self.sigma,
+        new_points = self.sampling.make_points(npts=nsamples, xbest=np.copy(self.xbest), sigma=self.sigma,
                                                proj_fun=self.proj_fun)
         for i in range(nsamples):
-            proposal = self.propose_eval(np.ravel(new_points[i, :]))
+            proposal = self.propose_eval(np.copy(np.ravel(new_points[i, :])))
             self.resubmitter.rput(proposal)
 
     def start_batch(self):
@@ -253,9 +253,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         record.worker_numeval = self.numeval
         record.feasible = True
         self.log_completion(record)
-        self.fhat.add_point(record.params[0], record.value)
+        self.fhat.add_point(np.copy(record.params[0]), record.value)
         if record.value < self.fbest:
-            self.xbest = record.params[0]
+            self.xbest = np.copy(record.params[0])
             self.fbest = record.value
 
 
@@ -361,7 +361,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :param record: Evaluation record
         """
         x = np.zeros((1, record.params[0].shape[0]))
-        x[0, :] = record.params[0]
+        x[0, :] = np.copy(record.params[0])
         penalty = self.penalty_fun(x)[0, 0]
         if penalty > 0.0:
             record.feasible = False
@@ -371,10 +371,10 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
-        self.fhat.add_point(record.params[0], record.value)
+        self.fhat.add_point(np.copy(record.params[0]), record.value)
         # Check if the penalty function is a new best
         if record.value + penalty < self.fbest:
-            self.xbest = record.params[0]
+            self.xbest = np.copy(record.params[0])
             self.fbest = record.value + penalty
 
 

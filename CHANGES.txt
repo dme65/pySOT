@@ -1,3 +1,7 @@
+v0.1.23, 2016-07-28
+	Updates to support the new MPIController in POAP
+	pySOT now sends copies of key variables in case they are changed by the method
+
 v0.1.22, 2016-06-27
 	Added two tests for the MPI controller in POAP
 	Removed the accidental matplotlib dependency
