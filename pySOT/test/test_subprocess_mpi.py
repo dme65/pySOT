@@ -34,9 +34,9 @@ class CppSim(MPIProcessWorker):
 
 
 def main_worker():
-    CppSim().run()
     logging.basicConfig(filename="./logfiles/test_subprocess_mpi.log",
                         level=logging.INFO)
+    CppSim().run()
 
 
 def main_master(nworkers):
@@ -45,7 +45,7 @@ def main_master(nworkers):
     if os.path.exists("./logfiles/test_subprocess_mpi.log"):
         os.remove("./logfiles/test_subprocess_mpi.log")
     logging.basicConfig(filename="./logfiles/test_subprocess_mpi.log",
-                        level=logging.WARNING)
+                        level=logging.INFO)
 
     print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
     print("Maximum number of evaluations: 200")
