@@ -8,7 +8,7 @@ except:
 
 setup(
     name='pySOT',
-    version='0.1.24',
+    version='0.1.25',
     packages=['pySOT', 'pySOT.test'],
     url='http://pypi.python.org/pypi/pySOT/',
     license='LICENSE.txt',

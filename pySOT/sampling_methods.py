@@ -302,9 +302,15 @@ class CandidateDYCORS(CandidateSRBF):
         ddsprob = np.max([self.minprob, ddsprob])
 
         nlen = len(subset)
-        ar = (np.random.rand(self.numcand, nlen) < ddsprob)
-        ind = np.where(np.sum(ar, axis=1) == 0)[0]
-        ar[ind, np.random.randint(0, nlen - 1, size=len(ind))] = 1
+
+        # Fix when nlen is 1
+        # Todo: Use SRBF instead
+        if nlen == 1:
+            ar = np.ones((self.numcand, 1))
+        else:
+            ar = (np.random.rand(self.numcand, nlen) < ddsprob)
+            ind = np.where(np.sum(ar, axis=1) == 0)[0]
+            ar[ind, np.random.randint(0, nlen - 1, size=len(ind))] = 1
 
         self.xcand = np.ones((self.numcand, self.data.dim)) * xbest
         for i in range(nlen):

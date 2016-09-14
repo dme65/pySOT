@@ -1,3 +1,13 @@
+v0.1.25, 2016-09-14
+    Fixed a bug in DYCORS when the subset has length 1
+
+v0.1.24, 2016-08-04
+	Changed to setup.py to use rst format for pypi
+
+v0.1.23, 2016-07-28
+	Updates to support the new MPIController in POAP
+	pySOT now sends copies of key variables in case they are changed by the method
+
 v0.1.23, 2016-07-28
 	Updates to support the new MPIController in POAP
 	pySOT now sends copies of key variables in case they are changed by the method
