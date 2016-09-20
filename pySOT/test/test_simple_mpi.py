@@ -4,12 +4,7 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-try:
-    from mpi4py import MPI
-except:
-    print("You need to install mpi4py... Aborting")
-    exit()
-
+from mpi4py import MPI
 from pySOT import *
 from poap.mpiserve import MPIController, MPISimpleWorker
 import numpy as np

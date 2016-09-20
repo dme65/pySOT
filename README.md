@@ -16,6 +16,10 @@ Make sure you have Python 2.7.x and pip installed. The easiest way to install py
 pip install pySOT
 ```
 
+## Developers
+* Build Status: <a href="https://travis-ci.org/dme65/pySOT">
+<img src="https://travis-ci.org/dme65/pySOT.svg?branch=master"/></a>
+
 ## Examples
 Several pySOT examples can be found at: 
 [https://github.com/dme65/pySOT/tree/master/pySOT/test](https://github.com/dme65/pySOT/tree/master/pySOT/test)
@@ -39,4 +43,3 @@ A: There is currently no published paper on pySOT so we recommend citing pySOT l
 
 Q: Is there support for Python 3?  
 A: pySOT currently doesn't support Python 3, mainly because of some pySOT dependencies lacking Python 3 support.
-

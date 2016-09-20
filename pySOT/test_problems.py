@@ -582,7 +582,7 @@ class Whitley:
         self.integer = []
         self.continuous = np.arange(0, dim)
         check_opt_prob(self)
-
+ 
     def objfunction(self, x):
         """Evaluate the Whitley function  at x
 

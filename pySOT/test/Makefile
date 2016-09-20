@@ -1,9 +1,9 @@
 export PYTHONPATH=../..:
 
 all:
-	g++ -o sphere_ext sphere_ext.cpp
-	g++ -o sphere_ext_files sphere_ext_files.cpp
-	g++ -o sumfun_ext sumfun_ext.cpp
+	g++ -o sphere_ext sphere_ext.cpp -std=c++0x
+	g++ -o sphere_ext_files sphere_ext_files.cpp -std=c++0x
+	g++ -o sumfun_ext sumfun_ext.cpp -std=c++0x
 
 .PHONY: test
 test: sphere_ext sphere_ext_files sumfun_ext
@@ -16,13 +16,11 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_subprocess.py
 	python test_subprocess_files.py
 	python test_subprocess_partial_info.py
-	python test_matlab_engine.py
 	mpiexec -n 5 python test_simple_mpi.py
 	mpiexec -n 5 python test_subprocess_mpi.py
 
 clean:
-	rm sphere_ext
-	rm sphere_ext_files
-	rm sumfun_ext
-	rm -r ./logfiles/*
-	rmdir logfiles
+	rm -f sphere_ext
+	rm -f sphere_ext_files
+	rm -f sumfun_ext
+	rm -rf ./logfiles
