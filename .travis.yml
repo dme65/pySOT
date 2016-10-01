@@ -48,7 +48,7 @@ before_install:
   - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then which mpicc; fi
   - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then which mpiexec; fi
   - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq python-mpi4py; fi
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install open-mpi; fi
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install mpich; fi
 script:
   - pip install --upgrade pip
   - pip install mpi4py
