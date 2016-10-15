@@ -52,7 +52,8 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nthreads,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RSUnitbox(RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval),data),
+            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
+                                            maxp=maxeval, dim=data.dim),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     print("\nNOTE: You may need to specify the matlab_root keyword in "

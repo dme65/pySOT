@@ -58,7 +58,8 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            response_surface=RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval))
+            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
+                                            maxp=maxeval, dim=data.dim))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

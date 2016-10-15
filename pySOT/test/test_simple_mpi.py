@@ -38,7 +38,8 @@ def main_master(data, nworkers):
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nworkers,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RSUnitbox(RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval), data),
+            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
+                                            maxp=maxeval, dim=data.dim),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim, weights=[0.5]))
     controller = MPIController(strategy)
 

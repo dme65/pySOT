@@ -1,3 +1,10 @@
+v0.1.26, 2016-10-14
+    Signficant changes in the RBFInterpolant. Users need to update their code
+    Added RBF regression surfaces
+    Added version information in the module. pySOT.__version__ gives the version of the current pySOT installation
+    The Gutmann strategy has been temporarily removed due to the RBF redesign, but will be added back soon
+    Check out test_rbf.py to see how to use the new RBF
+
 v0.1.25, 2016-09-14
     Fixed a bug in DYCORS when the subset has length 1
 

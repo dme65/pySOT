@@ -275,7 +275,7 @@ class RSUnitbox(object):
         """
         return self.model.get_fx()
 
-    def eval(self, xx, d=None):
+    def eval(self, xx, ds=None):
         """Evaluate the capped rbf interpolant at the point xx
 
         :param xx: Point where to evaluate
@@ -283,7 +283,7 @@ class RSUnitbox(object):
         """
         return self.model.eval(to_unit_box(xx, self.data))
 
-    def evals(self, xx, d=None):
+    def evals(self, xx, ds=None):
         """Evaluate the capped rbf interpolant at the points xx
 
         :param xx: Points where to evaluate
@@ -292,7 +292,7 @@ class RSUnitbox(object):
 
         return self.model.evals(to_unit_box(xx, self.data))
 
-    def deriv(self, xx, d=None):
+    def deriv(self, xx, ds=None):
         """Evaluate the derivative of the rbf interpolant at x
 
         :param x: Data point

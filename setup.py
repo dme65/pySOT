@@ -2,13 +2,13 @@ from setuptools import setup
 try:
     import pypandoc
     long_description = pypandoc.convert('README.md', 'rst')
-    long_description = long_description.replace("\r","")
+    long_description = long_description.replace("\r", "")
 except:
     long_description = open('README.md').read()
 
 setup(
     name='pySOT',
-    version='0.1.25',
+    version='0.1.26',
     packages=['pySOT', 'pySOT.test'],
     url='http://pypi.python.org/pypi/pySOT/',
     license='LICENSE.txt',

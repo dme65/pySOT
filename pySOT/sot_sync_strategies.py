@@ -18,8 +18,7 @@ import logging
 from experimental_design import SymmetricLatinHypercube, LatinHypercube
 from sampling_methods import CandidateDYCORS
 from poap.strategy import BaseStrategy, RetryStrategy
-from rbf_surfaces import CubicRBFSurface
-from rbf_interpolant import RBFInterpolant
+from rbf import *
 from utils import *
 from rs_capped import *
 
