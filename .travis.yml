@@ -4,9 +4,9 @@ language: python
 
 matrix:
   include:
-    #- os: linux
-    #  python: 2.7
-    #  sudo: required
+    - os: linux
+      python: 2.7
+      sudo: required
 
     - os: osx
       language: generic
@@ -14,8 +14,11 @@ matrix:
 
 install:
 
-  # Get Miniconda
-  - wget http://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
