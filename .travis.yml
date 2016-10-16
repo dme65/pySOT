@@ -12,48 +12,21 @@ matrix:
       language: generic
       sudo: required
 
-before_install:
+install:
 
-  # Update repos
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get update -qq; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo add-apt-repository -y  'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.8 main'; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get update -qq; fi
+  # Get Miniconda
+  - wget http://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda install -q numpy scipy matplotlib pip
+  - conda install -q --channel mpi4py mpich mpi4py
 
-  # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then virtualenv venv -p python; fi
-  # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then source venv/bin/activate; fi
-
-  # Install modern compilers with C++11 support for Linux
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq g++-6; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq gfortran; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then export CXX="g++-6" CC="gcc-6"; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 1; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 1; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq libstdc++-6-dev; fi
-
-  # Get numpy and scipy
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq libblas-dev liblapack-dev; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq python-numpy python-scipy python-matplotlib; fi
-
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew tap homebrew/science; fi
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew tap homebrew/python; fi
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew update; fi
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install python; fi
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install numpy scipy matplotlib; fi
-
-  # Install Open-MPI
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq openmpi-bin; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq mpich2; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then which mpicc; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then which mpiexec; fi
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get install -qq python-mpi4py; fi
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install mpich; fi
 script:
   - pip install --upgrade pip
-  - pip install mpi4py
   - pip install inspyred
-  - pip install matplotlib --quiet
   - python setup.py install
   - cd ./pySOT/test/
   - make all
