@@ -40,7 +40,7 @@ def main():
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval, dim=data.dim),
+            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval),
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim + 1)),
             sampling_method=MultiSampling(sampling_method, [0, 1, 0, 2]))
 

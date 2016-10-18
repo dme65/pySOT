@@ -17,8 +17,8 @@ def main():
 
     for i in range(2):
 
-        rbf1 = RBFInterpolant(kernel=kernel, tail=tail, maxp=maxeval, dim=data.dim, eta=0)
-        rbf2 = RBFInterpolant(kernel=kernel, tail=tail, maxp=maxeval, dim=data.dim, eta='adapt')
+        rbf1 = RBFInterpolant(kernel=kernel, tail=tail, maxp=maxeval, eta=0)
+        rbf2 = RBFInterpolant(kernel=kernel, tail=tail, maxp=maxeval, eta='adapt')
 
         X = np.random.uniform(data.xlow, data.xup, (maxeval, data.dim))
         fX = np.zeros((maxeval, data.dim))

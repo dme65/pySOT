@@ -12,6 +12,7 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_penalty.py
 	python test_projection.py
 	python test_ensemble.py
+	python test_kriging.py
 	python test_mixed_integer_constraints.py
 	python test_multisampling.py
 	python test_subprocess.py

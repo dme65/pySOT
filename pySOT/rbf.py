@@ -98,7 +98,7 @@ class ConstantTail(object):
 
 class RBFInterpolant(object):
 
-    def __init__(self, kernel=None, tail=None, maxp=500, dim=None, eta=1e-8):
+    def __init__(self, kernel=None, tail=None, maxp=500, eta=1e-8):
         if kernel is None or tail is None:
             kernel = CubicKernel
             tail = LinearTail
@@ -107,12 +107,12 @@ class RBFInterpolant(object):
         self.nump = 0
         self.kernel = kernel()
         self.tail = tail()
-        self.ntail = self.tail.dimTail(dim)
+        self.ntail = None
         self.A = None
         self.LU = None
         self.piv = None
         self.c = None
-        self.dim = dim
+        self.dim = None
         self.x = None
         self.fx = None
         self.rhs = None
@@ -152,22 +152,25 @@ class RBFInterpolant(object):
         self.rhs = np.zeros((maxp+ntail, 1))
         self.A = np.zeros((maxp+ntail, maxp+ntail))
 
-    def _realloc(self, dim, ntail, extra=1):
+    def _realloc(self, dim, extra=1):
         """Expand allocation to accommodate more points (if needed)
 
         :param dim: Number of dimensions
         :param ntail: Number of tail functions
         :param extra: Number of additional points to accommodate
         """
+
+        self.dim = dim
+        self.ntail = self.tail.dimTail(dim)
         if self.nump == 0:
-            self._alloc(dim, ntail)
+            self._alloc(dim, self.ntail)
         elif self.nump + extra > self.maxp:
             self.maxp = max(self.maxp*2, self.maxp+extra)
             self.x.resize((self.maxp, dim))
             self.fx.resize((self.maxp, 1))
-            self.rhs.resize((self.maxp+ntail, 1))
+            self.rhs.resize((self.maxp + self.ntail, 1))
             A0 = self.A  # pylint: disable=invalid-name
-            self.A = np.zeros((self.maxp+ntail, self.maxp+ntail))
+            self.A = np.zeros((self.maxp + self.ntail, self.maxp + self.ntail))
             self.A[:A0.shape[0], :A0.shape[1]] = A0
 
     def coeffs(self):
@@ -246,7 +249,8 @@ class RBFInterpolant(object):
         :param fx: The function value of the point to add
         """
 
-        self._realloc(self.dim, self.ntail)
+        dim = len(xx)
+        self._realloc(dim)
 
         self.x[self.nump, :] = xx
         self.fx[self.nump] = fx

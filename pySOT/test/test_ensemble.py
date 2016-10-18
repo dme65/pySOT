@@ -37,7 +37,7 @@ def main():
     basisp = basis_TD(data.dim, 2)  # use order 2 and no cross-terms
 
     models = [
-        RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval, dim=data.dim),
+        RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval),
         PolyRegression(bounds, basisp)
     ]
     response_surface = EnsembleSurrogate(model_list=models, maxp=maxeval)
