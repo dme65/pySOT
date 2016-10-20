@@ -1,3 +1,6 @@
+v0.1.29, 2016-10-20
+    Correcting an error in the pypi upload
+
 v0.1.28, 2016-10-20
     Making the GUI work with the new RBF design
 
