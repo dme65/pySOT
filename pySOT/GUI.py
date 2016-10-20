@@ -21,8 +21,7 @@ from experimental_design import *
 from rs_capped import RSCapped
 from sampling_methods import *
 from ensemble_surrogate import *
-from rbf_interpolant import *
-from rbf_surfaces import *
+from rbf import *
 from utils import check_opt_prob
 try:
     from kriging_interpolant import KrigingInterpolant
@@ -993,7 +992,7 @@ class myGUI(QtGui.QWidget):
             # Search strategy
             try:
                 if self.searchtable.rowCount() == 0:
-                    raise AssertionError("No search strategies specified")
+                    raise AssertionError("No search sampling method")
                 # Try to parse what strategies we are using
                 names = []
                 for i in range(self.searchtable.rowCount()):
@@ -1018,7 +1017,7 @@ class myGUI(QtGui.QWidget):
                     self.search = MultiSampling(search_strategies, weights)
 
             except Exception, err:
-                self.printMessage("Failed to initialize search strategy: " +
+                self.printMessage("Failed to initialize sampling method: " +
                                   err.message + "\n", "red")
                 self.turnActionsOn()
                 return
@@ -1040,20 +1039,21 @@ class myGUI(QtGui.QWidget):
                             rs.append(MARSInterpolant(maxp=self.maxeval))
                         else:
                             # Kernel
-                            surf_ = None
+                            kernel_ = None
                             if name[0] == "Linear RBF":
-                                surf_ = LinearRBFSurface
+                                kernel_ = LinearKernel
                             elif name[0] == "Cubic RBF":
-                                surf_ = CubicRBFSurface
+                                kernel_ = CubicKernel
                             elif name[0] == "Thin-Plate RBF":
-                                surf_ = TPSSurface
+                                kernel_ = TPSKernel
 
                             # DSB: FIXME
                             # Tail
+                            tail_ = None
                             if name[1] == " LinearTail":
-                                pass
+                                tail_ = LinearTail
                             elif name[1] == " ConstantTail":
-                                pass
+                                tail_ = ConstantTail
 
                             print name
                             # Build RBF (with cap if necessary)
@@ -1061,16 +1061,16 @@ class myGUI(QtGui.QWidget):
                                 if name[2] == " Median Cap":
                                     rs.append(
                                         RSCapped(
-                                            RBFInterpolant(surftype=surf_,
+                                            RBFInterpolant(kernel=kernel_, tail=tail_,
                                                            maxp=self.maxeval)))
                                 elif name[2] == " Unit Box":
                                     rs.append(
                                         RSUnitbox(
-                                            RBFInterpolant(surftype=surf_,
+                                            RBFInterpolant(kernel=kernel_, tail=tail_,
                                                            maxp=self.maxeval), self.data))
                             else:
                                 rs.append(
-                                    RBFInterpolant(surftype=surf_,
+                                    RBFInterpolant(kernel=kernel_, tail=tail_,
                                                    maxp=self.maxeval))
 
                     # Finally construct the objects
