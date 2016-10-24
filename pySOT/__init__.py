@@ -31,5 +31,5 @@ try:
 except ImportError:
     __with_kriging__ = False
 
-__version__ = '0.1.26'
+__version__ = '0.1.29'
 __author__ = 'David Eriksson, David Bindel'
