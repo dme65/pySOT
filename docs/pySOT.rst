@@ -12,7 +12,7 @@ Submodules
 ----------
 
 pySOT.ensemble_surrogate module
-------------------------------
+-------------------------------
 
 .. automodule:: pySOT.ensemble_surrogate
     :members:
@@ -27,14 +27,6 @@ pySOT.experimental_design module
     :undoc-members:
     :show-inheritance:
 
-pySOT.kriging_interpolant module
---------------------------------
-
-.. automodule:: pySOT.kriging_interpolant
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pySOT.mars_interpolant module
 -----------------------------
 
@@ -44,7 +36,7 @@ pySOT.mars_interpolant module
     :show-inheritance:
 
 pySOT.rbf module
-----------------------------
+----------------
 
 .. automodule:: pySOT.rbf
     :members:
@@ -68,7 +60,7 @@ pySOT.sampling_methods module
     :show-inheritance:
 
 pySOT.sot_sync_strategies module
----------------------
+--------------------------------
 
 .. automodule:: pySOT.sot_sync_strategies
     :members:
