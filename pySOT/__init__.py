@@ -14,7 +14,7 @@ from poly_regression import *
 from merit_functions import *
 
 try:
-    from GUI import GUI
+    from gui import GUI
     __with_gui__ = True
 except ImportError:
     __with_gui__ = False

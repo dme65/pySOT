@@ -37,7 +37,7 @@ We also support using multiple of these strategies and cycle
 import math
 from utils import *
 import scipy.spatial as scp
-from heuristic_algorithms import GeneticAlgorithm as GA
+from heuristic_methods import GeneticAlgorithm as GA
 from scipy.optimize import minimize
 import scipy.stats as stats
 from merit_functions import *

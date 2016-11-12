@@ -1,15 +1,7 @@
-pySOT package
-=============
-
-Subpackages
------------
+Source
+======
 
 .. toctree::
-
-    pySOT.test
-
-Submodules
-----------
 
 pySOT.ensemble_surrogate module
 -------------------------------
@@ -27,10 +19,43 @@ pySOT.experimental_design module
     :undoc-members:
     :show-inheritance:
 
+pySOT.gui module
+----------------
+
+.. automodule:: pySOT.gui
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.heuristic_methods module
+------------------------------
+
+.. automodule:: pySOT.heuristic_methods
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 pySOT.mars_interpolant module
 -----------------------------
 
 .. automodule:: pySOT.mars_interpolant
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.merit_functions module
+----------------------------
+
+.. automodule:: pySOT.merit_functions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.poly_regression module
+----------------------------
+
+.. automodule:: pySOT.poly_regression
     :members:
     :undoc-members:
     :show-inheritance:
@@ -75,11 +100,10 @@ pySOT.test_problems module
     :undoc-members:
     :show-inheritance:
 
+pySOT.utils module
+------------------
 
-Module contents
----------------
-
-.. automodule:: pySOT
+.. automodule:: pySOT.utils
     :members:
     :undoc-members:
     :show-inheritance:

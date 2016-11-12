@@ -51,8 +51,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pySOT'
-copyright = u'2015, David Bindel, David Eriksson'
-author = u'David Bindel, David Eriksson'
+copyright = u'2015, David Bindel, David Eriksson, Christine Shoemaker'
+author = u'David Bindel, David Eriksson, Christine Shoemaker'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
