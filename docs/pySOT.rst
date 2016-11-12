@@ -27,6 +27,14 @@ pySOT.experimental_design module
     :undoc-members:
     :show-inheritance:
 
+pySOT.kriging_interpolant module
+-----------------------------
+
+.. automodule:: pySOT.kriging_interpolant
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pySOT.mars_interpolant module
 -----------------------------
 

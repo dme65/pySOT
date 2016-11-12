@@ -25,5 +25,11 @@ try:
 except ImportError:
     __with_mars__ = False
 
+try:
+    from kriging_interpolant import KrigingInterpolant
+    __with_kriging__ = True
+except ImportError:
+    __with_kriging__ = False
+
 __version__ = '0.1.29'
 __author__ = 'David Eriksson, David Bindel'
