@@ -16,7 +16,7 @@ setup(
     author_email='bindel@cornell.edu, dme65@cornell.edu, shoemaker@nus.edu.sg',
     description='Surrogate Optimization Toolbox',
     long_description=long_description,
-    install_requires=['pyDOE', 'inspyred', 'pyKriging', 'POAP==0.1.24',
+    install_requires=['numpy', 'scipy', 'pyDOE', 'inspyred', 'pyKriging', 'POAP>=0.1.25',
                       'py_dempster_shafer', 'subprocess32', 'matlab_wrapper'],
     classifiers=['Programming Language :: Python :: 2.7'],
 )
