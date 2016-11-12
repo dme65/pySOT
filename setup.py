@@ -18,9 +18,7 @@ setup(
     long_description=long_description,
     install_requires=['numpy', 'scipy', 'pyDOE', 'POAP>=0.1.25',
                       'py_dempster_shafer', 'subprocess32',
-                      'matlab_wrapper', 'scikit-learn', 'py-earth==0.1.0'],
-    dependency_links=[
-        "git+ssh://git@github.com/scikit-learn-contrib/py-earth.git@0.1.0#egg=py-earth-0.1.0"
-    ],
+                      'matlab_wrapper', 'scikit-learn', 'py-earth'],
+    dependency_links=['http://github.com/scikit-learn-contrib/py-earth/tarball/master#egg=py-earth-0.1.0'],
     classifiers=['Programming Language :: Python :: 2.7'],
 )
