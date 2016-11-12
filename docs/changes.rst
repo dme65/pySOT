@@ -1,4 +1,4 @@
 Changes
 =======
 
-Blah blah blah
+.. include:: ../changes.rst

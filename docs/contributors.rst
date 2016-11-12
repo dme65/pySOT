@@ -1,4 +1,4 @@
 Contributors
 ============
 
-Blah blah blah
+.. include:: ../contributors.rst

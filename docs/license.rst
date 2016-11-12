@@ -1,4 +1,4 @@
 License
 =======
 
-Blah blah blah
+.. include:: ../license.rst
