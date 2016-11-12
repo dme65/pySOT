@@ -28,7 +28,7 @@ pySOT.experimental_design module
     :show-inheritance:
 
 pySOT.kriging_interpolant module
------------------------------
+--------------------------------
 
 .. automodule:: pySOT.kriging_interpolant
     :members:
