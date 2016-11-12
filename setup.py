@@ -10,7 +10,7 @@ setup(
     name='pySOT',
     version='0.1.29',
     packages=['pySOT', 'pySOT.test'],
-    url='http://pypi.python.org/pypi/pySOT/',
+    url='https://github.com/dme65/pySOT',
     license='LICENSE.rst',
     author='David Bindel, David Eriksson, Christine Shoemaker',
     author_email='bindel@cornell.edu, dme65@cornell.edu, shoemaker@nus.edu.sg',

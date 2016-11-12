@@ -19,6 +19,6 @@ Welcome to pySOT!
    guidelines
    logging
    source
-   changes
-   license
-   contributors
+   _changes
+   _license
+   _contributors

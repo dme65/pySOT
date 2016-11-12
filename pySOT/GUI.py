@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-..module:: gui.py
+..module:: gui
   :synopsis: A Graphical User Interface for pySOT
 ..moduleauthor:: David Eriksson <dme65@cornell.edu>
 """

@@ -1,5 +1,5 @@
 """
-.. module:: heurisitc_algorithms
+.. module:: heurisitc_methods
    :synopsis: A mixed-integer GA implementation for bound constrained problems
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
