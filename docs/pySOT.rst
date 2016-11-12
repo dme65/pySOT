@@ -43,10 +43,10 @@ pySOT.mars_interpolant module
     :undoc-members:
     :show-inheritance:
 
-pySOT.rbf_interpolant module
+pySOT.rbf module
 ----------------------------
 
-.. automodule:: pySOT.rbf_interpolant
+.. automodule:: pySOT.rbf
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,10 +59,10 @@ pySOT.rs_capped module
     :undoc-members:
     :show-inheritance:
 
-pySOT.search_procedure module
+pySOT.sampling_methods module
 -----------------------------
 
-.. automodule:: pySOT.search_procedure
+.. automodule:: pySOT.sampling_methods
     :members:
     :undoc-members:
     :show-inheritance:
