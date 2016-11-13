@@ -13,9 +13,9 @@ import os.path
 def main():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_kriging.log"):
-        os.remove("./logfiles/test_kriging.log")
-    logging.basicConfig(filename="./logfiles/test_kriging.log",
+    if os.path.exists("./logfiles/test_mars.log"):
+        os.remove("./logfiles/test_mars.log")
+    logging.basicConfig(filename="./logfiles/test_mars.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")

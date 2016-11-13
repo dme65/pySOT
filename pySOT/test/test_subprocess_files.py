@@ -4,7 +4,6 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-import logging
 from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
