@@ -37,9 +37,7 @@ The toolbox is based on the following published papers: [1_], [2_], [3_], [4_],
    options
    poap
    gui
-   tutorial_no_constraints
-   tutorial_inequality_constraints
-   tutorial_projection
+   tutorials
    guidelines
    logging
    source

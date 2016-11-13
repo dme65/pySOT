@@ -60,7 +60,7 @@ which means that we need to implement the eval_ineq_constraints method.
                 raise ValueError('Dimension mismatch')
             return - x[0] + 3 * x[1] + 1.5 * x[2] + 2 * x[3] - 0.5 * x[4]
 
-**Note:** The method validate which is available in pySOT is helpful in order t
+**Note:** The method check_opt_prob which is available in pySOT is helpful in order t
 o test that the objective function is compatible with the framework.
 
 Experimental design
@@ -311,7 +311,7 @@ than 5000, is recommended. Next is an example on how to generate a multi-start
 strategy that uses CandidateDYCORS, CandidateDYCORS_CONT,
 CandidateDYCORS_INT, and CandidateUniform and that cycles evenly between
 the methods i.e., the first point is generated using CandidateDYCORS, the
-second using CandidateDYCORS\_CONT and so on.
+second using CandidateDYCORS_CONT and so on.
 
 .. code-block:: python
 

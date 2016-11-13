@@ -13,25 +13,29 @@ We currently only support the weighted distance merit function.
 We support the following methods for minimizing on the surface:
 
 Candidate based methods:
-    - CandidateSRBF: Generate candidate points around the best point
-    - CandidateDYCORS: Uses a DDS strategy with a cap on the lowest probability
-    - CandidateUniform: Sample the candidate points uniformly in the domain
-    - CandidateSRBF_INT: Uses CandidateSRBF but only
-        perturbs the integer variables
-    - CandidateSRBF_CONT: Uses CandidateSRBF but only
-        perturbs the continuous variables
-    - CandidateDYCORS_INT: Uses CandidateSRBF but only
-        perturbs the integer variables
-    - CandidateDYCORS_CONT: Uses CandidateSRBF but only
-        perturbs the continuous variables
-    - CandidateUniform_CONT: Sample the continuous variables of
-        the candidate points uniformly in the domain
-    - CandidateUniform_INT: Sample the integer variables of the
-        candidate points uniformly in the domain
+    - **CandidateSRBF:**
+        Generate candidate points around the best point
+    - **CandidateDYCORS:**
+        Uses a DDS strategy with a cap on the lowest probability
+    - **CandidateUniform:**
+        Sample the candidate points uniformly in the domain
+    - **CandidateSRBF_INT:**
+        Uses CandidateSRBF but only perturbs the integer variables
+    - **CandidateSRBF_CONT:**
+        Uses CandidateSRBF but only perturbs the continuous variables
+    - **CandidateDYCORS_INT:**
+        Uses CandidateSRBF but only perturbs the integer variables
+    - **CandidateDYCORS_CONT:**
+        Uses CandidateSRBF but only perturbs the continuous variables
+    - **CandidateUniform_CONT:**
+        Sample the continuous variables of the candidate points uniformly in the domain
+    - **CandidateUniform_INT:**
+        Sample the integer variables of the candidate points uniformly in the domain
 
 We also support using multiple of these strategies and cycle
-    between them which we call MultiSampling
-    - MultiSampling
+between them which we call MultiSampling
+
+    - **MultiSampling**
 """
 
 import math

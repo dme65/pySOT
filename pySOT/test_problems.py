@@ -666,7 +666,7 @@ class Keane:
     subject to
 
     .. math::
-        -100 \\leq x_i \\leq 100
+        0 \\leq x_i \\leq 5
 
     .. math::
         0.75 - \\prod_{j=1}^n x_j < 0
