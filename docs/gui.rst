@@ -47,4 +47,5 @@ Note that both the file name and the class names are the same.
 
 The picture below shows what the GUI looks like.
 
-.. image:: ./pics/gui.png
+
+.. image:: ./pics/GUI.png
