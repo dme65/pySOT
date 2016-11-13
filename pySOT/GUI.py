@@ -1,8 +1,10 @@
-#!/usr/bin/python
 """
-..module:: gui
+.. module:: gui
   :synopsis: A Graphical User Interface for pySOT
-..moduleauthor:: David Eriksson <dme65@cornell.edu>
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>
+
+:Module: gui
+:Author: David Eriksson <dme65@cornell.edu>
 """
 
 import sys

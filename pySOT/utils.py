@@ -1,3 +1,12 @@
+"""
+.. module:: utils
+   :synopsis: Help function in pySOT
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>
+
+:Module: utils
+:Author: David Eriksson <dme65@cornell.edu>
+"""
+
 import numpy as np
 try:
     import matplotlib.pyplot as plt
