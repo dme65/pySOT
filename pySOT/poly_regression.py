@@ -47,10 +47,6 @@ class PolyRegression(object):
         self.fx = None
         self.updated = False
 
-    # FIXME
-    def poised_for_interpolation(self, X):
-        return True
-
     @property
     def dim(self):
         return self.bounds.shape[0]
@@ -280,7 +276,7 @@ def basis_TP(n, d):
 
 
 def basis_TD(n, d):
-    """Generate list of shape functions for TP poly space.
+    """Generate list of shape functions for TD poly space.
 
     :param n: Dimension of the space
     :param d: Degree bound

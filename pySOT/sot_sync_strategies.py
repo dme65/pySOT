@@ -64,7 +64,8 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.data = data
         self.fhat = response_surface
         if self.fhat is None:
-            self.fhat = RBFInterpolant(surftype=CubicRBFSurface, maxp=maxeval)
+            self.fhat = RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval)
+        self.fhat.reset() # Just to be sure!
 
         self.maxeval = maxeval
         self.nsamples = nsamples

@@ -34,7 +34,7 @@ Surrogate model, Stopping criterion, Restart criterion
    Repeat until stopping criterion met
       Restart criterion met
       Reset the Surrogate model and the Sample point strategy
-      go to 3
+      go to 1
    Use the adaptive sampling method to generate new point(s) to evaluate
    Evaluate the point(s) generated using all computational resources
    Update the Surrogate model
