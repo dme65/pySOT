@@ -12,7 +12,7 @@ to provide this functionality.
 
 The toolbox is hosted on GitHub: [https://github.com/dme65/pySOT](https://github.com/dme65/pySOT)
 
-Link to the pySOT documentation: [https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf](https://github.com/dme65/pySOT/blob/master/docs/pySOT.pdf)
+Documentation: [http://pysot.readthedocs.io/](http://pysot.readthedocs.io/)
 
 pySOT has been downloaded 16,001 times from 2015-June-4 to 2016-October-15
 

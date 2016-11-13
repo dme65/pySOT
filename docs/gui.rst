@@ -1,4 +1,4 @@
 Graphical user interface
 ========================
 
-Blah blah blah
+Stay patient!

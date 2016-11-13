@@ -1,4 +1,4 @@
 Guidelines
 ==========
 
-Blah blah blah
+Stay patient!

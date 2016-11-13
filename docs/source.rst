@@ -19,14 +19,6 @@ pySOT.experimental_design module
     :undoc-members:
     :show-inheritance:
 
-pySOT.gui module
-----------------
-
-.. automodule:: pySOT.gui
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pySOT.heuristic_methods module
 ------------------------------
 

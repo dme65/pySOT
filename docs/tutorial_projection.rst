@@ -1,4 +1,4 @@
 Tutorial: Projection
 ====================
 
-Blah blah blah
+Stay patient!
