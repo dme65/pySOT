@@ -1,5 +1,5 @@
 Copyright (c) 2015 by David Bindel, David Eriksson, and contributors.
-See CONTRIBUTORS for more details.
+See Contributors for more details.
 
 All rights reserved.
 
