@@ -1,4 +1,0 @@
-Tutorial: Projection
-====================
-
-Stay patient!

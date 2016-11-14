@@ -94,4 +94,4 @@ Possible output:
 
 A possible progress plot if the following:
 
-.. image:: ./pics/tutorial5_pic1.png
+.. image:: ../pics/tutorial5_pic1.png

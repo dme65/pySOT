@@ -103,4 +103,4 @@ controller to keep running and the workers to reconnect and continue carrying ou
 Communication between POAP and pySOT
 ------------------------------------
 
-.. image:: ./pics/pysot_poap.png
+.. image:: ../pics/pysot_poap.png

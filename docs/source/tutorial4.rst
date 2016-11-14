@@ -78,5 +78,5 @@ Possible output:
 
 A possible progress plot is:
 
-.. image:: ./pics/tutorial4_pic1.png
+.. image:: ../pics/tutorial4_pic1.png
 

@@ -79,7 +79,7 @@ Possible output:
 
 Possible output:
 
-.. image:: ./pics/tutorial1_pic1.png
+.. image:: ../pics/tutorial1_pic1.png
 
 **Step 4:** Launch a threaded controller with 4 workers and use standard Surrogate Optimization strategy
 allowing to do 4 simultaneous in parallel. Notice how similar the code in Step 3 is to the code in Step 2.
@@ -138,4 +138,4 @@ Possible output:
 
 Possible output:
 
-.. image:: ./pics/tutorial1_pic2.png
+.. image:: ../pics/tutorial1_pic2.png

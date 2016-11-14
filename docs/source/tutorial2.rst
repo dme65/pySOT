@@ -10,7 +10,7 @@ This example shows how to define our own optimization problem in pySOT
         self.xlow = -10 * np.ones(dim) # lower bounds
         self.xup = 10 * np.ones(dim) # upper bounds
         self.dim = dim # dimensionality
-        self.info = "Our own " + str(dim)+"-dimensional function!" # info
+        self.info = "Our own " + str(dim)+"-dimensional function" # info
         self.integer = np.array([0]) # integer variables
         self.continuous = np.arange(1, dim) # continuous variables
 
@@ -59,7 +59,7 @@ Output:
 
 .. code-block:: python
 
-    Our own 10-dimensional function!
+    Our own 10-dimensional function
 
 **Step 4:** Run the optimization in serial
 
@@ -110,4 +110,4 @@ Possible output:
 
 Possible output:
 
-.. image:: ./pics/tutorial2_pic1.png
+.. image:: ../pics/tutorial2_pic1.png
