@@ -5,7 +5,7 @@ except ImportError:
 
 from experimental_design import *
 from rbf import *
-from rs_capped import RSCapped, RSUnitbox
+from rs_wrappers import RSCapped, RSUnitbox
 from sampling_methods import *
 from test_problems import *
 from sot_sync_strategies import *
@@ -26,4 +26,4 @@ except ImportError:
     __with_mars__ = False
 
 __version__ = '0.1.29'
-__author__ = 'David Eriksson, David Bindel'
+__author__ = 'David Eriksson, David Bindel, Christine Shoemaker'

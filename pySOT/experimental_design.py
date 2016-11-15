@@ -1,12 +1,13 @@
 """
 .. module:: experimental_design
   :synopsis: Methods for generating an experimental design.
+
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>,
                  Yi Shen <ys623@cornell.edu>
 
 :Module: experimental_design
-:Author: David Eriksson <dme65@cornell.edu>,
-    Yi Shen <ys623@cornell.edu>
+:Author: David Eriksson <dme65@cornell.edu>
+        Yi Shen <ys623@cornell.edu>
 """
 
 import numpy as np
@@ -21,13 +22,18 @@ class LatinHypercube(object):
     :ivar criterion: A string that tells lhs how to sample the
         points (default: None which simply randomizes the points
         within the intervals):
-            - "center" or "c": center the points within the sampling intervals
-            - "maximin" or "m": maximize the minimum distance
+
+            - "center" or "c"
+                center the points within the sampling intervals
+            - "maximin" or "m"
+                maximize the minimum distance
                 between points, but place the point in a randomized
                 location within its interval
-            - "centermaximin" or "cm": same as "maximin", but
+            - "centermaximin" or "cm"
+                same as "maximin", but
                 centered within the intervals
-            - "correlation" or "corr": minimize the maximum
+            - "correlation" or "corr"
+                minimize the maximum
                 correlation coefficient
     """
 

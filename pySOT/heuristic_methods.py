@@ -1,7 +1,12 @@
 """
-.. module:: heurisitc_methods
+.. module:: heuristic_methods
    :synopsis: A mixed-integer GA implementation for bound constrained problems
+
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
+
+:Module: heuristic_methods
+:Author: David Eriksson <dme65@cornell.edu>
+
 """
 
 from experimental_design import LatinHypercube, SymmetricLatinHypercube

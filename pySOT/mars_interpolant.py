@@ -1,10 +1,12 @@
 """
 .. module:: mars_interpolant
    :synopsis: MARS model interpolation
+
 .. moduleauthor:: Yi Shen <ys623@cornell.edu>
 
 :Module: mars_interpolant
 :Author: Yi Shen <ys623@cornell.edu>
+
 """
 
 import numpy as np

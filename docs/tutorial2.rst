@@ -110,4 +110,4 @@ Possible output:
 
 Possible output:
 
-.. image:: ../pics/tutorial2_pic1.png
+.. image:: ./pics/tutorial2_pic1.png

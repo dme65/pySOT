@@ -1,6 +1,20 @@
 Source code
 ===========
 
+.. inheritance-diagram:: pySOT.experimental_design
+
+.. inheritance-diagram:: pySOT.mars_interpolant
+
+.. inheritance-diagram:: pySOT.rbf
+
+.. inheritance-diagram:: pySOT.rs_wrappers
+
+.. inheritance-diagram:: pySOT.sampling_methods
+
+.. inheritance-diagram:: pySOT.sot_sync_strategies
+
+.. inheritance-diagram:: pySOT.test_problems
+
 .. toctree::
 
 pySOT.ensemble_surrogate module
@@ -60,10 +74,10 @@ pySOT.rbf module
     :undoc-members:
     :show-inheritance:
 
-pySOT.rs_capped module
-----------------------
+pySOT.rs_wrappers module
+------------------------
 
-.. automodule:: pySOT.rs_capped
+.. automodule:: pySOT.rs_wrappers
     :members:
     :undoc-members:
     :show-inheritance:

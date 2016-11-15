@@ -4,9 +4,9 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
                  David Bindel <bindel@cornell.edu>
 
-:Module: sampling_strategies
+:Module: sampling_methods
 :Author: David Eriksson <dme65@cornell.edu>,
-    David Bindel <bindel@cornell.edu>
+        David Bindel <bindel@cornell.edu>
 
 We currently only support the weighted distance merit function.
 
@@ -587,21 +587,19 @@ class MultiStartGradient(object):
         gradient based minimization.
 
     Attributes:
-        usecand: Indicates that this method is NOT candidate based
         data: Optimization object
         fhat: Original response surface object.
-        proposed_points: List of points proposed by any search strategy
-                         since the last restart
-        objfun: The merit function to minimize (needs to have a gradient available)
+        proposed_points: List of points proposed by any search strategy since the last restart
         bounds: n x 2 matrix with lower and upper bound constraints
-        numrestarts: Number of random starting points
+        num_restarts: Number of random starting points
         method: What optimization method to use. The following options are available:
+
             - L-BFGS-B: Quasi-Newton method of
                         Broyden, Fletcher, Goldfarb, and Shanno (BFGS)
             - TNC:      Truncated Newton algorithm
 
-        Note: SLSQP is supposed to work with bound constraints but for some reason it
-              sometimes violates the constraints anyway.
+    Note: SLSQP is supposed to work with bound constraints but for some reason it
+        sometimes violates the constraints anyway.
     """
 
     def __init__(self, data, method='L-BFGS-B', num_restarts=30):

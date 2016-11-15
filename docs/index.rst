@@ -32,18 +32,18 @@ The toolbox is based on the following published papers: [1_], [2_], [3_], [4_],
    :maxdepth: 4
    :caption: User Documentation
 
-   ./source/quickstart
-   ./source/surrogate_optimization
-   ./source/options
-   ./source/poap
-   ./source/gui
-   ./source/tutorials
-   ./source/guidelines
-   ./source/logging
-   ./source/source_code
-   ./source/changes
-   ./source/license
-   ./source/contributors
+   quickstart
+   surrogate_optimization
+   options
+   poap
+   gui
+   tutorials
+   guidelines
+   logging
+   source_code
+   changes
+   license
+   contributors
 
 
 .. [1] Rommel G Regis and Christine A Shoemaker.

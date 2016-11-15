@@ -1,19 +1,15 @@
 """
 .. module:: utils
-   :synopsis: Help function in pySOT
+   :synopsis: Help functions for pySOT
+
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
 :Module: utils
 :Author: David Eriksson <dme65@cornell.edu>
+
 """
 
 import numpy as np
-try:
-    import matplotlib.pyplot as plt
-    plotting_on = True
-except:
-    plotting_on = False
-    pass
 
 
 def to_unit_box(x, data):
@@ -113,6 +109,13 @@ def check_opt_prob(obj):
 
 
 def progress_plot(controller, title='', interactive=False):
+    try:
+        import matplotlib.pyplot as plt
+        plotting_on = True
+    except:
+        plotting_on = False
+        pass
+
     if not plotting_on:
         print("Failed to import matplotlib.pyplot, aborting....")
         return

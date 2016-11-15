@@ -2,12 +2,14 @@
 .. module:: test_problems
   :synopsis: Test problems for multi-modal and
              box-constrained global optimization
-.. moduleauthor:: David Eriksson <dme65@cornell.edu>
+
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>,
                  David Bindel <bindel@cornell.edu>
 
 :Module: test_problems
-:Author: David Eriksson <dme65@cornell.edu>
-    David Bindel <bindel@cornell.edu>
+:Author: David Eriksson <dme65@cornell.edu>,
+        David Bindel <bindel@cornell.edu>
+
 """
 
 import random

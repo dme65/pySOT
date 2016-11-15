@@ -1,10 +1,12 @@
 """
 .. module:: ensemble_surrogate
    :synopsis: Ensemble surrogate surfaces
+
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
 :Module: ensemble_surrogate
 :Author: David Eriksson <dme65@cornell.edu>
+
 """
 
 from pyds import MassFunction
@@ -109,6 +111,7 @@ class EnsembleSurrogate:
         Given n observations we use n surrogates built with n-1 of the points
         in order to predict the value at the removed point. Based on these n
         predictions we calculate three different statistics:
+
             - Correlation coefficient with true function values
             - Root mean square deviation
             - Mean absolute error

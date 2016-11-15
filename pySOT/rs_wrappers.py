@@ -1,9 +1,9 @@
 """
-.. module:: rs_capped
-   :synopsis: Median-capped interpolation
+.. module:: rs_wrappers
+   :synopsis: Response surface wrappers
 .. moduleauthor:: David Bindel <bindel@cornell.edu>
 
-:Module: rs_capped
+:Module: rs_wrappers
 :Author: David Bindel <bindel@cornell.edu>
 """
 
@@ -41,13 +41,13 @@ class RSCapped(object):
         self.nump = 0
         self.maxp = model.maxp
 
-    @property
-    def x(self):
-        return self.get_x()
+    #@property
+    #def x(self):
+    #    return self.get_x()
 
-    @property
-    def fx(self):
-        return self.get_fx()
+    #@property
+    #def fx(self):
+    #    return self.get_fx()
 
     def reset(self):
         """Reset the capped response surface
@@ -141,13 +141,13 @@ class RSPenalty(object):
         self.eval_method = evals
         self.deriv_method = derivs
 
-    @property
-    def x(self):
-        return self.get_x()
+    #@property
+    #def x(self):
+    #    return self.get_x()
 
-    @property
-    def fx(self):
-        return self.get_fx()
+    #@property
+    #def fx(self):
+    #    return self.get_fx()
 
     def reset(self):
         """Reset the capped response surface
@@ -233,13 +233,13 @@ class RSUnitbox(object):
         self.maxp = model.maxp
         self.data = data
 
-    @property
-    def x(self):
-        return self.get_x()
+    #@property
+    #def x(self):
+    #    return self.get_x()
 
-    @property
-    def fx(self):
-        return self.get_fx()
+    #@property
+    #def fx(self):
+    #    return self.get_fx()
 
     def reset(self):
         """Reset the capped response surface

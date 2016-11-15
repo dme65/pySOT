@@ -1,14 +1,14 @@
 """
 .. module:: sot_sync_strategies
    :synopsis: Parallel synchronous optimization strategy
+
 .. moduleauthor:: David Bindel <bindel@cornell.edu>,
-    David Eriksson <dme65@cornell.edu>
+                David Eriksson <dme65@cornell.edu>
 
 :Module: sot_sync_strategies
 :Author: David Bindel <bindel@cornell.edu>,
-    David Eriksson <dme65@cornell.edu>
+        David Eriksson <dme65@cornell.edu>
 
-Synchronous strategies for Stochastic RBF
 """
 
 from __future__ import print_function
@@ -20,7 +20,7 @@ from sampling_methods import CandidateDYCORS
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf import *
 from utils import *
-from rs_capped import *
+from rs_wrappers import *
 
 # Get module-level logger
 logger = logging.getLogger(__name__)

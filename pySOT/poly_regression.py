@@ -5,6 +5,7 @@
 
 :Module: poly_regression
 :Author: David Bindel <bindel@cornell.edu>
+
 """
 
 import numpy as np
@@ -31,12 +32,16 @@ class PolyRegression(object):
         :param bounds: a (dims, 2) array of lower and upper bounds in each coord
         :param basisp: a (nbasis, dims) array, where the ith basis function is
             prod_j L_basisp(i,j)(x_j), L_k = the degree k Legendre polynomial
+        :param maxp: maximum number of points
         """
+
         self.nump = 0
         self.maxp = maxp
         self.x = None     # pylint: disable=invalid-name
         self.fx = None
+        self.dim = None
         self.bounds = bounds
+        self.dim = bounds.shape[0]
         self.basisp = basisp
         self.updated = False
 
@@ -46,10 +51,6 @@ class PolyRegression(object):
         self.x = None
         self.fx = None
         self.updated = False
-
-    @property
-    def dim(self):
-        return self.bounds.shape[0]
 
     def _normalize(self, x):
         """Normalize points to the box [-1,1]^d

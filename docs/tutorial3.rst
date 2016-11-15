@@ -110,7 +110,7 @@ Possible output:
 
 Possible output:
 
-.. image:: ../pics/tutorial3_pic1.png
+.. image:: ./pics/tutorial3_pic1.png
 
 **Step 6:** End the MATLAB session:
 

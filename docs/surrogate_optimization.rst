@@ -38,6 +38,7 @@ Surrogate model, Stopping criterion, Restart criterion
    Use the adaptive sampling method to generate new point(s) to evaluate
    Evaluate the point(s) generated using all computational resources
    Update the Surrogate model
+
 **Outputs:** Best solution and its corresponding function value
 
 Typically used stopping criteria are a maximum number of allowed function

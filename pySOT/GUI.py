@@ -1,10 +1,12 @@
 """
 .. module:: gui
   :synopsis: A Graphical User Interface for pySOT
+
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
 :Module: gui
 :Author: David Eriksson <dme65@cornell.edu>
+
 """
 
 import sys
@@ -20,7 +22,7 @@ from poap.strategy import *
 import time
 from sot_sync_strategies import *
 from experimental_design import *
-from rs_capped import RSCapped
+from rs_wrappers import RSCapped
 from sampling_methods import *
 from ensemble_surrogate import *
 from rbf import *

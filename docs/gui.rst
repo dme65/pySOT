@@ -48,4 +48,4 @@ Note that both the file name and the class names are the same.
 The picture below shows what the GUI looks like.
 
 
-.. image:: ../pics/GUI.png
+.. image:: ./pics/GUI.png
