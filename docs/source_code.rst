@@ -66,6 +66,22 @@ pySOT.poly_regression module
     :undoc-members:
     :show-inheritance:
 
+pySOT.kernels module
+--------------------
+
+.. automodule:: pySOT.kernels
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.tails module
+------------------
+
+.. automodule:: pySOT.tails
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pySOT.rbf module
 ----------------
 

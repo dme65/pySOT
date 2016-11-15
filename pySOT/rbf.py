@@ -14,254 +14,8 @@
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
-
-
-class CubicKernel(object):
-    """Cubic RBF kernel
-
-    This is a basic class for the Cubic RBF kernel: :math:`\\varphi(r) = r^3` which is
-    conditionally positive definite of order 2.
-    """
-
-    def order(self):
-        """returns the order of the Cubic RBF kernel
-
-        :returns: 2
-        :rtype: int
-        """
-
-        return 2
-
-    def phi_zero(self):
-        """returns the value of :math:`\\varphi(0)` for Cubic RBF kernel
-
-        :returns: 0
-        :rtype: float
-        """
-
-        return 0.0
-
-    def eval(self, dists):
-        """evaluates the Cubic kernel for a distance matrix
-
-        :param dists: Distance input matrix
-        :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|^3`
-        :rtype: numpy.array
-        """
-
-        return np.multiply(dists, np.multiply(dists, dists))
-
-    def deriv(self, dists):
-        """evaluates the derivative of the Cubic kernel for a distance matrix
-
-        :param dists: Distance input matrix
-        :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`3 \| x_i - x_j \|^2`
-        :rtype: numpy.array
-        """
-
-        return 3 * np.multiply(dists, dists)
-
-
-class TPSKernel(object):
-    """Thin-plate spline RBF kernel
-
-    This is a basic class for the TPS RBF kernel: :math:`\\varphi(r) = r^2 \log(r)` which is
-    conditionally positive definite of order 2.
-    """
-
-    def order(self):
-        """returns the order of the TPS RBF kernel
-
-        :returns: 2
-        :rtype: int
-        """
-
-        return 2
-
-    def phi_zero(self):
-        """returns the value of :math:`\\varphi(0)` for TPS RBF kernel
-
-        :returns: 0
-        :rtype: float
-        """
-
-        return 0.0
-
-    def eval(self, dists):
-        """evaluates the Cubic kernel for a distance matrix
-
-        :param dists: Distance input matrix
-        :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|^2 \log (\|x_i - x_j \|)`
-        :rtype: numpy.array
-        """
-
-        return np.multiply(np.multiply(dists, dists), np.log(dists + np.finfo(float).tiny))
-
-    def deriv(self, dists):
-        """evaluates the derivative of the Cubic kernel for a distance matrix
-
-        :param dists: Distance input matrix
-        :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|(1 + 2 \log (\|x_i - x_j \|) )`
-        :rtype: numpy.array
-        """
-
-        return np.multiply(dists, 1 + 2 * np.log(dists + np.finfo(float).tiny))
-
-
-class LinearKernel(object):
-    """Linear RBF kernel
-
-     This is a basic class for the Linear RBF kernel: :math:`\\varphi(r) = r` which is
-     conditionally positive definite of order 1.
-     """
-
-    def order(self):
-        """returns the order of the Linear RBF kernel
-
-        :returns: 1
-        :rtype: int
-        """
-
-        return 1
-
-    def phi_zero(self):
-        """returns the value of :math:`\\varphi(0)` for Linear RBF kernel
-
-        :returns: 0
-        :rtype: float
-        """
-
-        return 0
-
-    def eval(self, dists):
-        """evaluates the Linear kernel for a distance matrix
-
-        :param dists: Distance input matrix
-        :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|`
-        :rtype: numpy.array
-        """
-
-        return dists
-
-    def deriv(self, dists):
-        """evaluates the derivative of the Cubic kernel for a distance matrix
-
-        :param dists: Distance input matrix
-        :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is 1
-        :rtype: numpy.array
-        """
-
-        return np.ones((dists.shape[0], dists.shape[1]))
-
-
-class LinearTail(object):
-    """Linear polynomial tail
-
-    This is a standard linear polynomial in d-dimension, built from the basis
-    :math:`\{1,x_1,x_2,\ldots,x_d\}`.
-    """
-
-    def degree(self):
-        """returns the degree of the linear polynomial tail
-
-        :returns: 1
-        :rtype: int
-        """
-
-        return 1
-
-    def dim_tail(self, dim):
-        """returns the dimensionality of the linear polynomial space for a given dimension
-
-        :param dim: Number of dimensions of the Cartesian space
-        :type dim: int
-        :returns: 1 + dim
-        :rtype: int
-        """
-
-        return 1 + dim
-
-    def eval(self, X):
-        """evaluates the linear polynomial tail for a set of points
-
-        :param X: Points to evaluate, of size npts x dim
-        :type X: numpy.array
-        :returns: A numpy.array of size npts x dim_tail(dim)
-        :rtype: numpy.array
-        """
-
-        if len(X.shape) == 1:
-            X = np.atleast_2d(X)
-        return np.hstack((np.ones((X.shape[0], 1)), X))
-
-    def deriv(self, x):
-        """evaluates the gradient of the linear polynomial tail for one point
-
-        :param x: Point to evaluate, of length dim
-        :type x: numpy.array
-        :returns: A numpy.array of size dim x dim_tail(dim)
-        :rtype: numpy.array
-        """
-
-        return np.hstack((np.zeros((len(x), 1)), np.eye((len(x)))))
-
-
-class ConstantTail(object):
-    """Constant polynomial tail
-
-    This is a standard linear polynomial in d-dimension, built from the basis
-    :math:`\{1\}`.
-    """
-
-    def degree(self):
-        """returns the degree of the constant polynomial tail
-
-        :returns: 0
-        :rtype: int
-        """
-
-        return 0
-
-    def dimTail(self, dim):
-        """returns the dimensionality of the constant polynomial space for a given dimension
-
-        :param dim: Number of dimensions of the Cartesian space
-        :type dim: int
-        :returns: 1
-        :rtype: int
-        """
-
-        return 1
-
-    def eval(self, X):
-        """evaluates the constant polynomial tail for a set of points
-
-        :param X: Points to evaluate, of size npts x dim
-        :type X: numpy.array
-        :returns: A numpy.array of size npts x dim_tail(dim)
-        :rtype: numpy.array
-        """
-
-        if len(X.shape) == 1:
-            X = np.atleast_2d(X)
-        return np.ones((X.shape[0], 1))
-
-    def deriv(self, x):
-        """evaluates the gradient of the linear polynomial tail for one point
-
-        :param x: Point to evaluate, of length dim
-        :type x: numpy.array
-        :returns: A numpy.array of size dim x dim_tail(dim)
-        :rtype: numpy.array
-        """
-
-        return np.ones((len(x), 1))
+from kernels import *
+from tails import *
 
 
 class RBFInterpolant(object):
@@ -281,9 +35,18 @@ class RBFInterpolant(object):
         \\begin{bmatrix} 0 \\\\ f \\end{bmatrix}
 
     where :math:`P_{ij} = p_j(x_i)` and :math:`\\Phi_{ij}=\\phi(\\|x_i-x_j\\|)`.
-    T
-    he regularization parameter :math:`\\eta` allows us to avoid problems
-    with potential poor conditioning of the system.
+    The regularization parameter :math:`\\eta` allows us to avoid problems
+    with potential poor conditioning of the system. The regularization parameter
+    can either be fixed or estimated via LOOCV. Specify eta='adapt' for estimation.
+
+    :param kernel: RBF kernel object
+    :type kernel: Kernel
+    :param tail: RBF polynomial tail object
+    :type tail: Tail
+    :param maxp: Initial point capacity
+    :type maxp: int
+    :param eta: Regularization parameter
+    :type eta: float or 'adapt'
 
     :ivar kernel: RBF kernel
     :ivar tail: RBF tail
@@ -303,7 +66,7 @@ class RBFInterpolant(object):
     :ivar updated: True if the RBF coefficients are up to date
     """
 
-    def __init__(self, kernel=None, tail=None, maxp=500, eta=1e-8):
+    def __init__(self, kernel=CubicKernel, tail=LinearTail, maxp=500, eta=1e-8):
 
         if kernel is None or tail is None:
             kernel = CubicKernel
@@ -538,11 +301,13 @@ class RBFInterpolant(object):
         fx = self.kernel.eval(ds)*c[ntail:ntail+self.nump] + self.tail.eval(x)*c[:ntail]
         return fx
 
-    def deriv(self, x):
+    def deriv(self, x, ds=None):
         """Evaluate the derivative of the RBF interpolant at a point x
 
         :param x: Point for which we want to compute the RBF gradient
         :type x: numpy.array
+        :param ds: Distances between the centers and the point x
+        :type ds: numpy.array
         :return: Derivative of the RBF interpolant at x
         :rtype: numpy.array
         """
@@ -553,7 +318,8 @@ class RBFInterpolant(object):
         dpx = self.tail.deriv(x.transpose())
         c = self.coeffs()
         dfx = np.dot(dpx, c[:ntail]).transpose()
-        ds = scpspatial.distance.cdist(self.x[:self.nump, :], x)
+        if ds is None:
+            ds = scpspatial.distance.cdist(self.x[:self.nump, :], np.atleast_2d(x))
         ds[ds < 1e-10] = 1e-10  # Better safe than sorry
         dsx = - self.x[:self.nump, :]
         dsx += x
