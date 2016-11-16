@@ -1056,7 +1056,7 @@ class GeneticAlgorithm(object):
         new_points = np.zeros((npts, self.data.dim))
         for i in range(npts):
             ga = GA(self.fhat.evals, self.data.dim, self.data.xlow, self.data.xup,
-                    popsize=max([2*self.data.dim, 100]), ngen=100, proj_fun=proj_fun)
+                    popsize=max([2*self.data.dim, 100]), ngen=100, projfun=proj_fun)
             x_min, f_min = ga.optimize()
 
             dist = np.atleast_2d(np.min(
