@@ -53,7 +53,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'pySOT'
 copyright = u'2015, David Bindel, David Eriksson, Christine Shoemaker'
-author = u'David Bindel, David Eriksson, Christine Shoemaker'
+author = u'David Eriksson, David Bindel, Christine Shoemaker'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -228,7 +228,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'pySOT.tex', u'pySOT Documentation',
-   u'David Bindel, David Eriksson', 'manual'),
+   u'David Eriksson, David Bindel, Christine Shoemaker', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
