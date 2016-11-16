@@ -17,6 +17,25 @@ from pyearth import Earth
 class MARSInterpolant(Earth):
     """Compute and evaluate a MARS interpolant
 
+    MARS builds a model of the form
+
+    .. math::
+
+        \hat{f}(x) = \sum_{i=1}^{k} c_i B_i(x).
+
+    The model is a weighted sum of basis functions :math:`B_i(x)`. Each basis
+    function :math:`B_i(x)` takes one of the following three forms:
+
+    1. a constant 1.
+    2. a hinge function of the form :math:`\max(0, x - const)` or \
+       :math:`\max(0, const - x)`. MARS automatically selects variables \
+       and values of those variables for knots of the hinge functions.
+    3. a product of two or more hinge functions. These basis functions c \
+       an model interaction between two or more variables.
+
+    :param maxp: Initial capacity
+    :type maxp: int
+
     :ivar nump: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar x: Interpolation points
@@ -36,6 +55,7 @@ class MARSInterpolant(Earth):
 
     def reset(self):
         """Reset the interpolation."""
+
         self.nump = 0
         self.x = None
         self.fx = None
@@ -45,7 +65,9 @@ class MARSInterpolant(Earth):
         """Allocate storage for x, fx, rhs, and A.
 
         :param dim: Number of dimensions
+        :type dim: int
         """
+
         maxp = self.maxp
         self.dim = dim
         self.x = np.zeros((maxp, dim))
@@ -55,8 +77,11 @@ class MARSInterpolant(Earth):
         """Expand allocation to accommodate more points (if needed)
 
         :param dim: Number of dimensions
+        :type dim: int
         :param extra: Number of additional points to accommodate
+        :type extra: int
         """
+
         if self.nump == 0:
             self._alloc(dim)
         elif self.nump+extra > self.maxp:
@@ -68,22 +93,29 @@ class MARSInterpolant(Earth):
         """Get the list of data points
 
         :return: List of data points
+        :rtype: numpy.array
         """
+
         return self.x[:self.nump, :]
 
     def get_fx(self):
         """Get the list of function values for the data points.
 
         :return: List of function values
+        :rtype: numpy.array
         """
+
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
+        :type xx: numpy.array
         :param fx: The function value of the point to add
+        :type fx: float
         """
+
         dim = len(xx)
         self._realloc(dim)
         self.x[self.nump, :] = xx
@@ -91,39 +123,51 @@ class MARSInterpolant(Earth):
         self.nump += 1
         self.updated = False
 
-    def eval(self, xx, d=None):
+    def eval(self, x, ds=None):
         """Evaluate the MARS interpolant at the point xx
 
         :param xx: Point where to evaluate
         :return: Value of the MARS interpolant at x
+        :param ds: Not used
+        :type ds: None
         """
+
         if self.updated is False:
             self.model.fit(self.x, self.fx)
         self.updated = True
 
-        xx = np.expand_dims(xx, axis=0)
-        fx = self.model.predict(xx)
+        x = np.expand_dims(x, axis=0)
+        fx = self.model.predict(x)
         return fx[0]
 
-    def evals(self, xx, d=None):
-        """Evaluate the MARS interpolant at the points xx
+    def evals(self, x, ds=None):
+        """Evaluate the MARS interpolant at the points x
 
-        :param xx: Points where to evaluate
-        :return: Values of the MARS interpolant at x
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Not used
+        :type ds: None
+        :return: Values of the MARS interpolant at x, of length npts
+        :rtype: numpy.array
         """
+
         if self.updated is False:
             self.model.fit(self.x, self.fx)
         self.updated = True
 
-        fx = np.zeros(shape=(xx.shape[0], 1))
-        fx[:, 0] = self.model.predict(xx)
+        fx = np.zeros(shape=(x.shape[0], 1))
+        fx[:, 0] = self.model.predict(x)
         return fx
 
-    def deriv(self, x, d=None):
-        """Evaluate the derivative of the MARS interpolant at x
+    def deriv(self, x, ds=None):
+        """Evaluate the derivative of the MARS interpolant at a point x
 
-        :param x: Data point
+        :param x: Point for which we want to compute the MARS gradient
+        :type x: numpy.array
+        :param ds: Not used
+        :type ds: None
         :return: Derivative of the MARS interpolant at x
+        :rtype: numpy.array
         """
 
         if self.updated is False:

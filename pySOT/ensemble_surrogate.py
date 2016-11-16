@@ -295,11 +295,11 @@ class EnsembleSurrogate:
     def evals(self, x, ds=None):
         """Evaluate the ensemble surrogate at the points xx
 
-        :param x: Points where to evaluate
-        :type x: numpy.array of size npts x dim
-        :param ds: Distances between the centers and the points x
-        :type ds: numpy.array of size npts x ncenters
-        :return: Values of the ensemble surrogate at x
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Distances between the centers and the points x, of size npts x ncenters
+        :type ds: numpy.array
+        :return: Values of the ensemble surrogate at x, of length npts
         :rtype: numpy.array
         """
 

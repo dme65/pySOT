@@ -20,6 +20,7 @@ from tails import *
 
 class RBFInterpolant(object):
     """Compute and evaluate RBF interpolant.
+
     Manages an expansion of the form
 
     .. math::
@@ -267,7 +268,7 @@ class RBFInterpolant(object):
         self.c = None
 
     def eval(self, x, ds=None):
-        """Evaluate the RBF interpolant at the point xx
+        """Evaluate the RBF interpolant at the point x
 
         :param x: Point where to evaluate
         :type x: numpy.array
@@ -286,12 +287,12 @@ class RBFInterpolant(object):
     def evals(self, x, ds=None):
         """Evaluate the RBF interpolant at the points x
 
-        :param x: Points where to evaluate
-        :type x: numpy.array of size npts x dim
-        :param ds: Distances between the centers and the points x
-        :type ds: numpy.array of size npts x ncenters
-        :return: Values of the rbf interpolant at x
-        :rtype: numpy.array of length npts
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Distances between the centers and the points x, of size npts x ncenters
+        :type ds: numpy.array
+        :return: Values of the rbf interpolant at x, of length npts
+        :rtype: numpy.array
         """
 
         ntail = self.ntail

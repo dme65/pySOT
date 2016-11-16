@@ -1,6 +1,6 @@
 """
 .. module:: heuristic_methods
-   :synopsis: A mixed-integer GA implementation for bound constrained problems
+   :synopsis: Heuristic optimization methods
 
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
@@ -14,6 +14,51 @@ import numpy as np
 
 
 class GeneticAlgorithm:
+    """Genetic algorithm
+
+    This is an implementation of the real-valued Genetic algorithm that is useful for optimizing
+    on a surrogate model, but it can also be used on its own. The mutations are normally distributed
+    perturbations, the selection mechanism is a tournament selection, and the crossover oepration is
+    the standard linear combination taken at a randomly generated cutting point.
+
+    The number of evaluations are popsize x ngen
+
+    :param function: Function that can be used to evaluate the entire population. It needs to
+        take an input of size nindividuals x nvariables and return a numpy.array of length
+        nindividuals
+    :type function: Object
+    :param dim: Number of dimensions
+    :type dim: int
+    :param xlow: Lower variable bounds, of length dim
+    :type xlow: numpy.array
+    :param xup: Lower variable bounds, of length dim
+    :type xup: numpy.array
+    :param intvar: List of indices with the integer valued variables (e.g., [0, 1, 5])
+    :type intvar: list
+    :param popsize: Population size
+    :type popsize: int
+    :param ngen: Number of generations
+    :type ngen: int
+    :param start: Method for generating the initial population
+    :type start: string
+    :param proj_fun: Function that can project ONE infeasible individual onto the feasible region
+    :type proj_fun: Object
+
+    :ivar nvariables: Number of variables (dimensions) of the objective function
+    :ivar nindividuals: population size
+    :ivar lower_boundary: lower bounds for the optimization problem
+    :ivar upper_boundary: upper bounds for the optimization problem
+    :ivar integer_variables: List of variables that are integer valued
+    :ivar start: Method for generating the initial population
+    :ivar sigma: Perturbation radius. Each pertubation is N(0, sigma)
+    :ivar p_mutation: Mutation probability (1/dim)
+    :ivar tournament_size: Size of the tournament (5)
+    :ivar p_cross: Cross-over probability (0.9)
+    :ivar ngenerations: Number of generations
+    :ivar function: Object that can be used to evaluate the objective function
+    :ivar proj_fun: Function that can be used to project an individual onto the feasible region
+    """
+
     def __init__(self, function, dim, xlow, xup, intvar=None, popsize=100, ngen=100, start="SLHD", proj_fun=None):
         self.nvariables = dim
         self.nindividuals = popsize + (popsize % 2)  # Make sure this is even
@@ -32,11 +77,19 @@ class GeneticAlgorithm:
         self.proj_fun = proj_fun
 
     def optimize(self):
+        """Method used to run the Genetic algorithm
+
+        :return: Returns the best individual and its function value
+        :rtype: numpy.array, float
+        """
+
         #  Initialize population
         if isinstance(self.start, np.ndarray):
-            assert self.start.shape[0] == self.nindividuals and self.start.shape[1] == self.nvariables
-            assert all(np.min(self.start, axis=0) >= self.lower_boundary) and \
-                all(np.max(self.start, axis=0) <= self.upper_boundary)
+            if self.start.shape[0] != self.nindividuals or self.start.shape[1] != self.nvariables:
+                raise ValueError("Unknown method for generating the initial population")
+            if (not all(np.min(self.start, axis=0) >= self.lower_boundary)) or \
+                    (not all(np.max(self.start, axis=0) <= self.upper_boundary)):
+                raise ValueError("Initial population is outside the domain")
             population = self.start
         elif self.start == "SLHD":
             exp_des = SymmetricLatinHypercube(self.nvariables, self.nindividuals)
@@ -50,7 +103,7 @@ class GeneticAlgorithm:
             population = self.lower_boundary + np.random.rand(self.nindividuals, self.nvariables) *\
                 (self.upper_boundary - self.lower_boundary)
         else:
-            raise AttributeError("Unknown argument for initial population")
+            raise ValueError("Unknown argument for initial population")
 
         new_population = []
         #  Round positions
@@ -153,7 +206,7 @@ def main():
     # Vectorized Ackley function in dim dimensions
     def obj_function(x):
         return -20.0*np.exp(-0.2*np.sqrt(np.sum(x**2, axis=1)/dim)) - \
-            np.exp(np.sum(np.cos(2.0*np.pi*x), axis=1)/dim)  + 20 + np.exp(1)
+            np.exp(np.sum(np.cos(2.0*np.pi*x), axis=1)/dim) + 20 + np.exp(1)
 
     ga = GeneticAlgorithm(obj_function, dim, -15*np.ones(dim), 20*np.ones(dim),
                           popsize=100, ngen=100, start="SLHD")
@@ -179,4 +232,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
