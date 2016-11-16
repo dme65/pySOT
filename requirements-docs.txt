@@ -1,2 +1,2 @@
-'Sphinx == 1.4.7'
-'PySide == 0.1.25'
+Sphinx == 1.4.7
+PySide == 0.1.24
