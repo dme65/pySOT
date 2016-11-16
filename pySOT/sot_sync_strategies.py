@@ -16,7 +16,7 @@ import numpy as np
 import math
 import logging
 from experimental_design import SymmetricLatinHypercube, LatinHypercube
-from sampling_methods import CandidateDYCORS
+from adaptive_sampling import CandidateDYCORS
 from poap.strategy import BaseStrategy, RetryStrategy
 from rbf import *
 from utils import *
@@ -394,7 +394,7 @@ class SyncStrategyProjection(SyncStrategyNoConstraints):
                  proj_fun=None):
         """Initialize the optimization strategy.
 
-        :param worker_id: Start ID in a multistart setting
+        :param worker_id: Start ID in a multi-start setting
         :param data: Problem parameter data structure
         :param response_surface: Surrogate model object
         :param maxeval: Function evaluation budget

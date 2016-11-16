@@ -121,3 +121,11 @@ pySOT.test_problems module
     :members:
     :undoc-members:
     :show-inheritance:
+
+pySOT.utils module
+------------------
+
+.. automodule:: pySOT.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
