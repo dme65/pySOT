@@ -126,10 +126,12 @@ class MARSInterpolant(Earth):
     def eval(self, x, ds=None):
         """Evaluate the MARS interpolant at the point xx
 
-        :param xx: Point where to evaluate
-        :return: Value of the MARS interpolant at x
+        :param x: Point where to evaluate
+        :type x: numpy.array
         :param ds: Not used
         :type ds: None
+        :return: Value of the MARS interpolant at x
+        :rtype: float
         """
 
         if self.updated is False:

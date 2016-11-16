@@ -49,15 +49,23 @@ class SyncStrategyNoConstraints(BaseStrategy):
                  exp_design=None, sampling_method=None, extra=None):
         """Initialize the optimization strategy.
 
-        :param worker_id: Start ID in a multistart setting
+        :param worker_id: Start ID in a multi-start setting
+        :type worker_id: int
         :param data: Problem parameter data structure
+        :type data: Object
         :param response_surface: Surrogate model object
+        :type response_surface: Object
         :param maxeval: Function evaluation budget
+        :type maxeval: int
         :param nsamples: Number of simultaneous fevals allowed
+        :type nsamples: int
         :param exp_design: Experimental design
+        :type exp_design: Object
         :param sampling_method: Sampling method for finding
             points to evaluate
+        :type sampling_method: Object
         :param extra: Points to be added to the experimental design
+        :type extra: int
         """
 
         self.worker_id = worker_id
@@ -65,7 +73,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.fhat = response_surface
         if self.fhat is None:
             self.fhat = RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval)
-        self.fhat.reset() # Just to be sure!
+        self.fhat.reset()  # Just to be sure!
 
         self.maxeval = maxeval
         self.nsamples = nsamples
@@ -108,30 +116,49 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.sample_initial()
 
     def check_input(self):
+        """Checks that the inputs are correct"""
+
         self.check_common()
-        assert not hasattr(self.data, "eval_ineq_constraints"), "Objective function has constraints,\n" \
-            "SyncStrategyNoConstraints can't handle constraints"
-        assert not hasattr(self.data, "eval_eq_constraints"), "Objective function has constraints,\n" \
-            "SyncStrategyNoConstraints can't handle constraints"
+        if hasattr(self.data, "eval_ineq_constraints"):
+            raise ValueError("Optimization problem has constraints,\n"
+                             "SyncStrategyNoConstraints can't handle constraints")
+        if hasattr(self.data, "eval_eq_constraints"):
+            raise ValueError("Optimization problem has constraints,\n"
+                             "SyncStrategyNoConstraints can't handle constraints")
 
     def check_common(self):
+        """Checks that the inputs are correct"""
+
         # Check evaluation budget
         if self.extra is None:
-            assert self.maxeval >= self.design.npts, \
-                "Experimental design is larger than the evaluation budget"
+            if self.maxeval < self.design.npts:
+                raise ValueError("Experimental design is larger than the evaluation budget")
         else:
-            assert self.maxeval >= self.design.npts + self.extra.shape[0], \
-                "Experimental design + extra points exceeds the evaluation budget"
+            if self.maxeval < self.design.npts + self.extra.shape[0]:
+                raise ValueError("Experimental design + extra points "
+                                 "exceeds the evaluation budget")
+
         # Check dimensionality
-        assert self.design.dim == self.data.dim, \
-            "Experimental design and optimization problem have different dimensions"
+        if self.design.dim != self.data.dim:
+            raise ValueError("Experimental design and optimization "
+                             "problem have different dimensions")
         if self.extra is not None:
-            assert self.data.dim == self.extra.shape[1], \
-                "Extra point and optimization problem have different dimensions"
+            if self.data.dim != self.extra.shape[1]:
+                raise ValueError("Extra point and optimization problem "
+                                 "have different dimensions")
+
         # Check that the optimization problem makes sense
         check_opt_prob(self.data)
 
     def proj_fun(self, x):
+        """Projects a set of points onto the feasible region
+
+        :param x: Points, of size npts x dim
+        :type x: numpy.array
+        :return: Projected points
+        :rtype: numpy.array
+        """
+
         x = np.atleast_2d(x)
         return round_vars(self.data, x)
 
@@ -139,8 +166,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         """Record a completed evaluation to the log.
 
         :param record: Record of the function evaluation
-        :param penalty: Penalty for the given point
+        :type record: Object
         """
+
         xstr = np.array_str(record.params[0], max_line_width=np.inf,
                             precision=5, suppress_small=True)
         if record.feasible:
@@ -153,10 +181,8 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         After succtol successful steps, we cut the sampling radius;
         after failtol failed steps, we double the sampling radius.
-
-        :ivar Fnew: Best function value in new step
-        :ivar fbest: Previous best function evaluation
         """
+
         # Initialize if this is the first adaptive step
         if self.fbest_old is None:
             self.fbest_old = self.fbest
@@ -180,8 +206,8 @@ class SyncStrategyNoConstraints(BaseStrategy):
             logger.info("Increasing sigma")
 
     def sample_initial(self):
-        """Generate and queue an initial experimental design.
-        """
+        """Generate and queue an initial experimental design."""
+
         if self.numeval == 0:
             logger.info("=== Start ===")
         else:
@@ -209,8 +235,8 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.sampling.init(np.copy(start_sample), self.fhat, self.maxeval - self.numeval)
 
     def sample_adapt(self):
-        """Generate and queue samples from the search strategy
-        """
+        """Generate and queue samples from the search strategy"""
+
         self.adjust_step()
         nsamples = min(self.nsamples, self.maxeval - self.numeval)
         new_points = self.sampling.make_points(npts=nsamples, xbest=np.copy(self.xbest), sigma=self.sigma,
@@ -220,16 +246,16 @@ class SyncStrategyNoConstraints(BaseStrategy):
             self.resubmitter.rput(proposal)
 
     def start_batch(self):
-        """Generate and queue a new batch of points
-        """
+        """Generate and queue a new batch of points"""
+
         if self.sigma < self.sigma_min:
             self.sample_initial()
         else:
             self.sample_adapt()
 
     def propose_action(self):
-        """Propose an action
-        """
+        """Propose an action"""
+
         if self.numeval == self.maxeval:
             return self.propose_terminate()
         elif self.resubmitter.num_eval_outstanding == 0:
@@ -246,6 +272,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         an evaluation has completed.
 
         :param record: Evaluation record
+        :type record: Object
         """
 
         self.numeval += 1
@@ -282,25 +309,30 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
 
     When it comes to the value of :math:`\\mu`, just choose a very large value.
 
-
+    :param worker_id: Start ID in a multi-start setting
+    :type worker_id: int
+    :param data: Problem parameter data structure
+    :type data: Object
+    :param response_surface: Surrogate model object
+    :type response_surface: Object
+    :param maxeval: Function evaluation budget
+    :type maxeval: int
+    :param nsamples: Number of simultaneous fevals allowed
+    :type nsamples: int
+    :param exp_design: Experimental design
+    :type exp_design: Object
+    :param sampling_method: Sampling method for finding
+        points to evaluate
+    :type sampling_method: Object
+    :param extra: Points to be added to the experimental design
+    :type extra: int
+    :param penalty: Penalty for violating constraints
+    :type penalty: float
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, sampling_method=None, extra=None,
                  penalty=1e6):
-        """Initialize the optimization strategy.
-
-        :param worker_id: Start ID in a multistart setting
-        :param data: Problem parameter data structure
-        :param response_surface: Surrogate model object
-        :param maxeval: Function evaluation budget
-        :param nsamples: Number of simultaneous fevals allowed
-        :param exp_design: Experimental design
-        :param search_procedure: Search procedure for finding
-            points to evaluate
-        :param extra: Points to be added to the experimental design
-        :param penalty: Penalty for violating constraints
-        """
 
         # Evals wrapper for penalty method
         def penalty_evals(fhat, xx):
@@ -332,16 +364,22 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.penalty = penalty
 
     def check_input(self):
+        """Checks that the inputs are correct"""
+
         self.check_common()
-        assert hasattr(self.data, "eval_ineq_constraints"), "Objective function has no inequality constraints"
-        assert not hasattr(self.data, "eval_eq_constraints"), "Objective function has equality constraints,\n" \
-            "SyncStrategyPenalty can't handle equality constraints"
+        if not hasattr(self.data, "eval_ineq_constraints"):
+            raise AttributeError("Optimization problem has no inequality constraints")
+        if hasattr(self.data, "eval_eq_constraints"):
+            raise AttributeError("Optimization problem has equality constraints,\n"
+                                 "SyncStrategyPenalty can't handle equality constraints")
 
     def penalty_fun(self, xx):
         """Computes the penalty for constraint violation
 
         :param xx: Points to compute the penalty for
+        :type xx: numpy.array
         :return: Penalty for constraint violations
+        :rtype: numpy.array
         """
 
         vec = np.array(self.data.eval_ineq_constraints(xx))
@@ -359,7 +397,9 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         an evaluation has completed.
 
         :param record: Evaluation record
+        :type record: Object
         """
+
         x = np.zeros((1, record.params[0].shape[0]))
         x[0, :] = np.copy(record.params[0])
         penalty = self.penalty_fun(x)[0, 0]
@@ -387,39 +427,55 @@ class SyncStrategyProjection(SyncStrategyNoConstraints):
 
     This is an extension of SyncStrategyNoConstraints that also works with
     bound constraints.
+
+    :param worker_id: Start ID in a multi-start setting
+    :type worker_id: int
+    :param data: Problem parameter data structure
+    :type data: Object
+    :param response_surface: Surrogate model object
+    :type response_surface: Object
+    :param maxeval: Function evaluation budget
+    :type maxeval: int
+    :param nsamples: Number of simultaneous fevals allowed
+    :type nsamples: int
+    :param exp_design: Experimental design
+    :type exp_design: Object
+    :param sampling_method: Sampling method for finding
+        points to evaluate
+    :type sampling_method: Object
+    :param extra: Points to be added to the experimental design
+    :type extra: int
+    :param proj_fun: Function that projects one point onto the feasible region
+    :type proj_fun: Object
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, sampling_method=None, extra=None,
                  proj_fun=None):
-        """Initialize the optimization strategy.
-
-        :param worker_id: Start ID in a multi-start setting
-        :param data: Problem parameter data structure
-        :param response_surface: Surrogate model object
-        :param maxeval: Function evaluation budget
-        :param nsamples: Number of simultaneous fevals allowed
-        :param exp_design: Experimental design
-        :param sampling_method: Search procedure for finding
-            points to evaluate
-        :param extra: Points to be added to the experimental design
-        :param proj_fun: Projection operator
-        """
 
         self.projection = proj_fun
-
         SyncStrategyNoConstraints.__init__(self,  worker_id, data,
                                            response_surface, maxeval,
                                            nsamples, exp_design,
                                            sampling_method, extra)
 
     def check_input(self):
+        """Checks that the inputs are correct"""
+
         self.check_common()
-        assert hasattr(self.data, "eval_ineq_constraints") or \
-            hasattr(self.data, "eval_eq_constraints"), \
-            "Objective function has no constraints"
+        if not (hasattr(self.data, "eval_ineq_constraints") or
+                hasattr(self.data, "eval_eq_constraints")):
+            raise AttributeError("Optimization problem has no constraints")
 
     def proj_fun(self, x):
+        """Projects a set of points onto the feasible region
+
+        :param x: Points, of size npts x dim
+        :type x: numpy.array
+        :return: Projected points
+        :rtype: numpy.array
+        """
+
         x = np.atleast_2d(x)
         for i in range(x.shape[0]):
             x[i, :] = self.projection(x[i, :])

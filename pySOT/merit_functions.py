@@ -19,9 +19,12 @@ def candidate_merit_weighted_distance(cand, npts=1):
     """Weighted distance merit function for the candidate points based methods
 
     :param cand: Candidate point object
+    :type cand: Object
     :param npts: Number of points selected for evaluation
+    :type npts: int
 
-    :return: Points selected for evaluation
+    :return: Points selected for evaluation, of size npts x dim
+    :rtype: numpy.array
     """
 
     new_points = np.ones((npts,  cand.data.dim))
