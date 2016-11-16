@@ -27,6 +27,7 @@ from sampling_methods import *
 from ensemble_surrogate import *
 from rbf import *
 from utils import check_opt_prob
+
 try:
     from kriging_interpolant import KrigingInterpolant
 except:
