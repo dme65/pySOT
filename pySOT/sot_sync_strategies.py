@@ -43,30 +43,28 @@ class SyncStrategyNoConstraints(BaseStrategy):
     radius; after several failures to improve the function value, we
     decrease the sampling radius.  We restart once the sampling radius
     decreases below a threshold.
+
+    :param worker_id: Start ID in a multi-start setting
+    :type worker_id: int
+    :param data: Problem parameter data structure
+    :type data: Object
+    :param response_surface: Surrogate model object
+    :type response_surface: Object
+    :param maxeval: Function evaluation budget
+    :type maxeval: int
+    :param nsamples: Number of simultaneous fevals allowed
+    :type nsamples: int
+    :param exp_design: Experimental design
+    :type exp_design: Object
+    :param sampling_method: Sampling method for finding
+        points to evaluate
+    :type sampling_method: Object
+    :param extra: Points to be added to the experimental design
+    :type extra: int
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, sampling_method=None, extra=None):
-        """Initialize the optimization strategy.
-
-        :param worker_id: Start ID in a multi-start setting
-        :type worker_id: int
-        :param data: Problem parameter data structure
-        :type data: Object
-        :param response_surface: Surrogate model object
-        :type response_surface: Object
-        :param maxeval: Function evaluation budget
-        :type maxeval: int
-        :param nsamples: Number of simultaneous fevals allowed
-        :type nsamples: int
-        :param exp_design: Experimental design
-        :type exp_design: Object
-        :param sampling_method: Sampling method for finding
-            points to evaluate
-        :type sampling_method: Object
-        :param extra: Points to be added to the experimental design
-        :type extra: int
-        """
 
         self.worker_id = worker_id
         self.data = data

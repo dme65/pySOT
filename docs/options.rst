@@ -117,7 +117,7 @@ The following experimental designs are supported:
 
     creates a symmetric Latin hypercube design with 8 points in 3 dimensions
 
--- **BoxBehnken**.
+- **BoxBehnken**.
     Box-Behnken design with one center point. This means that the design consits
     of the midpoints of the edges of the unit hypercube plus the center of the unit
     hypercube.
