@@ -14,7 +14,7 @@ setup(
     requires=['numpy', 'scipy'],
     install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
                       'subprocess32', 'matlab_wrapper', 'py-earth',
-                      'Sphinx==1.4.7'],
+                      'Sphinx >= 1.4.7'],
     dependency_links=['http://github.com/scikit-learn-contrib/py-earth/tarball/master#egg=py-earth-0.1.0'],
     classifiers=['Programming Language :: Python :: 2.7'],
 )
