@@ -9,13 +9,21 @@ Source code
 
 .. inheritance-diagram:: pySOT.rs_wrappers
 
-.. inheritance-diagram:: pySOT.sampling_methods
+.. inheritance-diagram:: pySOT.adaptive_sampling
 
 .. inheritance-diagram:: pySOT.sot_sync_strategies
 
 .. inheritance-diagram:: pySOT.test_problems
 
 .. toctree::
+
+pySOT.adaptive_sampling module
+------------------------------
+
+.. automodule:: pySOT.adaptive_sampling
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 pySOT.ensemble_surrogate module
 -------------------------------
@@ -94,14 +102,6 @@ pySOT.rs_wrappers module
 ------------------------
 
 .. automodule:: pySOT.rs_wrappers
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pySOT.sampling_methods module
------------------------------
-
-.. automodule:: pySOT.sampling_methods
     :members:
     :undoc-members:
     :show-inheritance:

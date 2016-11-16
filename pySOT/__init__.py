@@ -6,7 +6,7 @@ except ImportError:
 from experimental_design import *
 from rbf import *
 from rs_wrappers import RSCapped, RSUnitbox
-from sampling_methods import *
+from adaptive_sampling import *
 from test_problems import *
 from sot_sync_strategies import *
 from ensemble_surrogate import EnsembleSurrogate

@@ -23,7 +23,7 @@ import time
 from sot_sync_strategies import *
 from experimental_design import *
 from rs_wrappers import RSCapped
-from sampling_methods import *
+from adaptive_sampling import *
 from ensemble_surrogate import *
 from rbf import *
 from utils import check_opt_prob
