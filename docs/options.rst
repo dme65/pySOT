@@ -259,7 +259,7 @@ is required to have the following attributes and methods
       crashed or was never carried out by the strategy. Returns True if the point was
       removed and False if the removal failed.
     * make_points(npts, xbest, sigma, subset=None, proj_fun=None): This is the method
-      that proposes \textit{npts} new evaluations to the strategy. It needs to know
+      that proposes npts new evaluations to the strategy. It needs to know
       the number of points to propose, the best data point evaluated so far, the
       preferred sample radius of the strategy (w.r.t the unit box), the coordinates
       that the strategy wants to perturb, and a way to project points onto the feasible

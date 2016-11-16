@@ -56,10 +56,10 @@ class GeneticAlgorithm:
     :ivar p_cross: Cross-over probability (0.9)
     :ivar ngenerations: Number of generations
     :ivar function: Object that can be used to evaluate the objective function
-    :ivar proj_fun: Function that can be used to project an individual onto the feasible region
+    :ivar projfun: Function that can be used to project an individual onto the feasible region
     """
 
-    def __init__(self, function, dim, xlow, xup, intvar=None, popsize=100, ngen=100, start="SLHD", proj_fun=None):
+    def __init__(self, function, dim, xlow, xup, intvar=None, popsize=100, ngen=100, start="SLHD", projfun=None):
         self.nvariables = dim
         self.nindividuals = popsize + (popsize % 2)  # Make sure this is even
         self.lower_boundary = np.array(xlow)
@@ -74,7 +74,7 @@ class GeneticAlgorithm:
         self.p_cross = 0.9
         self.ngenerations = ngen
         self.function = function
-        self.proj_fun = proj_fun
+        self.projfun = projfun
 
     def optimize(self):
         """Method used to run the Genetic algorithm
@@ -165,9 +165,9 @@ class GeneticAlgorithm:
             population = np.minimum(np.reshape(self.upper_boundary, (1, self.nvariables)), population)
 
             # Map to feasible region if method exists
-            if self.proj_fun is not None:
+            if self.projfun is not None:
                 for i in range(self.nindividuals):
-                    population[i, :] = self.proj_fun(population[i, :])
+                    population[i, :] = self.projfun(population[i, :])
 
             # Round chromosomes
             new_population = []
@@ -222,7 +222,7 @@ def main():
         return x / np.linalg.norm(x)
 
     ga = GeneticAlgorithm(obj_function, dim, -1*np.ones(dim), 1*np.ones(dim), popsize=100,
-                          ngen=100, start="SLHD", proj_fun=projection)
+                          ngen=100, start="SLHD", projfun=projection)
     x_best, f_best = ga.optimize()
 
     # Print the best solution found
