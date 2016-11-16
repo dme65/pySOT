@@ -20,9 +20,9 @@ import types
 
 
 def __fix_docs(cls):
+    """Help function for stealing docs from the parent"""
     for name, func in vars(cls).items():
         if isinstance(func, types.FunctionType) and not func.__doc__:
-            print func, 'needs doc'
             for parent in cls.__bases__:
                 parfunc = getattr(parent, name, None)
                 if parfunc and getattr(parfunc, '__doc__', None):
@@ -378,8 +378,7 @@ class CandidateUniform(CandidateSRBF):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        return CandidateSRBF.make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
-                                         merit=candidate_merit_weighted_distance)
+        return CandidateSRBF.make_points(self, npts, xbest, sigma, subset, proj_fun, merit)
 
     def __generate_cand__(self, scalefactors, xbest, subset):
         self.xcand = np.ones((self.numcand, self.data.dim)) * xbest
@@ -444,7 +443,7 @@ class CandidateDYCORS(CandidateSRBF):
         self.probfun = probfun
 
     def init(self, start_sample, fhat, budget):
-        CandidateSRBF.__init__(self, start_sample, fhat, budget)
+        CandidateSRBF.init(self, start_sample, fhat, budget)
         self.n0 = start_sample.shape[0]
 
     def remove_point(self, x):
@@ -452,8 +451,7 @@ class CandidateDYCORS(CandidateSRBF):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        return CandidateSRBF.make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
-                                  merit=candidate_merit_weighted_distance)
+        return CandidateSRBF.make_points(self, npts, xbest, sigma, subset, proj_fun, merit)
 
     def __generate_cand__(self, scalefactors, xbest, subset):
         ddsprob = self.probfun(self.proposed_points.shape[0] - self.n0, self.budget - self.n0)
@@ -533,7 +531,7 @@ class CandidateDDS(CandidateDYCORS):
         self.probfun = probfun
 
     def init(self, start_sample, fhat, budget):
-        CandidateDYCORS.__init__(self, start_sample, fhat, budget)
+        CandidateDYCORS.init(self, start_sample, fhat, budget)
         self.n0 = start_sample.shape[0]
 
     def remove_point(self, x):
@@ -585,7 +583,7 @@ class CandidateSRBF_INT(CandidateSRBF):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateSRBF.__init__(self, start_sample, fhat, budget)
+        CandidateSRBF.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateSRBF.remove_point(self, x)
@@ -638,7 +636,7 @@ class CandidateDYCORS_INT(CandidateDYCORS):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateDYCORS.__init__(self, start_sample, fhat, budget)
+        CandidateDYCORS.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateDYCORS.remove_point(self, x)
@@ -691,7 +689,7 @@ class CandidateDDS_INT(CandidateDDS):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateDDS.__init__(self, start_sample, fhat, budget)
+        CandidateDDS.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateDDS.remove_point(self, x)
@@ -744,7 +742,7 @@ class CandidateUniform_INT(CandidateUniform):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateUniform.__init__(self, start_sample, fhat, budget)
+        CandidateUniform.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateUniform.remove_point(self, x)
@@ -797,7 +795,7 @@ class CandidateSRBF_CONT(CandidateSRBF):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateSRBF.__init__(self, start_sample, fhat, budget)
+        CandidateSRBF.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateSRBF.remove_point(self, x)
@@ -850,7 +848,7 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateDYCORS.__init__(self, start_sample, fhat, budget)
+        CandidateDYCORS.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateDYCORS.remove_point(self, x)
@@ -903,7 +901,7 @@ class CandidateDDS_CONT(CandidateDDS):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateDDS.__init__(self, start_sample, fhat, budget)
+        CandidateDDS.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateDDS.remove_point(self, x)
@@ -956,7 +954,7 @@ class CandidateUniform_CONT(CandidateUniform):
     """
 
     def init(self, start_sample, fhat, budget):
-        CandidateUniform.__init__(self, start_sample, fhat, budget)
+        CandidateUniform.init(self, start_sample, fhat, budget)
 
     def remove_point(self, x):
         return CandidateUniform.remove_point(self, x)
