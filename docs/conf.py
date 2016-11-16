@@ -33,7 +33,8 @@ needs_sphinx = '1.4.7'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.imgmath',
-    'sphinx.ext.inheritance_diagram'
+    'sphinx.ext.inheritance_diagram',
+    'sphinx.ext.todo'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

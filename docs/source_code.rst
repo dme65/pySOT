@@ -1,20 +1,6 @@
 Source code
 ===========
 
-.. inheritance-diagram:: pySOT.experimental_design
-
-.. inheritance-diagram:: pySOT.mars_interpolant
-
-.. inheritance-diagram:: pySOT.rbf
-
-.. inheritance-diagram:: pySOT.rs_wrappers
-
-.. inheritance-diagram:: pySOT.adaptive_sampling
-
-.. inheritance-diagram:: pySOT.sot_sync_strategies
-
-.. inheritance-diagram:: pySOT.test_problems
-
 .. toctree::
 
 pySOT.adaptive_sampling module

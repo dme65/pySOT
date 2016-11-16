@@ -7,35 +7,6 @@
 :Module: adaptive_sampling
 :Author: David Eriksson <dme65@cornell.edu>,
         David Bindel <bindel@cornell.edu>
-
-We currently only support the weighted distance merit function.
-
-We support the following methods for minimizing on the surface:
-
-Candidate based methods:
-    - **CandidateSRBF:**
-        Generate candidate points around the best point
-    - **CandidateDYCORS:**
-        Uses a DDS strategy with a cap on the lowest probability
-    - **CandidateUniform:**
-        Sample the candidate points uniformly in the domain
-    - **CandidateSRBF_INT:**
-        Uses CandidateSRBF but only perturbs the integer variables
-    - **CandidateSRBF_CONT:**
-        Uses CandidateSRBF but only perturbs the continuous variables
-    - **CandidateDYCORS_INT:**
-        Uses CandidateSRBF but only perturbs the integer variables
-    - **CandidateDYCORS_CONT:**
-        Uses CandidateSRBF but only perturbs the continuous variables
-    - **CandidateUniform_CONT:**
-        Sample the continuous variables of the candidate points uniformly in the domain
-    - **CandidateUniform_INT:**
-        Sample the integer variables of the candidate points uniformly in the domain
-
-We also support using multiple of these strategies and cycle
-between them which we call MultiSampling
-
-    - **MultiSampling**
 """
 
 import math
@@ -45,17 +16,54 @@ from heuristic_methods import GeneticAlgorithm as GA
 from scipy.optimize import minimize
 import scipy.stats as stats
 from merit_functions import *
+import types
 
-# ========================= MultiSearch =======================
+
+def __fix_docs(cls):
+    for name, func in vars(cls).items():
+        if isinstance(func, types.FunctionType) and not func.__doc__:
+            print func, 'needs doc'
+            for parent in cls.__bases__:
+                parfunc = getattr(parent, name, None)
+                if parfunc and getattr(parfunc, '__doc__', None):
+                    func.__doc__ = parfunc.__doc__
+                    break
+    return cls
 
 
 class MultiSampling(object):
-    """ A collection of Sampling Methods and weights so that the user
-        can use multiple sampling methods for the same optimization
-        problem. This object keeps an internal list of proposed points
-        in order to be able to compute the minimum distance from a point
-        to all proposed evaluations. This list has to be reset each time
-        the optimization algorithm restarts"""
+    """Maintains a list of adaptive sampling methods
+
+    A collection of adaptive sampling methods and weights so that the user
+    can use multiple adaptive sampling methods for the same optimization
+    problem. This object keeps an internal list of proposed points
+    in order to be able to compute the minimum distance from a point
+    to all proposed evaluations. This list has to be reset each time
+    the optimization algorithm restarts
+
+    :param strategy_list: List of adaptive sampling methods to use
+    :type strategy_list: list
+    :param cycle: List of integers that specifies the sampling order, e.g., [0, 0, 1] uses
+        method1, method1, method2, method1, method1, method2, ...
+    :type cycle: list
+    :raise ValueError: If cycle is incorrect
+
+    :ivar sampling_strategies: List of adaptive sampling methods to use
+    :ivar cycle: List that specifies the sampling order
+    :ivar nstrats: Number of adaptive sampling strategies
+    :ivar current_strat: The next adaptive sampling strategy to be used
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar budget: Remaining evaluation budget
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
     def __init__(self, strategy_list, cycle):
         if cycle is None:
             cycle = range(len(strategy_list))
@@ -70,18 +78,25 @@ class MultiSampling(object):
         self.proposed_points = None
         self.data = strategy_list[0].data
         self.fhat = None
-        self.avoid = None
         self.budget = None
         self.n0 = None
 
     def init(self, start_sample, fhat, budget):
-        """Initilize the sampling method by providing the points in the
-        experimental design, the surrogate model, and the evaluation budget
+        """Initialize the sampling method after the initial phase
+
+        This initializes the list of sampling methods after the initial phase
+        has finished and the experimental design has been evaluated. The user
+        provides the points in the experimental design, the surrogate model,
+        and the remaining evaluation budget.
 
         :param start_sample: Points in the experimental design
+        :type start_sample: numpy.array
         :param fhat: Surrogate model
+        :type fhat: Object
         :param budget: Evaluation budget
+        :type budget: int
         """
+
         self.proposed_points = start_sample
         self.fhat = fhat
         self.n0 = start_sample.shape[0]
@@ -89,12 +104,17 @@ class MultiSampling(object):
             self.sampling_strategies[i].init(self.proposed_points, fhat, budget)
 
     def remove_point(self, x):
-        """Remove x from proposed_points. Useful if x was never evaluated.
+        """Remove x from proposed_points
+
+        This removes x from the list of proposed points in the case where the optimization
+        strategy decides to not evaluate x.
 
         :param x: Point to be removed
-
+        :type x: numpy.array
         :return: True if points was removed, False otherwise
+        :type: bool
         """
+
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
             self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
@@ -105,17 +125,26 @@ class MultiSampling(object):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        """Create new candidate points. This call is ignored by the optimization
-        based search strategies.
+        """Proposes npts new points to evaluate
 
         :param npts: Number of points to select
+        :type npts: int
         :param xbest: Best solution found so far
+        :type xbest: numpy.array
         :param sigma: Current sampling radius w.r.t the unit box
+        :type sigma: float
         :param subset: Coordinates to perturb
+        :type subset: numpy.array
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
+        :type proj_fun: Object
         :param merit: Merit function for selecting candidate points
+        :type merit: Object
 
-        :return: Points selected for evaluation"""
+        :return: Points selected for evaluation, of size npts x dim
+        :rtype: numpy.array
+
+        .. todo:: Change the merit function from being hard-coded
+        """
 
         new_points = np.zeros((npts, self.data.dim))
 
@@ -146,25 +175,46 @@ class MultiSampling(object):
 
 
 class CandidateSRBF(object):
-    """This is an implementation of the candidate points method that is
-    proposed in the first SRBF paper. Candidate points are generated
-    by making normally distributed perturbations with stdDev sigma
-    around the best solution
+    """An implementation of Stochastic RBF
 
-    :ivar data: Optimization object
-    :ivar weights: Weights used in the merit function
-    :ivar numcand: Number of candidate points to generate
-    :ivar proposed_points: List of points proposed by any search strategy
-        since the last restart
+    This is an implementation of the candidate points method that is
+    proposed in the first SRBF paper. Candidate points are generated
+    by making normally distributed perturbations with standard
+    deviation sigma around the best solution. The candidate point that
+    minimizes a specified merit function is selected as the next
+    point to evaluate.
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
     """
 
     def __init__(self, data, numcand=None, weights=None):
-        """Initialize the SRBF method
-
-        :param data: Optimization object
-        :param numcand: Number of candidate points to generate
-        :param weights: Weights used for the merit function
-        """
         self.data = data
         self.fhat = None
         self.xrange = self.data.xup - self.data.xlow
@@ -181,37 +231,46 @@ class CandidateSRBF(object):
         if self.numcand is None:
             self.numcand = min([5000, 100*data.dim])
         self.budget = None
-        self.n0 = None
-        self.fhat = None
 
         # Check that the inputs make sense
-        assert isinstance(self.numcand, int) and self.numcand > 0, \
-            "The number of candidate points has to be a positive integer"
-        assert (isinstance(self.weights, np.ndarray) or
-                isinstance(self.weights, list)) and max(self.weights) <= 1 \
-            and min(self.weights) >= 0, "Incorrect weights"
+        if not(isinstance(self.numcand, int) and self.numcand > 0):
+            raise ValueError("The number of candidate points has to be a positive integer")
+        if not((isinstance(self.weights, np.ndarray) or isinstance(self.weights, list))
+               and max(self.weights) <= 1 and min(self.weights) >= 0):
+            raise ValueError("Incorrect weights")
 
     def init(self, start_sample, fhat, budget):
-        """Initialize the sampling method by providing the points in the
-        experimental design, the surrogate model, and the evaluation budget
+        """Initialize the sampling method after the initial phase
+
+        This initializes the list of sampling methods after the initial phase
+        has finished and the experimental design has been evaluated. The user
+        provides the points in the experimental design, the surrogate model,
+        and the remaining evaluation budget.
 
         :param start_sample: Points in the experimental design
+        :type start_sample: numpy.array
         :param fhat: Surrogate model
+        :type fhat: Object
         :param budget: Evaluation budget
+        :type budget: int
         """
+
         self.proposed_points = start_sample
-        self.n0 = start_sample.shape[0]
         self.budget = budget
         self.fhat = fhat
 
     def remove_point(self, x):
-        """Remove x from the list of proposed points.
-        Useful if x was never evaluated.
+        """Remove x from proposed_points
+
+        This removes x from the list of proposed points in the case where the optimization
+        strategy decides to not evaluate x.
 
         :param x: Point to be removed
-
+        :type x: numpy.array
         :return: True if points was removed, False otherwise
+        :type: bool
         """
+
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
         if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
             self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
@@ -229,16 +288,25 @@ class CandidateSRBF(object):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        """Create new candidate points based on the best solution and the current value of sigma.
+        """Proposes npts new points to evaluate
 
         :param npts: Number of points to select
+        :type npts: int
         :param xbest: Best solution found so far
+        :type xbest: numpy.array
         :param sigma: Current sampling radius w.r.t the unit box
-        :param subset: Coordinates to perturb
+        :type sigma: float
+        :param subset: Coordinates to perturb, the others are fixed
+        :type subset: numpy.array
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
-        :param merit: merit function for selecting candidate points
+        :type proj_fun: Object
+        :param merit: Merit function for selecting candidate points
+        :type merit: Object
 
-        :return: Points selected for evaluation
+        :return: Points selected for evaluation, of size npts x dim
+        :rtype: numpy.array
+
+        .. todo:: Change the merit function from being hard-coded
         """
 
         if subset is None:
@@ -268,8 +336,50 @@ class CandidateSRBF(object):
         return xnew
 
 
+@__fix_docs
 class CandidateUniform(CandidateSRBF):
-    """Create Candidate points by sampling uniformly in the domain"""
+    """Create Candidate points by sampling uniformly in the domain
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateSRBF.init(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateSRBF.remove_point(self, x)
+
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
+        return CandidateSRBF.make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                                         merit=candidate_merit_weighted_distance)
 
     def __generate_cand__(self, scalefactors, xbest, subset):
         self.xcand = np.ones((self.numcand, self.data.dim)) * xbest
@@ -277,29 +387,73 @@ class CandidateUniform(CandidateSRBF):
             self.data.xlow[subset], self.data.xup[subset], (self.numcand, len(subset)))
 
 
+@__fix_docs
 class CandidateDYCORS(CandidateSRBF):
-    """This is an implementation of DyCORS method to generate
-    candidate points. The DyCORS method only perturbs a subset
-    of the dimensions when perturbing the best solution. The
-    probability for a dimension to be perturbed decreases after
-    each evaluation and is capped in order to guarantee
-    global convergence."""
+    """An implementation of the DYCORS method
+
+    The DYCORS method only perturbs a subset of the dimensions when
+    perturbing the best solution. The probability for a dimension
+    to be perturbed decreases after each evaluation and is capped
+    in order to guarantee global convergence.
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar minprob: Smallest allowed perturbation probability
+    :ivar n0: Evaluations spent when the initial phase ended
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
 
     def __init__(self, data, numcand=None, weights=None):
-        """Initialize the DYCORS method
-
-        :param data: Optimization object
-        :param numcand:  Number of candidate points to generate"""
-
         CandidateSRBF.__init__(self, data, numcand=numcand, weights=weights)
         self.minprob = np.min([1.0, 1.0/self.data.dim])
-        assert data.dim > 1, "You can't use DYCORS on a 1d problem"
+        self.n0 = None
+
+        if data.dim <= 1:
+            raise ValueError("You can't use DYCORS on a 1d problem")
 
         def probfun(numevals, budget):
             if budget < 2:
                 return 0
             return min([20.0/data.dim, 1.0]) * (1.0 - (np.log(numevals + 1.0) / np.log(budget)))
         self.probfun = probfun
+
+    def init(self, start_sample, fhat, budget):
+        CandidateSRBF.__init__(self, start_sample, fhat, budget)
+        self.n0 = start_sample.shape[0]
+
+    def remove_point(self, x):
+        return CandidateSRBF.remove_point(self, x)
+
+    def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
+        return CandidateSRBF.make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
+                                  merit=candidate_merit_weighted_distance)
 
     def __generate_cand__(self, scalefactors, xbest, subset):
         ddsprob = self.probfun(self.proposed_points.shape[0] - self.n0, self.budget - self.n0)
@@ -326,22 +480,50 @@ class CandidateDYCORS(CandidateSRBF):
                 loc=xbest[subset[i]], scale=ssigma, size=len(ind))
 
 
+@__fix_docs
 class CandidateDDS(CandidateDYCORS):
-    """This is an implementation of DDS method to generate
-    candidate points. Only a few candidate points are generated
+    """An implementation of the DDS candidate points method
+
+    Only a few candidate points are generated
     and the candidate point with the lowest value predicted
     by the surrogate model is selected. The DDS method only
     perturbs a subset of the dimensions when perturbing the
     best solution. The probability for a dimension to be
     perturbed decreases after each evaluation and is capped
-    in order to guarantee global convergence."""
+    in order to guarantee global convergence.
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
 
     def __init__(self, data, numcand=None, weights=None):
-        """Initialize the DDS method
-
-        :param data: Optimization object
-        :param numcand:  Number of candidate points to generate"""
-
         CandidateDYCORS.__init__(self, data, numcand=numcand, weights=weights)
         self.weights = np.array([1.0])
         self.numcand = max([0.5*data.dim, 2])
@@ -350,18 +532,15 @@ class CandidateDDS(CandidateDYCORS):
             return 1.0-(np.log(numevals + 1.0) / np.log(budget))
         self.probfun = probfun
 
+    def init(self, start_sample, fhat, budget):
+        CandidateDYCORS.__init__(self, start_sample, fhat, budget)
+        self.n0 = start_sample.shape[0]
+
+    def remove_point(self, x):
+        return CandidateDYCORS.remove_point(self, x)
+
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        """Create new candidate points based on the best solution and the current value of sigma.
-
-        :param npts: Number of points to select
-        :param xbest: Best solution found so far
-        :param sigma: Current sampling radius w.r.t the unit box
-        :param subset: Coordinates to perturb
-        :param proj_fun: Routine for projecting infeasible points onto the feasible region
-        :param merit: merit function for selecting candidate points
-
-        :return: Points selected for evaluation"""
 
         new_points = np.zeros((npts, self.data.dim))
         for i in range(npts):
@@ -370,10 +549,47 @@ class CandidateDDS(CandidateDYCORS):
         return new_points
 
 
+@__fix_docs
 class CandidateSRBF_INT(CandidateSRBF):
-    """Candidate points are generated by perturbing ONLY the discrete
-    variables using the SRBF strategy
+    """CandidateSRBF where only the the integer variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
     """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateSRBF.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateSRBF.remove_point(self, x)
+
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
         if len(self.data.integer) > 0:
@@ -386,9 +602,46 @@ class CandidateSRBF_INT(CandidateSRBF):
                                              merit=merit)
 
 
+@__fix_docs
 class CandidateDYCORS_INT(CandidateDYCORS):
-    """Candidate points are generated by perturbing ONLY the discrete
-    variables using the DYCORS strategy"""
+    """CandidateDYCORS where only the the integer variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateDYCORS.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateDYCORS.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -402,9 +655,46 @@ class CandidateDYCORS_INT(CandidateDYCORS):
                                                merit=merit)
 
 
+@__fix_docs
 class CandidateDDS_INT(CandidateDDS):
-    """Candidate points are generated by perturbing
-    ONLY the discrete variables using the DDS strategy"""
+    """CandidateDDS where only the the integer variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateDDS.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateDDS.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -418,9 +708,46 @@ class CandidateDDS_INT(CandidateDDS):
                                             merit=merit)
 
 
+@__fix_docs
 class CandidateUniform_INT(CandidateUniform):
-    """Candidate points are generated by perturbing ONLY
-    the discrete variables using the uniform perturbations"""
+    """CandidateUniform where only the the integer variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateUniform.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateUniform.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -434,9 +761,46 @@ class CandidateUniform_INT(CandidateUniform):
                                                 merit=merit)
 
 
+@__fix_docs
 class CandidateSRBF_CONT(CandidateSRBF):
-    """Candidate points are generated by perturbing ONLY
-    the continuous variables using the SRBF strategy"""
+    """CandidateSRBF where only the the continuous variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateSRBF.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateSRBF.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -450,9 +814,46 @@ class CandidateSRBF_CONT(CandidateSRBF):
                                              merit=merit)
 
 
+@__fix_docs
 class CandidateDYCORS_CONT(CandidateDYCORS):
-    """Candidate points are generated by perturbing ONLY
-    the continuous variables using the DYCORS strategy"""
+    """CandidateDYCORS where only the the continuous variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateDYCORS.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateDYCORS.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -466,9 +867,46 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
                                                merit=merit)
 
 
+@__fix_docs
 class CandidateDDS_CONT(CandidateDDS):
-    """Candidate points are generated by perturbing
-    ONLY the discrete variables using the DDS strategy"""
+    """CandidateDDS where only the the continuous variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateDDS.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateDDS.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -482,9 +920,46 @@ class CandidateDDS_CONT(CandidateDDS):
                                             merit=merit)
 
 
+@__fix_docs
 class CandidateUniform_CONT(CandidateUniform):
-    """Candidate points are generated by perturbing ONLY
-    the continuous variables using uniform perturbations"""
+    """CandidateUniform where only the the continuous variables are perturbed
+
+    :param data: Optimization problem object
+    :type data: Object
+    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type numcand: int
+    :param weights: Weights used for the merit function, to balance exploration vs exploitation
+    :type weights: list of numpy.array
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar weights: Weights used for the merit function
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar dmerit: Minimum distance between the points and the proposed points
+    :ivar xcand: Candidate points
+    :ivar fhvals: Predicted values by the surrogate model
+    :ivar next_weight: Index of the next weight to be used
+    :ivar numcand: Number of candidate points
+    :ivar budget: Remaining evaluation budget
+    :ivar probfun: Function that computes the perturbation probability of a given iteration
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. todo:: Get rid of the proposed_points object and replace it by something that is
+        controlled by the strategy.
+    """
+
+    def init(self, start_sample, fhat, budget):
+        CandidateUniform.__init__(self, start_sample, fhat, budget)
+
+    def remove_point(self, x):
+        return CandidateUniform.remove_point(self, x)
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
@@ -496,32 +971,46 @@ class CandidateUniform_CONT(CandidateUniform):
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
                                                 subset=self.data.integer, proj_fun=proj_fun,
                                                 merit=merit)
-
-
-################################## Optimization based strategies ###################################
 
 
 class GeneticAlgorithm(object):
+    """Genetic algorithm for minimizing the surrogate model
+
+    :param data: Optimization problem object
+    :type data: Object
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar budget: Remaining evaluation budget
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+    """
+
     def __init__(self, data):
-        """Initialize the Genetic Algorithm method
-
-        :param data: Optimization object
-        """
-
         self.data = data
         self.fhat = None
         self.dtol = 1e-3 * math.sqrt(data.dim)
         self.proposed_points = None
         self.budget = None
-        self.fhat = None
 
     def init(self, start_sample, fhat, budget):
-        """Initialize the sampling method by providing the points in the
-        experimental design, the surrogate model, and the evaluation budget
+        """Initialize the sampling method after the initial phase
+
+        This initializes the list of sampling methods after the initial phase
+        has finished and the experimental design has been evaluated. The user
+        provides the points in the experimental design, the surrogate model,
+        and the remaining evaluation budget.
 
         :param start_sample: Points in the experimental design
+        :type start_sample: numpy.array
         :param fhat: Surrogate model
+        :type fhat: Object
         :param budget: Evaluation budget
+        :type budget: int
         """
 
         self.proposed_points = start_sample
@@ -529,12 +1018,15 @@ class GeneticAlgorithm(object):
         self.fhat = fhat
 
     def remove_point(self, x):
-        """Remove x from the list of proposed points.
-        Useful if x was never evaluated.
+        """Remove x from proposed_points
+
+        This removes x from the list of proposed points in the case where the optimization
+        strategy decides to not evaluate x.
 
         :param x: Point to be removed
-
+        :type x: numpy.array
         :return: True if points was removed, False otherwise
+        :type: bool
         """
 
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
@@ -544,16 +1036,24 @@ class GeneticAlgorithm(object):
         return False
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None, merit=None):
-        """Create new points to evaluate using the GA
+        """Proposes npts new points to evaluate
 
         :param npts: Number of points to select
-        :param xbest: Best solution found so far (ignored)
-        :param sigma: Current sampling radius w.r.t the unit box (ignored)
-        :param subset: Coordinates to perturb
+        :type npts: int
+        :param xbest: Best solution found so far (Ignored)
+        :type xbest: numpy.array
+        :param sigma: Current sampling radius w.r.t the unit box (Ignored)
+        :type sigma: float
+        :param subset: Coordinates to perturb (Ignored)
+        :type subset: numpy.array
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
-        :param merit: Merit function for selecting candidate points (ignored)
+        :type proj_fun: Object
+        :param merit: Merit function for selecting candidate points (Ignored)
+        :type merit: Object
 
-        :return: Points selected for evaluation"""
+        :return: Points selected for evaluation, of size npts x dim
+        :rtype: numpy.array
+        """
 
         new_points = np.zeros((npts, self.data.dim))
         for i in range(npts):
@@ -583,57 +1083,71 @@ class GeneticAlgorithm(object):
 
 
 class MultiStartGradient(object):
-    """ A wrapper around the scipy.optimize implementations of box-constrained
-        gradient based minimization.
+    """A Multi-Start Gradient method for minimizing the surrogate model
 
-    Attributes:
-        data: Optimization object
-        fhat: Original response surface object.
-        proposed_points: List of points proposed by any search strategy since the last restart
-        bounds: n x 2 matrix with lower and upper bound constraints
-        num_restarts: Number of random starting points
-        method: What optimization method to use. The following options are available:
+    A wrapper around the scipy.optimize implementation of box-constrained
+    gradient based minimization.
 
-            - L-BFGS-B: Quasi-Newton method of
-                        Broyden, Fletcher, Goldfarb, and Shanno (BFGS)
-            - TNC:      Truncated Newton algorithm
+    :param data: Optimization problem object
+    :type data: Object
+    :param method: Optimization method to use. The options are
 
-    Note: SLSQP is supposed to work with bound constraints but for some reason it
+        - L-BFGS-B
+            Quasi-Newton method of Broyden, Fletcher, Goldfarb, and Shanno (BFGS)
+        - TNC
+            Truncated Newton algorithm
+
+    :type method: string
+    :param num_restarts: Number of restarts for the multi-start gradient
+    :type num_restarts: int
+
+    :raise ValueError: If number of candidate points is
+        incorrect or if the weights aren't a list in [0, 1]
+
+    :ivar data: Optimization problem object
+    :ivar fhat: Response surface object
+    :ivar xrange: Variable ranges, xup - xlow
+    :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
+    :ivar bounds: n x 2 matrix with lower and upper bound constraints
+    :ivar proposed_points: List of points proposed to the optimization algorithm
+    :ivar budget: Remaining evaluation budget
+
+    .. note:: This object needs to be initialized with the init method. This is done when the
+        initial phase has finished.
+
+    .. Note:: SLSQP is supposed to work with bound constraints but for some reason it
         sometimes violates the constraints anyway.
     """
 
     def __init__(self, data, method='L-BFGS-B', num_restarts=30):
-        """Initialize the Multi-Start Gradient object
-
-        :param data: Optimization object
-        :param method: Optimization method to use for the surrogate
-        :param num_restarts: Number of restarts
-        """
-
         self.data = data
         self.fhat = None
         self.bounds = np.zeros((self.data.dim, 2))
         self.bounds[:, 0] = self.data.xlow
         self.bounds[:, 1] = self.data.xup
-        self.eval = None
-        self.deriv = None
         self.dtol = 1e-3 * math.sqrt(data.dim)
         self.proposed_points = None
         self.budget = None
         self.num_restarts = num_restarts
-        self.x_best = None
         if (method == 'TNC') or (method == 'L-BFGS-B'):
             self.method = method
         else:
             self.method = 'L-BFGS-B'
 
     def init(self, start_sample, fhat, budget):
-        """Initialize the sampling method by providing the points in the
-        experimental design, the surrogate model, and the evaluation budget
+        """Initialize the sampling method after the initial phase
+
+        This initializes the list of sampling methods after the initial phase
+        has finished and the experimental design has been evaluated. The user
+        provides the points in the experimental design, the surrogate model,
+        and the remaining evaluation budget.
 
         :param start_sample: Points in the experimental design
+        :type start_sample: numpy.array
         :param fhat: Surrogate model
+        :type fhat: Object
         :param budget: Evaluation budget
+        :type budget: int
         """
 
         self.proposed_points = start_sample
@@ -641,12 +1155,15 @@ class MultiStartGradient(object):
         self.fhat = fhat
 
     def remove_point(self, x):
-        """Remove x from the list of proposed points.
-        Useful if x was never evaluated.
+        """Remove x from proposed_points
+
+        This removes x from the list of proposed points in the case where the optimization
+        strategy decides to not evaluate x.
 
         :param x: Point to be removed
-
+        :type x: numpy.array
         :return: True if points was removed, False otherwise
+        :type: bool
         """
 
         idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
@@ -656,16 +1173,24 @@ class MultiStartGradient(object):
         return False
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None, merit=None):
-        """Create new points to evaluate using the Multi-Start Gradient method
+        """Proposes npts new points to evaluate
 
         :param npts: Number of points to select
-        :param xbest: Best solution found so far (ignored)
-        :param sigma: Current sampling radius w.r.t the unit box (ignored)
-        :param subset: Coordinates to perturb
+        :type npts: int
+        :param xbest: Best solution found so far (Ignored)
+        :type xbest: numpy.array
+        :param sigma: Current sampling radius w.r.t the unit box (Ignored)
+        :type sigma: float
+        :param subset: Coordinates to perturb (Ignored)
+        :type subset: numpy.array
         :param proj_fun: Routine for projecting infeasible points onto the feasible region
-        :param merit: Merit for selecting candidate points (ignored)
+        :type proj_fun: Object
+        :param merit: Merit function for selecting candidate points (Ignored)
+        :type merit: Object
 
-        :return: Points selected for evaluation"""
+        :return: Points selected for evaluation, of size npts x dim
+        :rtype: numpy.array
+        """
 
         def eval(x):
             return self.fhat.eval(x).ravel()
