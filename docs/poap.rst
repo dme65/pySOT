@@ -1,8 +1,8 @@
 POAP
 ====
 
-pySOT uses POAP, which an event-driven framework for building and combining a
-synchronous optimization strategies. There are two main components in POAP,
+pySOT uses POAP, which an event-driven framework for building and combining
+asynchronous optimization strategies. There are two main components in POAP,
 namely controllers and strategies. The controller is  capable of asking workers to
 run function evaluations and the strategy decides where to evaluate next. POAP
 works with external black-box objective functions and handles potential crashes
