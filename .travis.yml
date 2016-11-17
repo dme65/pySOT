@@ -24,12 +24,11 @@ install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda install -q numpy scipy matplotlib pip
+  - conda install -q numpy scipy pip
   - conda install -q --channel mpi4py mpich mpi4py
 
 script:
   - pip install --upgrade pip
-  - pip install inspyred
   - python setup.py install
   - cd ./pySOT/test/
   - make all
