@@ -10,25 +10,25 @@ Our new objective function takes the form
 .. code-block:: python
 
     class AckleyUnit:
-    def __init__(self, dim=10):
-        self.xlow = -1 * np.ones(dim)
-        self.xup = 1 * np.ones(dim)
-        self.dim = dim
-        self.info = str(dim)+"-dimensional Ackley function on the unit sphere \n" +\
-                             "Global optimum: f(1,0,...,0) = ... = f(0,0,...,1) = " +\
-                             str(np.round(20*(1-np.exp(-0.2/np.sqrt(dim))), 3))
-        self.min = 20*(1 - np.exp(-0.2/np.sqrt(dim)))
-        self.integer = []
-        self.continuous = np.arange(0, dim)
-        check_opt_prob(self)
+        def __init__(self, dim=10):
+            self.xlow = -1 * np.ones(dim)
+            self.xup = 1 * np.ones(dim)
+            self.dim = dim
+            self.info = str(dim)+"-dimensional Ackley function on the unit sphere \n" +\
+                                 "Global optimum: f(1,0,...,0) = ... = f(0,0,...,1) = " +\
+                                 str(np.round(20*(1-np.exp(-0.2/np.sqrt(dim))), 3))
+            self.min = 20*(1 - np.exp(-0.2/np.sqrt(dim)))
+            self.integer = []
+            self.continuous = np.arange(0, dim)
+            check_opt_prob(self)
 
-    def objfunction(self, x):
-        n = float(len(x))
-        return -20.0 * np.exp(-0.2*np.sqrt(np.sum(x**2)/n)) - \
-            np.exp(np.sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
+        def objfunction(self, x):
+            n = float(len(x))
+            return -20.0 * np.exp(-0.2*np.sqrt(np.sum(x**2)/n)) - \
+                np.exp(np.sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
 
-    def eval_eq_constraints(self, x):
-        return np.linalg.norm(x) - 1
+        def eval_eq_constraints(self, x):
+            return np.linalg.norm(x) - 1
 
 
 We next define a projection method as follows:

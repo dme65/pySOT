@@ -1,21 +1,21 @@
 This example shows how to define our own optimization problem in pySOT
 
 
-**Step 1:** Define out own optimization problem
+**Step 1:** Define our own optimization problem
 
 .. code-block:: python
 
     class SomeFun:
-    def __init__(self, dim=10):
-        self.xlow = -10 * np.ones(dim) # lower bounds
-        self.xup = 10 * np.ones(dim) # upper bounds
-        self.dim = dim # dimensionality
-        self.info = "Our own " + str(dim)+"-dimensional function" # info
-        self.integer = np.array([0]) # integer variables
-        self.continuous = np.arange(1, dim) # continuous variables
+        def __init__(self, dim=10):
+            self.xlow = -10 * np.ones(dim) # lower bounds
+            self.xup = 10 * np.ones(dim) # upper bounds
+            self.dim = dim # dimensionality
+            self.info = "Our own " + str(dim)+"-dimensional function" # info
+            self.integer = np.array([0]) # integer variables
+            self.continuous = np.arange(1, dim) # continuous variables
 
-    def objfunction(self, x):
-        return np.sum(x) * np.cos(np.sum(x))
+        def objfunction(self, x):
+            return np.sum(x) * np.cos(np.sum(x))
 
 **Step 2:** Let's make sure that our optimization problem follows the pySOT standard
 
