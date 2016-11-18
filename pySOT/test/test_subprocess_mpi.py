@@ -5,7 +5,6 @@
 """
 
 from mpi4py import MPI
-import logging
 from pySOT import *
 from poap.mpiserve import MPIController, MPIProcessWorker
 import numpy as np

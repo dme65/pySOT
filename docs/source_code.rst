@@ -1,18 +1,18 @@
-pySOT package
-=============
-
-Subpackages
------------
+Source code
+===========
 
 .. toctree::
 
-    pySOT.test
+pySOT.adaptive_sampling module
+------------------------------
 
-Submodules
-----------
+.. automodule:: pySOT.adaptive_sampling
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 pySOT.ensemble_surrogate module
-------------------------------
+-------------------------------
 
 .. automodule:: pySOT.ensemble_surrogate
     :members:
@@ -27,13 +27,14 @@ pySOT.experimental_design module
     :undoc-members:
     :show-inheritance:
 
-pySOT.kriging_interpolant module
---------------------------------
+pySOT.heuristic_methods module
+------------------------------
 
-.. automodule:: pySOT.kriging_interpolant
+.. automodule:: pySOT.heuristic_methods
     :members:
     :undoc-members:
     :show-inheritance:
+
 
 pySOT.mars_interpolant module
 -----------------------------
@@ -43,32 +44,56 @@ pySOT.mars_interpolant module
     :undoc-members:
     :show-inheritance:
 
-pySOT.rbf_interpolant module
+pySOT.merit_functions module
 ----------------------------
 
-.. automodule:: pySOT.rbf_interpolant
+.. automodule:: pySOT.merit_functions
     :members:
     :undoc-members:
     :show-inheritance:
 
-pySOT.rs_capped module
-----------------------
+pySOT.poly_regression module
+----------------------------
 
-.. automodule:: pySOT.rs_capped
+.. automodule:: pySOT.poly_regression
     :members:
     :undoc-members:
     :show-inheritance:
 
-pySOT.search_procedure module
------------------------------
+pySOT.kernels module
+--------------------
 
-.. automodule:: pySOT.search_procedure
+.. automodule:: pySOT.kernels
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.tails module
+------------------
+
+.. automodule:: pySOT.tails
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.rbf module
+----------------
+
+.. automodule:: pySOT.rbf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pySOT.rs_wrappers module
+------------------------
+
+.. automodule:: pySOT.rs_wrappers
     :members:
     :undoc-members:
     :show-inheritance:
 
 pySOT.sot_sync_strategies module
----------------------
+--------------------------------
 
 .. automodule:: pySOT.sot_sync_strategies
     :members:
@@ -83,11 +108,10 @@ pySOT.test_problems module
     :undoc-members:
     :show-inheritance:
 
+pySOT.utils module
+------------------
 
-Module contents
----------------
-
-.. automodule:: pySOT
+.. automodule:: pySOT.utils
     :members:
     :undoc-members:
     :show-inheritance:

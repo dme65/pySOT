@@ -1,13 +1,30 @@
+"""
+.. module:: merit_functions
+   :synopsis: Merit functions for the adaptive sampling
+
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>,
+                David Bindel <bindel@cornell.edu>
+
+:Module: merit_functions
+:Author: David Eriksson <dme65@cornell.edu>,
+        David Bindel <bindel@cornell.edu>
+
+"""
+
 from utils import *
 import scipy.spatial as scp
 
 
 def candidate_merit_weighted_distance(cand, npts=1):
     """Weighted distance merit function for the candidate points based methods
-    :param cand: Candidate point object
-    :param npts: Number of points selected for evaluation
 
-    :return: Points selected for evaluation
+    :param cand: Candidate point object
+    :type cand: Object
+    :param npts: Number of points selected for evaluation
+    :type npts: int
+
+    :return: Points selected for evaluation, of size npts x dim
+    :rtype: numpy.array
     """
 
     new_points = np.ones((npts,  cand.data.dim))

@@ -1,10 +1,12 @@
 """
 .. module:: ensemble_surrogate
    :synopsis: Ensemble surrogate surfaces
+
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
 :Module: ensemble_surrogate
 :Author: David Eriksson <dme65@cornell.edu>
+
 """
 
 from pyds import MassFunction
@@ -21,6 +23,11 @@ class EnsembleSurrogate:
     by using Dempster-Shafer theory to assign pignistic probabilities
     based on statistics computed using LOOCV.
 
+    :param model_list: List of surrogate models
+    :type model_list: list
+    :param maxp: Maximum number of points
+    :type maxp: int
+
     :ivar nump: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar rhs: Right hand side for interpolation system
@@ -31,7 +38,9 @@ class EnsembleSurrogate:
     :ivar weights: Weight for each surrogate model
     :ivar surrogate_list: List of internal surrogate models for LOOCV
     """
+
     def __init__(self, model_list, maxp=100):
+
         self.nump = 0
         self.maxp = maxp
         self.x = None     # pylint: disable=invalid-name
@@ -46,7 +55,8 @@ class EnsembleSurrogate:
         self.surrogate_list = None
 
     def reset(self):
-        """Reset the interpolation."""
+        """Reset the ensemble surrogate."""
+
         self.nump = 0
         self.x = None
         self.fx = None
@@ -59,7 +69,9 @@ class EnsembleSurrogate:
         """Allocate storage for x, fx, surrogate_list
 
         :param dim: Number of dimensions
+        :type dim: int
         """
+
         maxp = self.maxp
         self.dim = dim
         self.x = np.zeros((maxp, dim))
@@ -71,8 +83,11 @@ class EnsembleSurrogate:
         """Expand allocation to accommodate more points (if needed)
 
         :param dim: Number of dimensions
+        :param dim: int
         :param extra: Number of additional points to accommodate
+        :param extra: int
         """
+
         if self.nump == 0:
             self._alloc(dim)
         elif self.nump + extra > self.maxp - 1:
@@ -89,18 +104,44 @@ class EnsembleSurrogate:
         """Internal method for building a mass function from probabilities
 
         :param prob: List of probabilities
-
-        :return: Mass function
+        :type prob: list
+        :return: A MassFunction object constructed from the pignistic probabilities
+        :rtype: MassFunction
         """
+
         dictlist = []
         for i in range(len(prob)):
             dictlist.append([str(i+1), prob[i]])
         return MassFunction(dict(dictlist))
 
     def _mean_squared_error(self, x, y):
+        """Mean squared error of x and y
+
+        Returns :math:`\frac{1}{n} \sum_{i=1}^n (x_i - y_i)^2`
+
+        :param x: Dataset 1, of length n
+        :type x: numpy.array
+        :param y: Dataset 1, of length n
+        :type y: numpy.array
+        :return: the MSE of x and y
+        :rtype: float
+        """
+
         return np.sum((x - y) ** 2)/len(x)
 
     def _mean_abs_err(self, x, y):
+        """Mean absolute error of x and y
+
+        Returns :math:`\frac{1}{n} \sum_{i=1}^n |x_i - y_i)|`
+
+        :param x: Dataset 1, of length n
+        :type x: numpy.array
+        :param y: Dataset 1, of length n
+        :type y: numpy.array
+        :return: the MAE of x and y
+        :rtype: float
+        """
+
         return np.sum(np.abs(x - y))/len(x)
 
     def compute_weights(self):
@@ -109,6 +150,7 @@ class EnsembleSurrogate:
         Given n observations we use n surrogates built with n-1 of the points
         in order to predict the value at the removed point. Based on these n
         predictions we calculate three different statistics:
+
             - Correlation coefficient with true function values
             - Root mean square deviation
             - Mean absolute error
@@ -118,7 +160,9 @@ class EnsembleSurrogate:
         probabilities, which are taken as model weights.
 
         :return: Model weights
+        :rtype: numpy.array
         """
+
         # Do the leave-one-out experiments
         loocv = np.zeros((self.M, self.nump))
         for i in range(self.M):
@@ -166,14 +210,18 @@ class EnsembleSurrogate:
         """Get the list of data points
 
         :return: List of data points
+        :rtype: numpy.array
         """
+
         return self.x[:self.nump, :]
 
     def get_fx(self):
         """Get the list of function values for the data points.
 
         :return: List of function values
+        :rtype: numpy.array
         """
+
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
@@ -192,8 +240,11 @@ class EnsembleSurrogate:
         2,3,4,5     1,3,4,5     1,2,4,5     1,2,3,5     1,2,3,4     1,2,3,4,5
 
         :param xx: Point to add
+        :type xx: numpy.array
         :param fx: The function value of the point to add
+        :type fx: float
         """
+
         dim = len(xx)
         self._realloc(dim)
         self.x[self.nump, :] = xx
@@ -222,43 +273,52 @@ class EnsembleSurrogate:
                 self.model_list[i] = self.surrogate_list[i][self.nump]
         self.weights = None
 
-    def eval(self, xx, d=None):
-        """Evaluate the interpolant at the point xx
+    def eval(self, x, ds=None):
+        """Evaluate the ensemble surrogate the point xx
 
-        :param xx: Point where to evaluate
-
-        :return: Value of the MARS interpolant at x
+        :param x: Point where to evaluate
+        :type x: numpy.array
+        :param ds: Not used
+        :type ds: None
+        :return: Value of the ensemble surrogate at x
+        :rtype: float
         """
+
         if self.weights is None:
             self.compute_weights()
 
         val = 0
         for i in range(self.M):
-            val += self.weights[i]*self.model_list[i].eval(xx, d)
+            val += self.weights[i]*self.model_list[i].eval(x, ds)
         return val
 
-    def evals(self, xx, d=None):
-        """Evaluate the MARS interpolant at the points xx
+    def evals(self, x, ds=None):
+        """Evaluate the ensemble surrogate at the points xx
 
-        :param xx: Points where to evaluate
-
-        :return: Values of the MARS interpolant at x
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Distances between the centers and the points x, of size npts x ncenters
+        :type ds: numpy.array
+        :return: Values of the ensemble surrogate at x, of length npts
+        :rtype: numpy.array
         """
+
         if self.weights is None:
             self.compute_weights()
 
-        vals = np.zeros((xx.shape[0], 1))
+        vals = np.zeros((x.shape[0], 1))
         for i in range(self.M):
-            vals += self.weights[i] * self.model_list[i].evals(xx, d)
+            vals += self.weights[i] * self.model_list[i].evals(x, ds)
 
         return vals
 
     def deriv(self, x, d=None):
-        """Evaluate the derivative of the MARS interpolant at x
+        """Evaluate the derivative of the ensemble surrogate at the point x
 
-        :param x: Data point
-
-        :return: Derivative of the MARS interpolant at x
+        :param x: Point for which we want to compute the RBF gradient
+        :type x: numpy.array
+        :return: Derivative of the ensemble surrogate at x
+        :rtype: numpy.array
         """
         if self.weights is None:
             self.compute_weights()
@@ -271,11 +331,11 @@ class EnsembleSurrogate:
 if __name__ == "__main__":
 
     from pySOT import RBFInterpolant
-    from pySOT import CubicRBFSurface, TPSSurface, LinearRBFSurface
+    from pySOT import CubicKernel, TPSKernel, LinearKernel, LinearTail, ConstantTail
 
-    fhat1 = RBFInterpolant(CubicRBFSurface, 1e-8, 100)
-    fhat2 = RBFInterpolant(TPSSurface, 1e-8, 100)
-    fhat3 = RBFInterpolant(LinearRBFSurface, 1e-8, 100)
+    fhat1 = RBFInterpolant(CubicKernel, LinearTail, 100, 1e-8)
+    fhat2 = RBFInterpolant(TPSKernel, LinearTail, 100, 1e-8)
+    fhat3 = RBFInterpolant(LinearKernel, ConstantTail, 100, 1e-8)
 
     models = [fhat1, fhat2, fhat3]
     fhat = EnsembleSurrogate(models, 10)

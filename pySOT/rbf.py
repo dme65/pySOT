@@ -1,104 +1,74 @@
+"""
+.. module:: rbf
+   :synopsis: Radial basis function interpolation and regression
+
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>,
+                David Bindel <bindel@cornell.edu>
+
+:Module: rbf
+:Author: David Eriksson <dme65@cornell.edu>,
+        David Bindel <bindel@cornell.edu>
+
+"""
+
 import numpy as np
-import numpy.linalg as la
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
-
-""" Kernels """
-
-
-class CubicKernel(object):
-
-    def order(self):
-        return 2
-
-    def phiZero(self):
-        return 0
-
-    def eval(self, dists):
-        return np.multiply(dists, np.multiply(dists, dists))
-
-    def deriv(self, dists):
-        return 3 * np.multiply(dists, dists)
-
-
-class TPSKernel(object):
-
-    def order(self):
-        return 2
-
-    def phiZero(self):
-        return 0
-
-    def eval(self, dists):
-        return np.multiply(np.multiply(dists, dists), np.log(dists + np.finfo(float).tiny))
-
-    def deriv(self, dists):
-        return np.multiply(dists, 1 + 2 * np.log(dists + np.finfo(float).tiny))
-
-
-class LinearKernel(object):
-
-    def order(self):
-        return 1
-
-    def phiZero(self):
-        return 0
-
-    def eval(self, dists):
-        return dists
-
-    def deriv(self, dists):
-        return np.ones((dists.shape[0], dists.shape[1]))
-
-""" TAILS """
-
-
-class LinearTail(object):
-
-    def degree(self):
-        return 1
-
-    def dimTail(self, dim):
-        return 1 + dim
-
-    # Each row is the basis evaluated at X[i, :]
-    def eval(self, X):
-        if len(X.shape) == 1:
-            X = np.atleast_2d(X)
-        return np.hstack((np.ones((X.shape[0], 1)), X))
-
-    # Evaluate the derivative at one point
-    # Row i is the gradient wrt x_i
-    def deriv(self, x):
-        return np.hstack((np.zeros((len(x), 1)), np.eye((len(x)))))
-
-
-class ConstantTail(object):
-
-    def degree(self):
-        return 0
-
-    def dimTail(self, dim):
-        return 1
-
-    # Each row is the basis evaluated at X[i, :]
-    def eval(self, X):
-        if len(X.shape) == 1:
-            X = np.atleast_2d(X)
-        return np.ones((X.shape[0], 1))
-
-    # Evaluate the derivative at one point
-    # Row i is the gradient wrt x_i
-    def deriv(self, x):
-        return np.ones((len(x), 1))
-
-
-""" RBF Interpolant """
+from kernels import *
+from tails import *
 
 
 class RBFInterpolant(object):
+    """Compute and evaluate RBF interpolant.
 
-    def __init__(self, kernel=None, tail=None, maxp=500, eta=1e-8):
+    Manages an expansion of the form
+
+    .. math::
+
+        f(x) = \\sum_j c_j \\phi(\\|x-x_j\\|) + \\sum_j \\lambda_j p_j(x)
+
+    where the functions :math:`p_j(x)` are low-degree polynomials.
+    The fitting equations are
+
+    .. math::
+        \\begin{bmatrix} \\eta I & P^T \\\\ P & \\Phi+\\eta I \\end{bmatrix}
+        \\begin{bmatrix} \\lambda \\\\ c \\end{bmatrix} =
+        \\begin{bmatrix} 0 \\\\ f \\end{bmatrix}
+
+    where :math:`P_{ij} = p_j(x_i)` and :math:`\\Phi_{ij}=\\phi(\\|x_i-x_j\\|)`.
+    The regularization parameter :math:`\\eta` allows us to avoid problems
+    with potential poor conditioning of the system. The regularization parameter
+    can either be fixed or estimated via LOOCV. Specify eta='adapt' for estimation.
+
+    :param kernel: RBF kernel object
+    :type kernel: Kernel
+    :param tail: RBF polynomial tail object
+    :type tail: Tail
+    :param maxp: Initial point capacity
+    :type maxp: int
+    :param eta: Regularization parameter
+    :type eta: float or 'adapt'
+
+    :ivar kernel: RBF kernel
+    :ivar tail: RBF tail
+    :ivar eta: Regularization parameter
+    :ivar ntail: Number of tail functions
+    :ivar nump: Current number of points
+    :ivar maxp: Initial maximum number of points (can grow)
+    :ivar A: Interpolation system matrix
+    :ivar LU: LU-factorization of the RBF system
+    :ivar piv: pivot vector for the LU-factorization
+    :ivar rhs: Right hand side for interpolation system
+    :ivar x: Interpolation points
+    :ivar fx: Values at interpolation points
+    :ivar c: Expansion coefficients
+    :ivar dim: Number of dimensions
+    :ivar ntail: Number of tail functions
+    :ivar updated: True if the RBF coefficients are up to date
+    """
+
+    def __init__(self, kernel=CubicKernel, tail=LinearTail, maxp=500, eta=1e-8):
+
         if kernel is None or tail is None:
             kernel = CubicKernel
             tail = LinearTail
@@ -127,7 +97,7 @@ class RBFInterpolant(object):
             raise ValueError("Kernel and tail mismatch")
 
     def reset(self):
-        """Re-set the interpolation."""
+        """Reset the RBF interpolant"""
         self.nump = 0
         self.x = None
         self.fx = None
@@ -142,8 +112,11 @@ class RBFInterpolant(object):
         """Allocate storage for x, fx, rhs, and A.
 
         :param dim: Number of dimensions
+        :type dim: int
         :param ntail: Number of tail functions
+        :type ntail: int
         """
+
         maxp = self.maxp
         self.dim = dim
         self.ntail = ntail
@@ -156,12 +129,13 @@ class RBFInterpolant(object):
         """Expand allocation to accommodate more points (if needed)
 
         :param dim: Number of dimensions
-        :param ntail: Number of tail functions
+        :type dim: int
         :param extra: Number of additional points to accommodate
+        :type extra: int
         """
 
         self.dim = dim
-        self.ntail = self.tail.dimTail(dim)
+        self.ntail = self.tail.dim_tail(dim)
         if self.nump == 0:
             self._alloc(dim, self.ntail)
         elif self.nump + extra > self.maxp:
@@ -177,6 +151,7 @@ class RBFInterpolant(object):
         """Compute the expansion coefficients
 
         :return: Expansion coefficients
+        :rtype: numpy.array
         """
 
         if self.c is None:
@@ -232,21 +207,27 @@ class RBFInterpolant(object):
         """Get the list of data points
 
         :return: List of data points
+        :rtype: numpy.array
         """
+
         return self.x[:self.nump, :]
 
     def get_fx(self):
         """Get the list of function values for the data points.
 
         :return: List of function values
+        :rtype: numpy.array
         """
+
         return self.fx[:self.nump, :]
 
     def add_point(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
+        :type xx: numpy.array
         :param fx: The function value of the point to add
+        :type fx: float
         """
 
         dim = len(xx)
@@ -275,10 +256,11 @@ class RBFInterpolant(object):
 
         self.updated = False
 
-    def transform_fx(self, fx, d=None):
+    def transform_fx(self, fx):
         """Replace f with transformed function values for the fitting
 
-        :param fx: Transformed function value
+        :param fx: Transformed function values
+        :type fx: numpy.array
         """
         self.rhs[self.ntail:self.ntail+self.nump] = fx
         self.LU = None
@@ -286,10 +268,12 @@ class RBFInterpolant(object):
         self.c = None
 
     def eval(self, x, ds=None):
-        """Evaluate the rbf interpolant at the point x
+        """Evaluate the RBF interpolant at the point x
 
-        :param xx: Point where to evaluate
-        :return: Value of the rbf interpolant at x
+        :param x: Point where to evaluate
+        :type x: numpy.array
+        :return: Value of the RBF interpolant at x
+        :rtype: float
         """
 
         px = self.tail.eval(x)
@@ -301,11 +285,16 @@ class RBFInterpolant(object):
         return fx[0][0]
 
     def evals(self, x, ds=None):
-        """Evaluate the rbf interpolant at the points x
+        """Evaluate the RBF interpolant at the points x
 
-        :param xx: Points where to evaluate
-        :return: Values of the rbf interpolant at x
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Distances between the centers and the points x, of size npts x ncenters
+        :type ds: numpy.array
+        :return: Values of the rbf interpolant at x, of length npts
+        :rtype: numpy.array
         """
+
         ntail = self.ntail
         c = np.asmatrix(self.coeffs())
         if ds is None:
@@ -313,11 +302,15 @@ class RBFInterpolant(object):
         fx = self.kernel.eval(ds)*c[ntail:ntail+self.nump] + self.tail.eval(x)*c[:ntail]
         return fx
 
-    def deriv(self, x):
-        """Evaluate the derivative of the rbf interpolant at x
+    def deriv(self, x, ds=None):
+        """Evaluate the derivative of the RBF interpolant at a point x
 
-        :param x: Data point
-        :return: Derivative of the rbf interpolant at x (of size 1 x dim)
+        :param x: Point for which we want to compute the RBF gradient
+        :type x: numpy.array
+        :param ds: Distances between the centers and the point x
+        :type ds: numpy.array
+        :return: Derivative of the RBF interpolant at x
+        :rtype: numpy.array
         """
 
         if len(x.shape) == 1:
@@ -326,7 +319,8 @@ class RBFInterpolant(object):
         dpx = self.tail.deriv(x.transpose())
         c = self.coeffs()
         dfx = np.dot(dpx, c[:ntail]).transpose()
-        ds = scpspatial.distance.cdist(self.x[:self.nump, :], x)
+        if ds is None:
+            ds = scpspatial.distance.cdist(self.x[:self.nump, :], np.atleast_2d(x))
         ds[ds < 1e-10] = 1e-10  # Better safe than sorry
         dsx = - self.x[:self.nump, :]
         dsx += x

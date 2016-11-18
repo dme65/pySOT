@@ -2,12 +2,14 @@
 .. module:: test_problems
   :synopsis: Test problems for multi-modal and
              box-constrained global optimization
-.. moduleauthor:: David Eriksson <dme65@cornell.edu>
+
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>,
                  David Bindel <bindel@cornell.edu>
 
 :Module: test_problems
-:Author: David Eriksson <dme65@cornell.edu>
-    David Bindel <bindel@cornell.edu>
+:Author: David Eriksson <dme65@cornell.edu>,
+        David Bindel <bindel@cornell.edu>
+
 """
 
 import random
@@ -25,15 +27,25 @@ class Hartman3:
 
     Global optimum: :math:`f(0.114614,0.555649,0.852547)=-3.86278`
 
+    :param dim: Number of dimensions (has to be = 3)
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=3):
         self.xlow = np.zeros(3)
         self.xup = np.ones(3)
@@ -87,14 +99,23 @@ class Rastrigin:
 
     Global optimum: :math:`f(0,0,...,0)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
     def __init__(self, dim=10):
         self.xlow = -5.12 * np.ones(dim)
@@ -111,8 +132,11 @@ class Rastrigin:
         """Evaluate the Rastrigin function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return 10 * self.dim + sum(x**2 - 10 * np.cos(2 * np.pi * x))
@@ -133,15 +157,25 @@ class Ackley:
 
     Global optimum: :math:`f(0,0,...,0)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
+    :type xup: numpy.array
     :ivar info: Problem information:
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -15 * np.ones(dim)
         self.xup = 20 * np.ones(dim)
@@ -157,8 +191,11 @@ class Ackley:
         """Evaluate the Ackley function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         n = float(len(x))
@@ -169,6 +206,31 @@ class Ackley:
 class Michalewicz:
     """Michalewicz function
 
+    .. math::
+        f(x_1,\\ldots,x_n) = -\\sum_{i=1}^n \\sin(x_i) \\sin^{20} \\left( \\frac{ix_i^2}{\\pi} \\right)
+
+    subject to
+
+    .. math::
+        0 \\leq x_i \\leq \\pi
+
+    :param dim: Number of dimensions
+    :type dim: int
+
+    :ivar dim: Number of dimensions
+    :type dim: int
+    :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
+    :ivar xup: Upper bound constraints
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
+    :ivar min: Global optimum
+    :type min: float
+    :ivar integer: Integer variables
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
     def __init__(self, dim=10):
         self.xlow = np.zeros(dim)
@@ -185,8 +247,11 @@ class Michalewicz:
         """Evaluate the Michalewicz function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return -np.sum(np.sin(x) * (np.sin(((1+np.arange(self.dim))
@@ -194,10 +259,36 @@ class Michalewicz:
 
 
 class Levy:
+    """Ackley function
+
+    Details: https://www.sfu.ca/~ssurjano/levy.html
+
+    Global optimum: :math:`f(1,1,...,1)=0`
+
+    :param dim: Number of dimensions
+    :type dim: int
+
+    :ivar dim: Number of dimensions
+    :type dim: int
+    :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
+    :ivar xup: Upper bound constraints
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
+    :ivar min: Global optimum
+    :type min: float
+    :ivar integer: Integer variables
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
+    """
+
     def __init__(self, dim=10):
         self.xlow = -5 * np.ones(dim)
         self.xup = 5 * np.ones(dim)
         self.dim = dim
+        self.min = 0.0
         self.info = str(dim)+"-dimensional Levy function \n" +\
                              "Global optimum: ?"
         self.integer = []
@@ -233,15 +324,25 @@ class Griewank:
 
     Global optimum: :math:`f(0,0,...,0)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -512 * np.ones(dim)
         self.xup = 512 * np.ones(dim)
@@ -257,8 +358,11 @@ class Griewank:
         """Evaluate the Griewank function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         total = 1
@@ -281,15 +385,25 @@ class Rosenbrock:
 
     Global optimum: :math:`f(1,1,...,1)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -2.048 * np.ones(dim)
         self.xup = 2.048 * np.ones(dim)
@@ -305,8 +419,11 @@ class Rosenbrock:
         """Evaluate the Rosenbrock function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         total = 0
@@ -329,15 +446,25 @@ class Schwefel:
 
     Global optimum: :math:`f(420.968746,420.968746,...,420.968746)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -512 * np.ones(dim)
         self.xup = 512 * np.ones(dim)
@@ -353,8 +480,11 @@ class Schwefel:
         """Evaluate the Schwefel function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return 418.9829 * self.dim - \
@@ -374,15 +504,25 @@ class Sphere:
 
     Global optimum: :math:`f(0,0,...,0)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -5.12 * np.ones(dim)
         self.xup = 5.12 * np.ones(dim)
@@ -398,8 +538,11 @@ class Sphere:
         """Evaluate the Sphere function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return np.sum(x ** 2)
@@ -418,15 +561,25 @@ class Exponential:
 
     Global optimum: :math:`f(0,0,...,0)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -5.12 * np.ones(dim)
         self.xup = 5.12 * np.ones(dim)
@@ -442,8 +595,11 @@ class Exponential:
         """Evaluate the Exponential function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         total = 0
@@ -467,15 +623,25 @@ class StyblinskiTang:
     Global optimum: :math:`f(-2.903534,-2.903534,...,-2.903534)=\
     -39.16599 \\cdot n`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -5 * np.ones(dim)
         self.xup = 5 * np.ones(dim)
@@ -492,8 +658,11 @@ class StyblinskiTang:
         """Evaluate the StyblinskiTang function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return 0.5*np.sum(x ** 4 - 16 * x ** 2 + 5 * x)
@@ -512,15 +681,25 @@ class Quartic:
 
     Global optimum: :math:`f(0,0,...,0)=0+noise`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -1.28 * np.ones(dim)
         self.xup = 1.28 * np.ones(dim)
@@ -538,8 +717,11 @@ class Quartic:
         """Evaluate the Quartic function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         total = 0.0
@@ -563,15 +745,25 @@ class Whitley:
 
     Global optimum: :math:`f(1,1,...,1)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -10.24 * np.ones(dim)
         self.xup = 10.24 * np.ones(dim)
@@ -587,8 +779,11 @@ class Whitley:
         """Evaluate the Whitley function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         total = 0
@@ -618,15 +813,25 @@ class SchafferF7:
 
     Global optimum: :math:`f(0,0,...,0)=0`
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = -100 * np.ones(dim)
         self.xup = 100 * np.ones(dim)
@@ -642,8 +847,11 @@ class SchafferF7:
         """Evaluate the SchafferF7 function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         total = 0
@@ -666,7 +874,7 @@ class Keane:
     subject to
 
     .. math::
-        -100 \\leq x_i \\leq 100
+        0 \\leq x_i \\leq 5
 
     .. math::
         0.75 - \\prod_{j=1}^n x_j < 0
@@ -677,15 +885,25 @@ class Keane:
 
     Global optimum: -0.835 for large n
 
+    :param dim: Number of dimensions
+    :type dim: int
+
     :ivar dim: Number of dimensions
+    :type dim: int
     :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
     :ivar xup: Upper bound constraints
-    :ivar info: Problem information:
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
     :ivar min: Global optimum
+    :type min: float
     :ivar integer: Integer variables
-    :ivar continuous: Continuous variables:
-    :ivar constraints: Whether there are non-bound constraints
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
+
     def __init__(self, dim=10):
         self.xlow = np.zeros(dim)
         self.xup = 5 * np.ones(dim)
@@ -697,17 +915,29 @@ class Keane:
                              "Global optimum: -0.835 for large n"
         check_opt_prob(self)
 
-    # Compute the value of the constraint functions at the given point
-    # Returns an array of size npts x nconstraints
     def eval_ineq_constraints(self, x):
+        """Evaluate the Keane inequality constraints at x
+
+        :param x: Data points, of size npts x dim
+        :type x: numpy.array
+        :return: Value at the constraints, of size npts x nconstraints
+        :rtype: float
+        """
+
         vec = np.zeros((x.shape[0], 2))
         vec[:, 0] = 0.75 - np.prod(x)
         vec[:, 1] = np.sum(x) - 7.5 * self.dim
         return vec
 
-    # Compute the derivative of the constraint functions
-    # Returns an array of size npts x nconstraints x ndims
     def deriv_ineq_constraints(self, x):
+        """Evaluate the derivative of the Keane inequality constraints at x
+
+        :param x: Data points, of size npts x dim
+        :type x: numpy.array
+        :return: Derivative at the constraints, of size npts x nconstraints x ndims
+        :rtype: float
+        """
+
         vec = np.zeros((x.shape[0], 2, x.shape[1]))
         for i in range(x.shape[0]):
             xx = x[i, :]
@@ -716,13 +946,15 @@ class Keane:
                 vec[i, 1, j] = 1.0
         return vec
 
-    # Evaluate the objective function for a single data point
     def objfunction(self, x):
-        """Evaluate the Keane function  at x
+        """Evaluate the Keane function at a point x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
                 raise ValueError('Dimension mismatch')
         n = len(x)
@@ -737,8 +969,27 @@ class LinearMI:
     are continuous.
 
     Global optimum: :math:`f(1,0,0,0,0) = -1`
+
+    :param dim: Number of dimensions (has to be 5)
+    :type dim: int
+
+    :ivar dim: Number of dimensions
+    :type dim: int
+    :ivar xlow: Lower bound constraints
+    :type xlow: numpy.array
+    :ivar xup: Upper bound constraints
+    :type xup: numpy.array
+    :ivar info: Problem information
+    :type info: string
+    :ivar min: Global optimum
+    :type min: float
+    :ivar integer: Integer variables
+    :type integer: numpy.array
+    :ivar continuous: Continuous variables
+    :type continuous: numpy.array
     """
-    def __init__(self):
+
+    def __init__(self, dim=5):
         self.xlow = np.zeros(5)
         self.xup = np.array([10, 10, 10, 1, 1])
         self.dim = 5
@@ -751,6 +1002,14 @@ class LinearMI:
         check_opt_prob(self)
 
     def eval_ineq_constraints(self, x):
+        """Evaluate the LinearMI inequality constraints at x
+
+        :param x: Data points, of size npts x dim
+        :type x: numpy.array
+        :return: Value at the constraints, of size npts x nconstraints
+        :rtype: float
+        """
+
         vec = np.zeros((x.shape[0], 3))
         vec[:, 0] = x[:, 0] + x[:, 2] - 1.6
         vec[:, 1] = 1.333 * x[:, 1] + x[:, 3] - 3
@@ -761,8 +1020,11 @@ class LinearMI:
         """Evaluate the LinearMI function  at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
+
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
         return - x[0] + 3 * x[1] + 1.5 * x[2] + 2 * x[3] - 0.5 * x[4]
