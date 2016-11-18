@@ -68,8 +68,9 @@ FAQ
 
 .. |Travis| image:: https://travis-ci.org/dme65/pySOT.svg?branch=master
    :target: https://travis-ci.org/dme65/pySOT
-.. |ReadTheDocs| image:: https://readthedocs.org/projects/pySOT/badge/?version=latest
-   :target: http://pysot.readthedocs.io/en/latest/
+.. |ReadTheDocs| image:: https://readthedocs.org/projects/pysot/badge/?version=latest
+    :target: http://pysot.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 .. |Gitter| image:: https://badges.gitter.im/dme65/pySOT.svg
    :target: https://gitter.im/pySOT/Lobby
 .. |DOI| image:: https://zenodo.org/badge/36836292.svg
