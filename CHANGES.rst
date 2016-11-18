@@ -1,3 +1,17 @@
+v.0.1.30, 2016-11-18
+--------------------
+
+- Moved all of the official pySOT documentation over to Sphinx
+- Five pySOT tutorials were added to the documentation
+- The documentation is now hosted on Read the Docs (https://pysot.readthedocs.io)
+- Removed pyKriging in order to remove the matplotlib and inspyred dependencies. A new Kriging module will be added in the next version.
+- Added the MARS installation to the setup.py since it can now be installed via scikit-learn
+- Updated the Sphinx documentation to include all of the source files
+- The License, Changes, Contributors, and README files are not in .rst
+- Renamed sampling_methods.py to adaptive_sampling.py
+- Moved the kernels and tails to separate Python files
+- Added a Gitter for pySOT
+
 v0.1.29, 2016-10-20
 -------------------
 

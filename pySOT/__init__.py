@@ -26,5 +26,5 @@ try:
 except ImportError:
     __with_mars__ = False
 
-__version__ = '0.1.29'
+__version__ = '0.1.30'
 __author__ = 'David Eriksson, David Bindel, Christine Shoemaker'
