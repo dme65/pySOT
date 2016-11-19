@@ -60,7 +60,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         points to evaluate
     :type sampling_method: Object
     :param extra: Points to be added to the experimental design
-    :type extra: int
+    :type extra: numpy.array
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
@@ -323,7 +323,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         points to evaluate
     :type sampling_method: Object
     :param extra: Points to be added to the experimental design
-    :type extra: int
+    :type extra: numpy.array
     :param penalty: Penalty for violating constraints
     :type penalty: float
     """
@@ -442,7 +442,7 @@ class SyncStrategyProjection(SyncStrategyNoConstraints):
         points to evaluate
     :type sampling_method: Object
     :param extra: Points to be added to the experimental design
-    :type extra: int
+    :type extra: numpy.array
     :param proj_fun: Function that projects one point onto the feasible region
     :type proj_fun: Object
     """

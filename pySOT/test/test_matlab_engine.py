@@ -37,7 +37,7 @@ def main():
     print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Latin Hypercube")
-    print("Surrogate: Cubic RBF, domain scaled to unit box")
+    print("Surrogate: Cubic RBF")
 
     nthreads = 4
     maxeval = 500

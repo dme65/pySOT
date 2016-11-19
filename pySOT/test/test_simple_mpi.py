@@ -27,7 +27,7 @@ def main_master(data, nworkers):
     print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS, with weight 0.5")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF, domain scaled to unit box")
+    print("Surrogate: Cubic RBF")
 
     maxeval = 500
     print(data.info)

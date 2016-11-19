@@ -22,7 +22,7 @@ def main():
     print("Maximum number of evaluations: 25")
     print("Sampling method: CandidateDYCORS, with weight 0.5")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF, domain scaled to unit box")
+    print("Surrogate: MARS interpolant")
 
     nthreads = 4
     maxeval = 25

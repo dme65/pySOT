@@ -33,7 +33,7 @@ def main():
 
     # Use RBF + PolyReg
     bounds = np.vstack((data.xlow, data.xup)).T
-    basisp = basis_TD(data.dim, 2)  # use order 2 and no cross-terms
+    basisp = basis_TD(data.dim, 2)  # use order 2
 
     models = [
         RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval),
