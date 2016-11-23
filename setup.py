@@ -4,9 +4,10 @@ long_description = open('README.rst').read()
 
 install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
                   'matlab_wrapper', 'scikit-learn',
-                  'py-earth', 'Sphinx >= 1.4.7']
+                  'py-earth']
 if sys.version_info < (3,0):
-    install_requires = install_requires.append(["subprocess32"])
+    install_requires.append(['subprocess32'])
+
 
 setup(
     name='pySOT',
