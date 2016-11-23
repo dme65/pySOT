@@ -34,27 +34,23 @@ class SumfunExt:
 class CppSim(ProcessWorkerThread):
 
     def handle_eval(self, record):
-        self.process = Popen(['./sumfun_ext', array2str(record.params[0])],
-                             stdout=PIPE)
-
         val = np.nan
         # Continuously check for new outputs from the subprocess
-        while True:
-            output = self.process.stdout.readline()
-            if output == '' and self.process.poll() is not None:  # No new output
-                break
-            if output:  # New intermediate output
-                try:
-                    val = float(output.strip())  # Try to parse output
-                    if val > 350:  # Terminate if too large
-                        self.process.terminate()
-                        self.finish_success(record, 350)
-                        return
-                except ValueError:  # If the output is nonsense we terminate
-                    logging.warning("Incorrect output")
+        self.process = Popen(['./sumfun_ext', array2str(record.params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
+
+        for line in self.process.stdout:
+            try:
+                val = float(line.strip())  # Try to parse output
+                if val > 350:  # Terminate if too large
                     self.process.terminate()
-                    self.finish_cancelled(record)
+                    self.finish_success(record, 350)
                     return
+            except ValueError:  # If the output is nonsense we terminate
+                logging.warning("Incorrect output")
+                self.process.terminate()
+                self.finish_cancelled(record)
+                return
+        self.process.wait()
 
         rc = self.process.poll()  # Check the return code
         if rc < 0 or np.isnan(val):
