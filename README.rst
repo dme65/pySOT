@@ -56,9 +56,6 @@ FAQ
 | Q: I can't find the GUI
 | A: You need to install PySide
 |
-| Q: I can't find the MARS interpolant
-| A: You need to install py-earth (https://github.com/jcrudy/py-earth)
-|
 | Q: I used pySOT for my research and want to cite it
 | A: There is currently no published paper on pySOT so we recommend
   citing pySOT like this: *D. Eriksson, D. Bindel, and C. Shoemaker.
