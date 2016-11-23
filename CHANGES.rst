@@ -1,3 +1,10 @@
+v.0.1.31, 2016-11-23
+--------------------
+
+- Added Python 3 support
+- Removed Sphinx dependency
+- Added six dependency to get py-earth to work for Python 3
+
 v.0.1.30, 2016-11-18
 --------------------
 

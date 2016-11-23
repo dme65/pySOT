@@ -48,6 +48,8 @@ https://github.com/dme65/SOT
 
 Check out the new pySOT documentation: http://pysot.readthedocs.io/
 
+pySOT now has support for Python 3.
+
 FAQ
 ---
 
@@ -63,8 +65,7 @@ FAQ
   Surrogate Optimization Toolbox (pySOT). github.com/dme65/pySOT, 2015*
 |
 | Q: Is there support for Python 3?
-| A: pySOT currently doesn't support Python 3, mainly because of some
-  pySOT dependencies lacking Python 3 support.
+| A: YES!
 
 .. |Travis| image:: https://travis-ci.org/dme65/pySOT.svg?branch=master
    :target: https://travis-ci.org/dme65/pySOT

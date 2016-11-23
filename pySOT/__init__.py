@@ -15,11 +15,5 @@ from pySOT.merit_functions import *
 from pySOT.utils import *
 from pySOT.mars_interpolant import MARSInterpolant
 
-try:
-    from pySOT.gui import GUI
-    __with_gui__ = True
-except ImportError:
-    __with_gui__ = False
-
-__version__ = '0.1.30'
+__version__ = '0.1.31'
 __author__ = 'David Eriksson, David Bindel, Christine Shoemaker'
