@@ -3,7 +3,7 @@ import sys
 long_description = open('README.rst').read()
 
 install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
-                  'matlab_wrapper', 'scikit-learn',
+                  'matlab_wrapper', 'six', 'scikit-learn',
                   'py-earth']
 if sys.version_info < (3,0):
     install_requires.append(['subprocess32'])
