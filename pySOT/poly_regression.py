@@ -380,7 +380,7 @@ def test_legendre1():
     M = np.dot(P.T, w*P)
     E = M - np.diag(1/(2*np.arange(5)+1))
     relerr = la.norm(E)/la.norm(M)
-    print relerr
+    print(relerr)
     assert relerr < 1e-4, "Test Legendre orthonormality"
 
 
@@ -436,4 +436,3 @@ if __name__ == "__main__":
     test_legendre1()
     test_legendre2()
     test_poly()
-

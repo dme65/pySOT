@@ -1,5 +1,13 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+import sys
 long_description = open('README.rst').read()
+
+install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
+                  'matlab_wrapper', 'six', 'scikit-learn',
+                  'py-earth']
+if sys.version_info < (3,0):
+    install_requires.append(['subprocess32'])
+
 
 setup(
     name='pySOT',
@@ -12,9 +20,12 @@ setup(
     description='Surrogate Optimization Toolbox',
     long_description=long_description,
     requires=['numpy', 'scipy'],
-    install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
-                      'subprocess32', 'matlab_wrapper', 'scikit-learn',
-                      'py-earth', 'Sphinx >= 1.4.7'],
+    install_requires=install_requires,
     dependency_links=['http://github.com/scikit-learn-contrib/py-earth/tarball/master#egg=py-earth-0.1.0'],
-    classifiers=['Programming Language :: Python :: 2.7'],
+    classifiers=['Programming Language :: Python :: 2.7',
+                 'Programming Language :: Python :: 3',
+                 'Programming Language :: Python :: 3.2',
+                 'Programming Language :: Python :: 3.3',
+                 'Programming Language :: Python :: 3.4',
+                 ]
 )

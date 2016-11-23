@@ -8,7 +8,11 @@ from mpi4py import MPI
 from pySOT import *
 from poap.mpiserve import MPIController, MPIProcessWorker
 import numpy as np
-from subprocess32 import Popen, PIPE
+import sys
+if sys.version_info < (3,0):
+    from subprocess32 import Popen, PIPE
+else:
+    from subprocess import Popen, PIPE
 import os.path
 
 
@@ -19,7 +23,7 @@ def array2str(x):
 class CppSim(MPIProcessWorker):
     def eval(self, record_id, params, extra_args=None):
         try:
-            self.process = Popen(['./sphere_ext', array2str(params[0])], stdout=PIPE)
+            self.process = Popen(['./sphere_ext', array2str(params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
             self.finish_success(record_id, float(val))
         except ValueError:

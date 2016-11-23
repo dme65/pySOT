@@ -10,12 +10,12 @@
 """
 
 import math
-from utils import *
+from pySOT.utils import *
 import scipy.spatial as scp
-from heuristic_methods import GeneticAlgorithm as GA
+from pySOT.heuristic_methods import GeneticAlgorithm as GA
 from scipy.optimize import minimize
 import scipy.stats as stats
-from merit_functions import *
+from pySOT.merit_functions import *
 import types
 
 

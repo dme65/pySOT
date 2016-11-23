@@ -7,14 +7,14 @@ Initializing the GUI is as easy as typing from the terminal:
 
 .. code-block:: python
 
-    from pySOT import GUI
+    from pySOT.gui import GUI
     GUI()
 
 or more compactly:
 
 .. code-block:: python
 
-    python -c 'from pySOT import GUI; GUI()'
+    python -c 'from pySOT.gui import GUI; GUI()'
 
 The optimization problem has to be implemented in a separate file and this file must satisfy
 the requirements mentioned above for an optimization problem. In addition, the separate

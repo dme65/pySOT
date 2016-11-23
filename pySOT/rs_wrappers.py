@@ -8,7 +8,7 @@
 """
 
 import numpy as np
-from utils import from_unit_box, to_unit_box
+from pySOT.utils import from_unit_box, to_unit_box
 
 
 class RSCapped(object):

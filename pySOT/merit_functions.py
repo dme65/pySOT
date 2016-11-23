@@ -11,7 +11,7 @@
 
 """
 
-from utils import *
+from pySOT.utils import *
 import scipy.spatial as scp
 
 

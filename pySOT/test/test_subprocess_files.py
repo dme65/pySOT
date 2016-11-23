@@ -7,7 +7,11 @@
 from pySOT import *
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
-from subprocess32 import Popen, PIPE
+import sys
+if sys.version_info < (3,0):
+    from subprocess32 import Popen, PIPE
+else:
+    from subprocess import Popen, PIPE
 import os.path
 
 
@@ -24,7 +28,7 @@ class CppSim(ProcessWorkerThread):
             f.write(array2str(record.params[0]))
             f.close()
 
-            self.process = Popen(['./sphere_ext_files', self.my_filename], stdout=PIPE)
+            self.process = Popen(['./sphere_ext_files', self.my_filename], stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
 
             self.finish_success(record, float(val))

@@ -20,20 +20,17 @@ import importlib
 from poap.controller import *
 from poap.strategy import *
 import time
-from sot_sync_strategies import *
-from experimental_design import *
-from rs_wrappers import RSCapped
-from adaptive_sampling import *
-from ensemble_surrogate import *
-from rbf import *
-from utils import check_opt_prob
+from pySOT.sot_sync_strategies import *
+from pySOT.experimental_design import *
+from pySOT.rs_wrappers import RSCapped
+from pySOT.adaptive_sampling import *
+from pySOT.ensemble_surrogate import *
+from pySOT.rbf import *
+from pySOT.utils import check_opt_prob
+from pySOT.mars_interpolant import MARSInterpolant
 
 try:
     from kriging_interpolant import KrigingInterpolant
-except:
-    pass
-try:
-    from mars_interpolant import MARSInterpolant
 except:
     pass
 

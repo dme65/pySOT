@@ -9,7 +9,7 @@
 
 """
 
-from experimental_design import LatinHypercube, SymmetricLatinHypercube
+from pySOT.experimental_design import LatinHypercube, SymmetricLatinHypercube
 import numpy as np
 
 
@@ -138,11 +138,11 @@ class GeneticAlgorithm:
             for i in range(self.tournament_size):  # This loop is short
                 winner_indices[np.where(ind == i)] = competitors[np.where(ind == i), i]
 
-            parent1 = population[winner_indices[0:self.nindividuals/2], :]
-            parent2 = population[winner_indices[self.nindividuals/2:self.nindividuals], :]
+            parent1 = population[winner_indices[0:self.nindividuals//2], :]
+            parent2 = population[winner_indices[self.nindividuals//2:self.nindividuals], :]
 
             # Averaging Crossover
-            cross = np.where(np.random.rand(self.nindividuals/2) < self.p_cross)[0]
+            cross = np.where(np.random.rand(self.nindividuals//2) < self.p_cross)[0]
             nn = len(cross)  # Number of crossovers
             alpha = np.random.rand(nn, 1)
 
