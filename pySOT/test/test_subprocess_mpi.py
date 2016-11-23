@@ -8,7 +8,11 @@ from mpi4py import MPI
 from pySOT import *
 from poap.mpiserve import MPIController, MPIProcessWorker
 import numpy as np
-from subprocess32 import Popen, PIPE
+import sys
+if sys.version_info < (3,0):
+    from subprocess32 import Popen, PIPE
+else:
+    from subprocess import Popen, PIPE
 import os.path
 
 
