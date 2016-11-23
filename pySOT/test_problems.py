@@ -15,7 +15,7 @@
 import random
 from time import time
 import numpy as np
-from utils import check_opt_prob
+from pySOT.utils import check_opt_prob
 
 # ========================= 3-dimensional =======================
 
@@ -774,7 +774,7 @@ class Whitley:
         self.integer = []
         self.continuous = np.arange(0, dim)
         check_opt_prob(self)
- 
+
     def objfunction(self, x):
         """Evaluate the Whitley function  at x
 

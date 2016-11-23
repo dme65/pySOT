@@ -1,31 +1,33 @@
 sudo: true
 
 language: python
-
-matrix:
-  include:
-    - os: linux
-      python: 2.7
-      sudo: required
-
-    - os: osx
-      language: generic
-      sudo: required
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
 
 install:
-
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh;
-    else
+  # Instal Miniconda
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda install -q numpy scipy pip
-  - conda install -q --channel mpi4py mpich mpi4py
+  - conda info -a
+
+  # Set up an environment for Python
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+  - source activate test-environment
+
+  # Install mpi4py with mpich
+  - conda install -n test-environment -q numpy scipy pip
+  - conda install -n test-environment -q --channel mpi4py mpich mpi4py
 
 script:
   - pip install --upgrade pip

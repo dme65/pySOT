@@ -7,19 +7,19 @@ all:
 
 .PHONY: test
 test: sphere_ext sphere_ext_files sumfun_ext
-	python test_simple.py
-	python test_rbf.py
-	python test_penalty.py
-	python test_projection.py
-	python test_ensemble.py
-	python test_mars.py
-	python test_mixed_integer_constraints.py
-	python test_multisampling.py
-	python test_subprocess.py
-	python test_subprocess_files.py
-	python test_subprocess_partial_info.py
-	mpiexec -n 5 python test_simple_mpi.py
-	mpiexec -n 5 python test_subprocess_mpi.py
+	python3 test_simple.py
+	python3 test_rbf.py
+	python3 test_penalty.py
+	python3 test_projection.py
+	python3 test_ensemble.py
+	python3 test_mars.py
+	python3 test_mixed_integer_constraints.py
+	python3 test_multisampling.py
+	python3 test_subprocess.py
+	python3 test_subprocess_files.py
+	python3 test_subprocess_partial_info.py
+	mpiexec -n 5 python3 test_simple_mpi.py
+	mpiexec -n 5 python3 test_subprocess_mpi.py
 
 clean:
 	rm -f sphere_ext

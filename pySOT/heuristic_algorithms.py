@@ -4,7 +4,7 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from experimental_design import LatinHypercube, SymmetricLatinHypercube
+from pySOT.experimental_design import LatinHypercube, SymmetricLatinHypercube
 import numpy as np
 
 
@@ -174,4 +174,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -15,12 +15,12 @@ from __future__ import print_function
 import numpy as np
 import math
 import logging
-from experimental_design import SymmetricLatinHypercube, LatinHypercube
-from adaptive_sampling import CandidateDYCORS
+from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
+from pySOT.adaptive_sampling import CandidateDYCORS
 from poap.strategy import BaseStrategy, RetryStrategy
-from rbf import *
-from utils import *
-from rs_wrappers import *
+from pySOT.rbf import *
+from pySOT.utils import *
+from pySOT.rs_wrappers import *
 
 # Get module-level logger
 logger = logging.getLogger(__name__)

@@ -14,8 +14,8 @@
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
-from kernels import *
-from tails import *
+from pySOT.kernels import *
+from pySOT.tails import *
 
 
 class RBFInterpolant(object):

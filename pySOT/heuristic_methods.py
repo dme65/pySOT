@@ -9,7 +9,7 @@
 
 """
 
-from experimental_design import LatinHypercube, SymmetricLatinHypercube
+from pySOT.experimental_design import LatinHypercube, SymmetricLatinHypercube
 import numpy as np
 
 
