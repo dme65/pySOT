@@ -5,13 +5,13 @@ long_description = open('README.rst').read()
 install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
                   'matlab_wrapper', 'six', 'scikit-learn',
                   'py-earth']
-if sys.version_info < (3,0):
+if sys.version_info < (3, 0):
     install_requires.append(['subprocess32'])
 
 
 setup(
     name='pySOT',
-    version='0.1.30',
+    version='0.1.31',
     packages=['pySOT', 'pySOT.test'],
     url='https://github.com/dme65/pySOT',
     license='LICENSE.rst',
