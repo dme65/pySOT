@@ -2,12 +2,11 @@ from setuptools import setup, find_packages
 import sys
 long_description = open('README.rst').read()
 
-install_requires=['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
-                  'matlab_wrapper', 'six', 'scikit-learn',
-                  'py-earth']
+install_requires = ['pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer',
+                    'matlab_wrapper', 'six', 'scikit-learn',
+                    'py-earth']
 if sys.version_info < (3, 0):
     install_requires.append(['subprocess32'])
-
 
 setup(
     name='pySOT',
@@ -27,5 +26,6 @@ setup(
                  'Programming Language :: Python :: 3.2',
                  'Programming Language :: Python :: 3.3',
                  'Programming Language :: Python :: 3.4',
+                 'Programming Language :: Python :: 3.5',
                  ]
 )

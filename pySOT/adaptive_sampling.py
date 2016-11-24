@@ -1,12 +1,14 @@
 """
 .. module:: adaptive_sampling
-  :synopsis: Ways of finding the next point to evaluate in the adaptive phase
-.. moduleauthor:: David Eriksson <dme65@cornell.edu>
-                 David Bindel <bindel@cornell.edu>
+   :synopsis: Ways of finding the next point to evaluate in the adaptive phase
+
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>,
+                David Bindel <bindel@cornell.edu>
 
 :Module: adaptive_sampling
 :Author: David Eriksson <dme65@cornell.edu>,
         David Bindel <bindel@cornell.edu>
+
 """
 
 import math
