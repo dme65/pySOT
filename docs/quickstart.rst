@@ -6,15 +6,59 @@ Quickstart
 Dependencies
 ------------
 
-Before starting you will need Python 2.7.x and pip. You must also have numpy and scipy
-installed and we recommend installing Anaconda for Python 2.7:
-`https://www.continuum.io/downloads <https://www.continuum.io/downloads>`_
+Before starting you will need Python 2.7.x or Python 3. You need to have numpy, scipy, and pip
+installed and we recommend installing Anaconda/Miniconda for your desired Python version.
 
-If you want to use the GUI you need to install PySide. This can be done with pip:
+There are a couple of optional components of pySOT that needs to be installed manually:
 
-.. code-block:: bash
+1. **py-earth**: Implementation of MARS. Can be installed using:
 
-   pip install PySide
+   .. code-block:: bash
+
+      pip install six http://github.com/scikit-learn-contrib/py-earth/tarball/master
+
+   or
+
+   .. code-block:: bash
+
+      git clone git://github.com/scikit-learn-contrib/py-earth.git
+      cd py-earth
+      pip install six
+      python setup.py install
+
+2. **mpi4py**: This module is necessary in order to use pySOT with MPI. Can be installed through pip:
+
+   .. code-block:: bash
+
+      pip install mpi4py
+
+   or through conda (Anaconda/Miniconda) where it can be channeled with your favorite MPI implementation
+   such as mpich:
+
+   .. code-block:: bash
+
+      conda install --channel mpi4py mpich mpi4py
+
+3. **subprocess32**: A backport of the subprocess module for Python 3.2 that works for Python 2.7.
+   This is the recommended way of launching workers through subprocesses for Python 2.7
+   and this module is easily installed using:
+
+   .. code-block:: bash
+
+      pip install subprocess32
+
+4. **matlab_wrapper**: A module that can be used to create MATLAB sessions for
+   older MATLAB versions where there is no default MATLAB engine. Easily instead using:
+
+   .. code-block:: bash
+
+      pip install matlab_wrapper
+
+5. **PySide**: If you want to use the GUI you need to install PySide. This can be done with pip:
+
+   .. code-block:: bash
+
+      pip install PySide
 
 Installation
 ------------

@@ -4,16 +4,30 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from mpi4py import MPI
-from pySOT import *
+from pySOT import Sphere,SyncStrategyNoConstraints, \
+    SymmetricLatinHypercube, CandidateDYCORS, \
+    RBFInterpolant, CubicKernel, LinearTail
 from poap.mpiserve import MPIController, MPIProcessWorker
 import numpy as np
 import sys
-if sys.version_info < (3,0):
-    from subprocess32 import Popen, PIPE
+import os.path
+import logging
+if sys.version_info < (3, 0):
+    # Try to import from subprocess32
+    try:
+        from subprocess32 import Popen, PIPE
+    except Exception as err:
+        print("ERROR: You need the subprocess32 module for Python 2.7. \n"
+              "Install using: pip install subprocess32")
+        exit()
 else:
     from subprocess import Popen, PIPE
-import os.path
+# Try to import mpi4py
+try:
+    from mpi4py import MPI
+except Exception as err:
+    print("ERROR: You need mpi4py to use the POAP MPI controller")
+    exit()
 
 
 def array2str(x):

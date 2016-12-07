@@ -12,12 +12,15 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_penalty.py
 	python test_projection.py
 	python test_ensemble.py
+	python test_matlab_engine.py
 	python test_mars.py
 	python test_mixed_integer_constraints.py
 	python test_multisampling.py
 	python test_subprocess.py
 	python test_subprocess_files.py
 	python test_subprocess_partial_info.py
+
+testmpi: sphere_ext
 	mpiexec -n 5 python test_simple_mpi.py
 	mpiexec -n 5 python test_subprocess_mpi.py
 

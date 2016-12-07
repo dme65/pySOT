@@ -4,11 +4,20 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from mpi4py import MPI
-from pySOT import *
+from pySOT import Ackley, SyncStrategyNoConstraints, \
+    SymmetricLatinHypercube, RBFInterpolant, CubicKernel, \
+    LinearTail, CandidateDYCORS
 from poap.mpiserve import MPIController, MPISimpleWorker
 import numpy as np
 import os.path
+import logging
+
+# Try to import mpi4py
+try:
+    from mpi4py import MPI
+except Exception as err:
+    print("ERROR: You need mpi4py to use the POAP MPI controller.")
+    exit()
 
 
 def main_worker(objfunction):

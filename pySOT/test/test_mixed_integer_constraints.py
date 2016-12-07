@@ -4,10 +4,14 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import LinearMI, SymmetricLatinHypercube, RBFInterpolant, \
+    CubicKernel, LinearTail, MultiSampling, CandidateDYCORS, \
+    CandidateUniform, CandidateDYCORS_INT, CandidateDYCORS_CONT, \
+    SyncStrategyPenalty
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
+import logging
 
 
 def main():

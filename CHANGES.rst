@@ -1,3 +1,8 @@
+v.0.1.32, 2016-12-07
+--------------------
+
+- Switched to make py-earth, matlab_wrapper, and subprocess32 optional dependencies to resolve pip installation issues
+
 v.0.1.31, 2016-11-23
 --------------------
 

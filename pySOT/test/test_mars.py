@@ -4,10 +4,19 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import Ackley, SyncStrategyNoConstraints, SymmetricLatinHypercube, CandidateDYCORS
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
+import logging
+
+# Try to import MARS
+try:
+    from pySOT import MARSInterpolant
+except Exception as err:
+    print("\nERROR: Failed to import MARS. This is likely "
+          "because py-earth is not installed. Aborting.....\n")
+    exit()
 
 
 def main():

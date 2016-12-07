@@ -4,10 +4,14 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import Ackley, CandidateDYCORS, GeneticAlgorithm, \
+    MultiStartGradient, SyncStrategyNoConstraints, \
+    RBFInterpolant, CubicKernel, LinearTail, \
+    SymmetricLatinHypercube, MultiSampling
 from poap.controller import SerialController
 import numpy as np
 import os.path
+import logging
 
 
 def main():

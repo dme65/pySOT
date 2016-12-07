@@ -29,11 +29,6 @@ from pySOT.rbf import *
 from pySOT.utils import check_opt_prob
 from pySOT.mars_interpolant import MARSInterpolant
 
-try:
-    from kriging_interpolant import KrigingInterpolant
-except:
-    pass
-
 import logging
 ntpath.basename("a/b/c")
 
@@ -796,7 +791,7 @@ class myGUI(QtGui.QWidget):
                 self.info5.setText("Python objective function")
             self.info5.adjustSize()
 
-        except Exception, err:
+        except Exception as err:
             self.printMessage("Import failed: " + err.message + "\n", "red")
             self.data = None
             self.datainp = False
@@ -985,7 +980,7 @@ class myGUI(QtGui.QWidget):
             try:
                 exp_design_class = globals()[self.explist.currentText()]
                 self.exp_des = exp_design_class(dim=self.data.dim, npts=int(self.inevline.text()))
-            except Exception, err:
+            except Exception as err:
                 self.printMessage("Failed to initialize experimental design: " +
                                   err.message + "\n", "red")
                 self.turnActionsOn()
@@ -1018,7 +1013,7 @@ class myGUI(QtGui.QWidget):
                         weights.append(dictionary[names[i]])
                     self.search = MultiSampling(search_strategies, weights)
 
-            except Exception, err:
+            except Exception as err:
                 self.printMessage("Failed to initialize sampling method: " +
                                   err.message + "\n", "red")
                 self.turnActionsOn()
@@ -1057,7 +1052,7 @@ class myGUI(QtGui.QWidget):
                             elif name[1] == " ConstantTail":
                                 tail_ = ConstantTail
 
-                            print name
+                            print(name)
                             # Build RBF (with cap if necessary)
                             if len(name) == 3:
                                 if name[2] == " Median Cap":
@@ -1081,7 +1076,7 @@ class myGUI(QtGui.QWidget):
                     else:
                         self.rs = EnsembleSurrogate(rs, maxp=self.maxeval)
 
-            except Exception, err:
+            except Exception as err:
                 self.printMessage("Failed to initialize response surface: " +
                                   err.message + "\n", "red")
                 self.turnActionsOn()
@@ -1115,7 +1110,7 @@ class myGUI(QtGui.QWidget):
                         else:
                             worker = BasicWorkerThread(self.controller, self.data.objfunction)
                             self.controller.launch_worker(worker)
-            except Exception, err:
+            except Exception as err:
                 self.printMessage("Failed to initiate controller/strategy: " +
                                   err.message + "\n", "red")
                 self.turnActionsOn()
@@ -1146,7 +1141,7 @@ class myGUI(QtGui.QWidget):
                 self.printProblemInfo()  # Print some information to the logfile
 
                 self.manager.run(self)
-            except Exception, err:
+            except Exception as err:
                 self.printMessage("Optimization failed: " +
                                   err.message + "\n", "red")
 

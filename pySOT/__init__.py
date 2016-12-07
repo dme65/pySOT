@@ -17,8 +17,8 @@ from pySOT.utils import *
 try:
     from pySOT.mars_interpolant import MARSInterpolant
     __with_mars__ = True
-except ImportError:
+except ImportError as err:
     __with_mars__ = False
 
-__version__ = '0.1.31'
+__version__ = '0.1.32'
 __author__ = 'David Eriksson, David Bindel, Christine Shoemaker'

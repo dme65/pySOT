@@ -4,11 +4,20 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import Ackley, SyncStrategyNoConstraints, LatinHypercube, \
+    RBFInterpolant, CubicKernel, LinearTail, CandidateDYCORS
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
 import os.path
-import matlab_wrapper
+import logging
+
+# Try to import the matlab_wrapper module
+try:
+    import matlab_wrapper
+except Exception as err:
+    print("\nERROR: Failed to import the matlab_wrapper module. "
+          "Install using: pip install matlab_wrapper\n")
+    exit()
 
 
 class MatlabWorker(ProcessWorkerThread):
@@ -66,7 +75,12 @@ def main():
     # Launch the threads
     for _ in range(nthreads):
         worker = MatlabWorker(controller)
-        worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm')
+        try:
+            worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm')
+        except Exception as err:
+            print("\nERROR: Failed to initialize a MATLAB session.\n")
+            exit()
+
         worker.matlab.workspace.addpath(mfile_location)
         controller.launch_worker(worker)
 

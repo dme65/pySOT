@@ -41,7 +41,7 @@ class MARSInterpolant(Earth):
     :ivar x: Interpolation points
     :ivar fx: Function evaluations of interpolation points
     :ivar dim: Number of dimensions
-    :ivar model: MARS interpolaion model
+    :ivar model: MARS interpolation model
     """
 
     def __init__(self, maxp=100):

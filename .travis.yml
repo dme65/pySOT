@@ -8,7 +8,7 @@ python:
   - "3.5"
 
 install:
-  # Instal Miniconda
+  # Install Miniconda
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
     else
@@ -29,9 +29,21 @@ install:
   - conda install -n test-environment -q numpy scipy pip
   - conda install -n test-environment -q --channel mpi4py mpich mpi4py
 
-script:
+  # Install py-earth, matlab_wrapper
   - pip install --upgrade pip
+  - pip install six http://github.com/scikit-learn-contrib/py-earth/tarball/master
+  - pip install matlab_wrapper
+
+  # Install subprocess32 if Python2 is being used
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      pip install subprocess32;
+    fi
+
+  # Install pySOT
   - python setup.py install
+
+script:
   - cd ./pySOT/test/
   - make all
   - make test
+  - make testmpi

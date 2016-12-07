@@ -4,15 +4,23 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import Sphere,SyncStrategyNoConstraints, \
+    SymmetricLatinHypercube, CandidateDYCORS, \
+    RBFInterpolant, CubicKernel, LinearTail
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
 import sys
-if sys.version_info < (3,0):
-    from subprocess32 import Popen, PIPE
+import os.path
+import logging
+if sys.version_info < (3, 0):
+    # Try to import from subprocess32
+    try:
+        from subprocess32 import Popen, PIPE
+    except Exception as err:
+        print("ERROR: You need the subprocess32 module for Python 2.7 Install using: pip install subprocess32")
+        exit()
 else:
     from subprocess import Popen, PIPE
-import os.path
 
 
 def array2str(x):

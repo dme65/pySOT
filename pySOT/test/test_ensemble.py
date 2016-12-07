@@ -4,11 +4,13 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import Ackley, EnsembleSurrogate, SyncStrategyNoConstraints, \
+    PolyRegression, basis_TD, RBFInterpolant, CubicKernel, LinearTail, \
+    SymmetricLatinHypercube, CandidateSRBF
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
-
+import logging
 
 def main():
     if not os.path.exists("./logfiles"):

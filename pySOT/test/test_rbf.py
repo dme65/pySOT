@@ -4,7 +4,7 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import *
+from pySOT import Sphere, RBFInterpolant, CubicKernel, LinearTail
 import numpy as np
 
 
