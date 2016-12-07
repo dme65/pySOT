@@ -17,18 +17,13 @@ The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
 
 Documentation: http://pysot.readthedocs.io/
 
-pySOT has been downloaded 16,001 times from 2015-June-4 to
-2016-October-15
+pySOT has been downloaded 17,945 times from 2015-June-4 to
+2016-Dec-7
 
 Installation
 ------------
 
-Make sure you have Python 2.7.x and pip installed. The easiest way to
-install pySOT is using:
-
-.. code:: bash
-
-    pip install pySOT
+Installation instructions are available at: http://pysot.readthedocs.io/en/latest/quickstart.html
 
 Examples
 --------
@@ -56,13 +51,20 @@ FAQ
 | Q: I can't find the GUI
 | A: You need to install PySide
 |
+| Q: I can't find the MARS interpolant
+| A: You need to install py-earth in order to use MARS. More information is
+  available here: https://github.com/scikit-learn-contrib/py-earth
+|
+| Q: Can I use pySOT with MPI?
+| A: Yes. You need to install mpi4py in order to use the MPIController in POAP.
+|
 | Q: I used pySOT for my research and want to cite it
 | A: There is currently no published paper on pySOT so we recommend
   citing pySOT like this: *D. Eriksson, D. Bindel, and C. Shoemaker.
   Surrogate Optimization Toolbox (pySOT). github.com/dme65/pySOT, 2015*
 |
 | Q: Is there support for Python 3?
-| A: YES!
+| A: Yes, as of version 0.1.31.
 
 .. |Travis| image:: https://travis-ci.org/dme65/pySOT.svg?branch=master
    :target: https://travis-ci.org/dme65/pySOT
