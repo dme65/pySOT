@@ -200,7 +200,7 @@ class GeneticAlgorithm:
         return best_individual, best_value
 
 
-def main():
+if __name__ == "__main__":
     dim = 30
 
     # Vectorized Ackley function in dim dimensions
@@ -229,6 +229,3 @@ def main():
     print("\nBest function value: {0}".format(f_best))
     print("Best solution: {0}".format(x_best))
     print("norm(x_best) = {0}".format(np.linalg.norm(x_best)))
-
-if __name__ == "__main__":
-    main()
