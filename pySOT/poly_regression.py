@@ -32,7 +32,7 @@ class PolyRegression(object):
     :ivar basisp: Multi-indices representing terms in a tensor poly basis
         Each row is a list of dim indices indicating a polynomial degree
         in the associated dimension.
-    :ivar updated:
+    :ivar updated: True if the RBF coefficients are up to date
     """
 
     def __init__(self, bounds, basisp, maxp=100):

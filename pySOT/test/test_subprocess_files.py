@@ -17,7 +17,8 @@ if sys.version_info < (3, 0):
     try:
         from subprocess32 import Popen, PIPE
     except Exception as err:
-        print("ERROR: You need the subprocess32 module for Python 2.7 Install using: pip install subprocess32")
+        print("ERROR: You need the subprocess32 module for Python 2.7. \n"
+              "Install using: pip install subprocess32")
         exit()
 else:
     from subprocess import Popen, PIPE
