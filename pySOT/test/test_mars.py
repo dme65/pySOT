@@ -28,16 +28,16 @@ def main():
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 25")
-    print("Sampling method: CandidateDYCORS, with weight 0.5")
+    print("Maximum number of evaluations: 500")
+    print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: MARS interpolant")
 
     nthreads = 4
-    maxeval = 25
+    maxeval = 500
     nsamples = nthreads
 
-    data = Ackley(dim=2)
+    data = Ackley(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
@@ -48,7 +48,7 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=MARSInterpolant(maxp=maxeval),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim, weights=[0.5]))
+            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

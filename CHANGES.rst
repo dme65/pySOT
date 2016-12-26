@@ -1,3 +1,11 @@
+v.0.1.33, 2016-12-27
+--------------------
+
+- Fixed a bug in MARS that used a lot of zero points in the fitting
+- Added a GP regression object
+-
+-
+
 v.0.1.32, 2016-12-07
 --------------------
 

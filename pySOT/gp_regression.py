@@ -1,56 +1,55 @@
 """
-.. module:: mars_interpolant
-   :synopsis: MARS model interpolation
+.. module:: gp_regression
+   :synopsis: Gaussian Process regression
 
-.. moduleauthor:: Yi Shen <ys623@cornell.edu>
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
-:Module: mars_interpolant
-:Author: Yi Shen <ys623@cornell.edu>
+:Module: gp_regression
+:Author: David Eriksson <dme65@cornell.edu>
 
 """
 
 import numpy as np
-import numpy.linalg as la
-from pyearth import Earth
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 
 
-class MARSInterpolant(Earth):
-    """Compute and evaluate a MARS interpolant
+class GPRegression(GaussianProcessRegressor):
+    """Compute and evaluate a GP
 
-    MARS builds a model of the form
+    Gaussian Process Regression object.
 
-    .. math::
+    Depends on scitkit==0.18.1.
 
-        \hat{f}(x) = \sum_{i=1}^{k} c_i B_i(x).
-
-    The model is a weighted sum of basis functions :math:`B_i(x)`. Each basis
-    function :math:`B_i(x)` takes one of the following three forms:
-
-    1. a constant 1.
-    2. a hinge function of the form :math:`\max(0, x - const)` or \
-       :math:`\max(0, const - x)`. MARS automatically selects variables \
-       and values of those variables for knots of the hinge functions.
-    3. a product of two or more hinge functions. These basis functions c \
-       an model interaction between two or more variables.
+    More details:
+        http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html
 
     :param maxp: Initial capacity
     :type maxp: int
+    :param gp: GP object (can be None)
+    :type gp: GaussianProcessRegressor
 
     :ivar nump: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar x: Interpolation points
     :ivar fx: Function evaluations of interpolation points
+    :ivar gp: Object of type GaussianProcessRegressor
     :ivar dim: Number of dimensions
     :ivar model: MARS interpolation model
     """
 
-    def __init__(self, maxp=100):
+    def __init__(self, maxp=100, gp=None):
         self.nump = 0
         self.maxp = maxp
         self.x = None     # pylint: disable=invalid-name
         self.fx = None
         self.dim = None
-        self.model = Earth()
+        if gp is None:
+            self.model = GaussianProcessRegressor(n_restarts_optimizer=10)
+        else:
+            self.model = gp
+            if not isinstance(gp, GaussianProcessRegressor):
+                raise TypeError("gp is not of type GaussianProcessRegressor")
         self.updated = False
 
     def reset(self):
@@ -124,13 +123,13 @@ class MARSInterpolant(Earth):
         self.updated = False
 
     def eval(self, x, ds=None):
-        """Evaluate the MARS interpolant at the point x
+        """Evaluate the GP regression object at the point x
 
         :param x: Point where to evaluate
         :type x: numpy.array
         :param ds: Not used
         :type ds: None
-        :return: Value of the MARS interpolant at x
+        :return: Value of the GP regression obejct at x
         :rtype: float
         """
 
@@ -140,16 +139,16 @@ class MARSInterpolant(Earth):
 
         x = np.expand_dims(x, axis=0)
         fx = self.model.predict(x)
-        return fx[0]
+        return fx
 
     def evals(self, x, ds=None):
-        """Evaluate the MARS interpolant at the points x
+        """Evaluate the GP regression object at the points x
 
         :param x: Points where to evaluate, of size npts x dim
         :type x: numpy.array
         :param ds: Not used
         :type ds: None
-        :return: Values of the MARS interpolant at x, of length npts
+        :return: Values of the GP regression object at x, of length npts
         :rtype: numpy.array
         """
 
@@ -157,28 +156,22 @@ class MARSInterpolant(Earth):
             self.model.fit(self.get_x(), self.get_fx())
         self.updated = True
 
-        fx = np.zeros(shape=(x.shape[0], 1))
-        fx[:, 0] = self.model.predict(x)
+        fx = self.model.predict(x)
         return fx
 
     def deriv(self, x, ds=None):
-        """Evaluate the derivative of the MARS interpolant at a point x
+        """Evaluate the GP regression object at a point x
 
-        :param x: Point for which we want to compute the MARS gradient
+        :param x: Point for which we want to compute the GP regression gradient
         :type x: numpy.array
         :param ds: Not used
         :type ds: None
-        :return: Derivative of the MARS interpolant at x
+        :return: Derivative of the GP regression object at x
         :rtype: numpy.array
         """
 
-        if self.updated is False:
-            self.model.fit(self.get_x(), self.get_fx())
-        self.updated = True
-
-        x = np.expand_dims(x, axis=0)
-        dfx = self.model.predict_deriv(x, variables=None)
-        return dfx[0]
+        # FIXME, To be implemented
+        raise NotImplementedError
 
 # ====================================================================
 
@@ -191,36 +184,35 @@ def _main():
         fx = x[1]*np.sin(x[0]) + x[0]*np.cos(x[1])
         return fx
 
-    def test_df(x):
-        """ Derivative of test function"""
-        dfx = np.array([x[1]*np.cos(x[0]) + np.cos(x[1]),
-                        np.sin(x[0]) - x[0]*np.sin(x[1])])
-        return dfx
-
-    # Set up Earth model
-    fhat = MARSInterpolant(20)
+    # Set up GP model
+    fhat = GPRegression(20)
 
     # Set up initial points to train the MARS model
     xs = np.random.rand(15, 2)
-    for x in xs:
-        fhat.add_point(x, test_f(x))
+    for xx in xs:
+        fhat.add_point(xx, test_f(xx))
 
     x = np.random.rand(10, 2)
     fhx = fhat.evals(x)
-    print(" \n------ (fx - fhx)/|fx| ----- ")
+    print(" \nGP with RBF kernel\n ------ (fx - fhx)/|fx| ----- ")
     for i in range(10):
         fx = test_f(x[i, :])
         print("Err: %e" % (abs(fx-fhx[i])/abs(fx)))
 
-    print(" \n ------ (fx - fhx)/|fx| , |dfx-dfhx|/|dfx| -----")
+    # Try to pass in a GP object with a different kernel
+    kernel = 1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e3)) \
+        + WhiteKernel(noise_level=1e-5, noise_level_bounds=(1e-8, 1e+1))
+    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
+    fhat2 = GPRegression(20, gp)
+
+    for xx in xs:
+        fhat2.add_point(xx, test_f(xx))
+
+    fhx = fhat2.evals(x)
+    print(" \nGP with RBF + white kernel\n ------ (fx - fhx)/|fx| ----- ")
     for i in range(10):
-        xx = x[i, :]
-        fx = test_f(xx)
-        dfx = test_df(xx)
-        fhx = fhat.eval(xx)
-        dfhx = fhat.deriv(xx)
-        print("Err (interp): %e : %e" % (abs(fx-fhx)/abs(fx),
-                                         la.norm(dfx-dfhx)/la.norm(dfx)))
+        fx = test_f(x[i, :])
+        print("Err: %e" % (abs(fx - fhx[i]) / abs(fx)))
 
 if __name__ == "__main__":
     _main()

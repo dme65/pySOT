@@ -14,6 +14,7 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_ensemble.py
 	python test_matlab_engine.py
 	python test_mars.py
+	python test_gp_regression.py
 	python test_mixed_integer_constraints.py
 	python test_multisampling.py
 	python test_subprocess.py

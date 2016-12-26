@@ -34,7 +34,7 @@ def main_master(data, nworkers):
 
     print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
     print("Maximum number of evaluations: 500")
-    print("Sampling method: CandidateDYCORS, with weight 0.5")
+    print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
@@ -49,7 +49,7 @@ def main_master(data, nworkers):
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
                                             maxp=maxeval),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim, weights=[0.5]))
+            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
     controller = MPIController(strategy)
 
     result = controller.run()

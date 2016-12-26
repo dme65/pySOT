@@ -20,5 +20,11 @@ try:
 except ImportError as err:
     __with_mars__ = False
 
-__version__ = '0.1.32'
+try:
+    from pySOT.gp_regression import GPRegression
+    __with_gp__ = True
+except ImportError as err:
+    __with_gp__ = False
+
+__version__ = '0.1.33'
 __author__ = 'David Eriksson, David Bindel, Christine Shoemaker'

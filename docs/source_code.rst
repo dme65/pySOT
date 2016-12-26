@@ -31,6 +31,13 @@ pySOT.heuristic_methods module
     :members:
     :undoc-members:
 
+pySOT.gp_regression module
+--------------------------
+
+.. automodule:: pySOT.gp_regression
+    :members:
+    :undoc-members:
+
 pySOT.mars_interpolant module
 -----------------------------
 
