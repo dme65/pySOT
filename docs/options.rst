@@ -160,13 +160,16 @@ The following surrogate models are supported:
 
     .. code-block:: python
 
-        from pySOT import RBFInterpolant, CubicRBFSurface
+        from pySOT import RBFInterpolant, CubicKernel, LinearTail
         fhat = RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=500)
 
     creates a cubic RBF with a linear tail with a capacity for 500 points.
 
 - **GPRegression:**
     Generate a Gaussian process regression object.
+
+    .. note:: This implementation depends on the scikit-learn of version 0.18.1 or higher
+        (see :ref:`quickstart-label`)
 
     Example:
 
@@ -179,6 +182,8 @@ The following surrogate models are supported:
 
 - **MARSInterpolant:**
     Generate a Multivariate Adaptive Regression Splines (MARS) model.
+
+    .. note:: This implementation depends on the py-earth module (see :ref:`quickstart-label`)
 
     Example:
 
@@ -225,19 +230,18 @@ The following surrogate models are supported:
 
     .. code-block:: python
 
-        from pySOT import RBFInterpolant, CubicRBFSurface, LinearRBFSurface,
-            TPSSurface, EnsembleSurrogate
+        from pySOT import RBFInterpolant, CubicKernel, LinearTail, \
+                          GPRegression, MARSInterpolant, EnsembleSurrogate
 
         models = [
-            RBFInterpolant(surftype=CubicRBFSurface, maxp=500),
-            RBFInterpolant(surftype=LinearRBFSurface, maxp=500),
-            RBFInterpolant(surftype=TPSSurface, maxp=500)
+            RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=500), \
+            GPRegression(maxp=500), MARSInterpolant(maxp=500)
         ]
 
         response_surface = EnsembleSurrogate(model_list=models, maxp=500)
 
     creates an ensemble surrogate with three surrogate models, namely a
-    Cubic RBF Interpolant, a Linear RBF Interpolant, and a TPS RBF Interpolant.
+    Cubic RBF Interpolant, a MARS interpolant, and a Gaussian process regression object.
 
 Adaptive sampling
 -----------------
@@ -316,13 +320,13 @@ second using CandidateDYCORS_CONT and so on.
 .. code-block:: python
 
     from pySOT import LinearMI, MultiSampling, CandidateDYCORS, \
-                  CandidateDYCORS_CONT, CandidateDYCORS_INT, \
-                  CandidateUniform
+                      CandidateDYCORS_CONT, CandidateDYCORS_INT, \
+                      CandidateUniform
 
     data = LinearMI()  # Optimization problem
-    sampling_methods = [CandidateDYCORS(data=data, numcand=100*data.dim),
-                        CandidateDYCORS_CONT(data=data, numcand=100*data.dim),
-                        CandidateDYCORS_INT(data=data, numcand=100*data.dim),
+    sampling_methods = [CandidateDYCORS(data=data, numcand=100*data.dim), \
+                        CandidateDYCORS_CONT(data=data, numcand=100*data.dim), \
+                        CandidateDYCORS_INT(data=data, numcand=100*data.dim), \
                         CandidateUniform(data=data, numcand=100*data.dim)]
     cycle = [0, 1, 2, 3]
     sampling_methods = MultiSampling(sampling_methods, cycle)

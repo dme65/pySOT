@@ -1,10 +1,9 @@
 v.0.1.33, 2016-12-27
 --------------------
 
-- Fixed a bug in MARS that used a lot of zero points in the fitting
-- Added a GP regression object
--
--
+- Fixed a bug in MARS that resulted in using a lot of zero points for fitting
+- Added a GP regression object based on scikit-learn 0.18.1
+- Updated tests and documentation
 
 v.0.1.32, 2016-12-07
 --------------------

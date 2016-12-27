@@ -1,6 +1,7 @@
 Quickstart
 ==========
 
+.. _quickstart-label:
 
 
 Dependencies
