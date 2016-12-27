@@ -19,7 +19,7 @@ class GPRegression(GaussianProcessRegressor):
 
     Gaussian Process Regression object.
 
-    Depends on scitkit==0.18.1.
+    Depends on scitkit-learn==0.18.1.
 
     More details:
         http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html

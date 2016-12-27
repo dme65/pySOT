@@ -165,17 +165,17 @@ The following surrogate models are supported:
 
     creates a cubic RBF with a linear tail with a capacity for 500 points.
 
-- **KrigingInterpolant:**
-    Generate a Kriging interpolant.
+- **GPRegression:**
+    Generate a Gaussian process regression object.
 
     Example:
 
     .. code-block:: python
 
-        from pySOT import KrigingInterpolant
-        fhat = KrigingInterpolant(maxp=500)
+        from pySOT import GPRegression
+        fhat = GPRegression(maxp=500)
 
-    creates a KrigingInterpolant interpolant with a capacity of 500 points.
+    creates a GPRegression object with a capacity of 500 points.
 
 - **MARSInterpolant:**
     Generate a Multivariate Adaptive Regression Splines (MARS) model.
