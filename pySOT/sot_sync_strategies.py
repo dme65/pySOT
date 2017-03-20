@@ -61,10 +61,12 @@ class SyncStrategyNoConstraints(BaseStrategy):
     :type sampling_method: Object
     :param extra: Points to be added to the experimental design
     :type extra: numpy.array
+    :param extra_vals: Values of the points in extra (if known). Use nan for values that are not known.
+    :type extra_vals: numpy.array
     """
 
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
-                 exp_design=None, sampling_method=None, extra=None):
+                 exp_design=None, sampling_method=None, extra=None, extra_vals=None):
 
         self.worker_id = worker_id
         self.data = data
@@ -76,6 +78,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.maxeval = maxeval
         self.nsamples = nsamples
         self.extra = extra
+        self.extra_vals = extra_vals
 
         # Default to generate sampling points using Symmetric Latin Hypercube
         self.design = exp_design
@@ -144,6 +147,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
             if self.data.dim != self.extra.shape[1]:
                 raise ValueError("Extra point and optimization problem "
                                  "have different dimensions")
+            if self.extra_vals is not None:
+                if self.extra.shape[0] != len(self.extra_vals):
+                    raise ValueError("Extra point values has the wrong length")
 
         # Check that the optimization problem makes sense
         check_opt_prob(self.data)
@@ -222,15 +228,35 @@ class SyncStrategyNoConstraints(BaseStrategy):
         assert start_sample.shape[1] == self.data.dim, \
             "Dimension mismatch between problem and experimental design"
         start_sample = from_unit_box(start_sample, self.data)
-        if self.extra is not None:
-            start_sample = np.vstack((start_sample, self.extra))
 
+        if self.extra is not None:
+            # We know the values if this is a restart, so add the points to the surrogate
+            if self.numeval > 0:
+                for i in range(len(self.extra_vals)):
+                    xx = self.proj_fun(np.copy(self.extra[i, :]))
+                    self.fhat.add_point(np.ravel(xx), self.extra_vals[i])
+            else:  # Check if we know the values of the points
+                if self.extra_vals is None:
+                    self.extra_vals = np.inf * np.ones((self.extra.shape[0], 1))
+
+                for i in range(min(len(self.extra_vals), self.maxeval - self.numeval)):
+                    xx = self.proj_fun(np.copy(self.extra[i, :]))
+                    if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):  # We don't know this value
+                        proposal = self.propose_eval(np.ravel(xx))
+                        self.resubmitter.rput(proposal)
+                    else:  # We know this value
+                        self.fhat.add_point(np.ravel(xx), self.extra_vals[i])
+
+        # Evaluate the experimental design
         for j in range(min(start_sample.shape[0], self.maxeval - self.numeval)):
             start_sample[j, :] = self.proj_fun(start_sample[j, :])  # Project onto feasible region
             proposal = self.propose_eval(np.copy(start_sample[j, :]))
             self.resubmitter.rput(proposal)
 
-        self.sampling.init(np.copy(start_sample), self.fhat, self.maxeval - self.numeval)
+        if self.extra is not None:
+            self.sampling.init(np.vstack((start_sample, self.extra)), self.fhat, self.maxeval - self.numeval)
+        else:
+            self.sampling.init(start_sample, self.fhat, self.maxeval - self.numeval)
 
     def sample_adapt(self):
         """Generate and queue samples from the search strategy"""
@@ -272,6 +298,15 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :param record: Evaluation record
         :type record: Object
         """
+
+        # Update extra arguments
+        # TODO: This is too hacky
+        for i in range(len(self.extra_vals)):
+            if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):
+                if np.all(record.params[0] == self.extra[i, :]):
+                    self.extra_vals[i] = record.value
+                    print("Found " + str(i))
+                    break
 
         self.numeval += 1
         record.worker_id = self.worker_id
