@@ -301,12 +301,12 @@ class SyncStrategyNoConstraints(BaseStrategy):
 
         # Update extra arguments
         # TODO: This is too hacky
-        for i in range(len(self.extra_vals)):
-            if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):
-                if np.all(record.params[0] == self.extra[i, :]):
-                    self.extra_vals[i] = record.value
-                    print("Found " + str(i))
-                    break
+        if self.extra is not None:
+            for i in range(len(self.extra_vals)):
+                if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):
+                    if np.all(record.params[0] == self.extra[i, :]):
+                        self.extra_vals[i] = record.value
+                        break
 
         self.numeval += 1
         record.worker_id = self.worker_id
@@ -432,6 +432,15 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :param record: Evaluation record
         :type record: Object
         """
+
+        # Update extra arguments
+        # TODO: This is too hacky
+        if self.extra is not None:
+            for i in range(len(self.extra_vals)):
+                if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):
+                    if np.all(record.params[0] == self.extra[i, :]):
+                        self.extra_vals[i] = record.value
+                        break
 
         x = np.zeros((1, record.params[0].shape[0]))
         x[0, :] = np.copy(record.params[0])
