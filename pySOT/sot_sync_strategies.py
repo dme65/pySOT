@@ -135,7 +135,13 @@ class SyncStrategyNoConstraints(BaseStrategy):
             if self.maxeval < self.design.npts:
                 raise ValueError("Experimental design is larger than the evaluation budget")
         else:
-            if self.maxeval < self.design.npts + self.extra.shape[0]:
+            # Check the number of unknown extra points
+            if self.extra_vals is None:  # All extra point are unknown
+                nextra = self.extra.shape[0]
+            else:  # We know the values at some extra points so count how many we don't know
+                nextra = np.sum(np.isinf(self.extra_vals)) + np.sum(np.isnan(self.extra_vals))
+
+            if self.maxeval < self.design.npts + nextra:
                 raise ValueError("Experimental design + extra points "
                                  "exceeds the evaluation budget")
 
@@ -237,12 +243,13 @@ class SyncStrategyNoConstraints(BaseStrategy):
                     self.fhat.add_point(np.ravel(xx), self.extra_vals[i])
             else:  # Check if we know the values of the points
                 if self.extra_vals is None:
-                    self.extra_vals = np.inf * np.ones((self.extra.shape[0], 1))
+                    self.extra_vals = np.nan * np.ones((self.extra.shape[0], 1))
 
-                for i in range(min(len(self.extra_vals), self.maxeval - self.numeval)):
+                for i in range(len(self.extra_vals)):
                     xx = self.proj_fun(np.copy(self.extra[i, :]))
                     if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):  # We don't know this value
                         proposal = self.propose_eval(np.ravel(xx))
+                        proposal.extra_point_id = i  # Decorate the proposal
                         self.resubmitter.rput(proposal)
                     else:  # We know this value
                         self.fhat.add_point(np.ravel(xx), self.extra_vals[i])
@@ -286,6 +293,11 @@ class SyncStrategyNoConstraints(BaseStrategy):
             self.start_batch()
         return self.resubmitter.get()
 
+    def on_reply_accept(self, proposal):
+        # Transfer the decorations
+        if hasattr(proposal, 'extra_point_id'):
+            proposal.record.extra_point_id = proposal.extra_point_id
+
     def on_complete(self, record):
         """Handle completed function evaluation.
 
@@ -299,14 +311,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
         :type record: Object
         """
 
-        # Update extra arguments
-        # TODO: This is too hacky
-        if self.extra is not None:
-            for i in range(len(self.extra_vals)):
-                if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):
-                    if np.all(record.params[0] == self.extra[i, :]):
-                        self.extra_vals[i] = record.value
-                        break
+        # Check for extra_point decorator
+        if hasattr(record, 'extra_point_id'):
+            self.extra_vals[record.extra_point_id] = record.value
 
         self.numeval += 1
         record.worker_id = self.worker_id
@@ -433,14 +440,9 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :type record: Object
         """
 
-        # Update extra arguments
-        # TODO: This is too hacky
-        if self.extra is not None:
-            for i in range(len(self.extra_vals)):
-                if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):
-                    if np.all(record.params[0] == self.extra[i, :]):
-                        self.extra_vals[i] = record.value
-                        break
+        # Check for extra_point decorator
+        if hasattr(record, 'extra_point_id'):
+            self.extra_vals[record.extra_point_id] = record.value
 
         x = np.zeros((1, record.params[0].shape[0]))
         x[0, :] = np.copy(record.params[0])
