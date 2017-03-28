@@ -1,3 +1,8 @@
+v.0.1.34, 2017-03-28
+--------------------
+
+- Added support for adding points with known (and unknown) function values to the experimental design
+
 v.0.1.33, 2016-12-27
 --------------------
 
