@@ -20,6 +20,7 @@ test: sphere_ext sphere_ext_files sumfun_ext
 	python test_subprocess.py
 	python test_subprocess_files.py
 	python test_subprocess_partial_info.py
+	python test_extra_vals.py
 
 testmpi: sphere_ext
 	mpiexec -n 5 python test_simple_mpi.py

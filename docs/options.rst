@@ -254,7 +254,7 @@ how to cycle between the different strategies. Each implementation of this objec
 is required to have the following attributes and methods
 
 - Attributes:
-    * proposed_points: Number of data points (integer)
+    * proposed_points: List of points proposed to the optimization algorithm
 - Required methods
     * init(start_sample, fhat, budget): This initializes the sampling strategy
       by providing the points that were evaluated in the experimental design phase, the

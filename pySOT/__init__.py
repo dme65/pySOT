@@ -26,5 +26,5 @@ try:
 except ImportError as err:
     __with_gp__ = False
 
-__version__ = '0.1.33'
+__version__ = '0.1.34'
 __author__ = 'David Eriksson, David Bindel, Christine Shoemaker'
