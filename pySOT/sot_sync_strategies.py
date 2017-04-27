@@ -21,6 +21,7 @@ from poap.strategy import BaseStrategy, RetryStrategy
 from pySOT.rbf import *
 from pySOT.utils import *
 from pySOT.rs_wrappers import *
+import time
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
@@ -50,7 +51,9 @@ class SyncStrategyNoConstraints(BaseStrategy):
     :type data: Object
     :param response_surface: Surrogate model object
     :type response_surface: Object
-    :param maxeval: Function evaluation budget
+    :param maxeval: Stopping criterion. If positive, this is an 
+                    evaluation budget. If negative, this is a time
+                    budget in seconds.
     :type maxeval: int
     :param nsamples: Number of simultaneous fevals allowed
     :type nsamples: int
@@ -68,6 +71,16 @@ class SyncStrategyNoConstraints(BaseStrategy):
     def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
                  exp_design=None, sampling_method=None, extra=None, extra_vals=None):
 
+        # Check stopping criterion
+        self.start_time = time.time()
+        if maxeval < 0:  # Time budget
+            self.maxeval = np.inf
+            self.time_budget = np.abs(maxeval)
+        else:
+            self.maxeval = maxeval
+            self.time_budget = np.inf
+
+        # Import problem information
         self.worker_id = worker_id
         self.data = data
         self.fhat = response_surface
@@ -75,7 +88,6 @@ class SyncStrategyNoConstraints(BaseStrategy):
             self.fhat = RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval)
         self.fhat.reset()  # Just to be sure!
 
-        self.maxeval = maxeval
         self.nsamples = nsamples
         self.extra = extra
         self.extra_vals = extra_vals
@@ -287,7 +299,8 @@ class SyncStrategyNoConstraints(BaseStrategy):
     def propose_action(self):
         """Propose an action"""
 
-        if self.numeval == self.maxeval:
+        current_time = time.time()
+        if self.numeval >= self.maxeval or (current_time - self.start_time) >= self.time_budget:
             return self.propose_terminate()
         elif self.resubmitter.num_eval_outstanding == 0:
             self.start_batch()
