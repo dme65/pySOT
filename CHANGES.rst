@@ -1,3 +1,9 @@
+v.0.1.35, 2017-04-29
+--------------------
+
+- Added support for termination based on elapsed time
+- Added the Hartman6 test problem
+
 v.0.1.34, 2017-03-28
 --------------------
 

@@ -8,6 +8,7 @@ all:
 .PHONY: test
 test: sphere_ext sphere_ext_files sumfun_ext
 	python test_simple.py
+	python test_simple_time.py
 	python test_rbf.py
 	python test_penalty.py
 	python test_projection.py
