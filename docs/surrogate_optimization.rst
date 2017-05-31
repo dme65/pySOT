@@ -32,12 +32,12 @@ Surrogate model, Stopping criterion, Restart criterion
    Evaluate the points in the experimental design
    Build a Surrogate model from the data
    Repeat until stopping criterion met
-      Restart criterion met
-      Reset the Surrogate model and the Sample point strategy
-      go to 1
-   Use the adaptive sampling method to generate new point(s) to evaluate
-   Evaluate the point(s) generated using all computational resources
-   Update the Surrogate model
+      If restart criterion met
+         Reset the Surrogate model and the adaptive sampling method
+         go to 1
+      Use the adaptive sampling method to generate new point(s) to evaluate
+      Evaluate the point(s) generated using all computational resources
+      Update the Surrogate model
 
 **Outputs:** Best solution and its corresponding function value
 

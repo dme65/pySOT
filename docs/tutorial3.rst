@@ -49,7 +49,7 @@ to do function evaluations:
             val = matlab.get('val')
             return val
 
-** Step 4:** Optimize over our optimization problem
+**Step 4:** Optimize over our optimization problem
 
 .. code-block:: python
 
