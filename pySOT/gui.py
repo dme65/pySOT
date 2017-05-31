@@ -10,11 +10,6 @@
 """
 
 import sys
-from PyQt5 import QtCore, QtGui, QtWidgets
-#import matplotlib.pyplot as plt
-#from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-#from matplotlib.figure import Figure
-#import matplotlib.pyplot as plt
 
 import ntpath
 import imp
@@ -40,6 +35,7 @@ except ImportError as err:
 import logging
 ntpath.basename("a/b/c")
 
+from PyQt5 import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -81,6 +77,7 @@ class MyThread(QtCore.QThread):
 
 # ======================= Dynamic Plot Update =======================
 
+
 class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=6, height=4, dpi=200):
@@ -120,6 +117,7 @@ class PlotCanvas(FigureCanvas):
         self.ax.autoscale_view()
         self.draw()
 
+
 class DynamicPlot(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -129,15 +127,10 @@ class DynamicPlot(QtWidgets.QMainWindow):
         self.title = 'Progress plot'
         self.width = 600
         self.height = 400
-        self.initUI()
-
-    def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-
         self.m = PlotCanvas(self, width=6, height=4)
         self.m.move(0, 0)
-
         self.show()
 
     # We don't want the user accidentally to close this window
@@ -231,6 +224,7 @@ class Manager(InputStrategy):
                 np.array_str(result.params[0], max_line_width=80, precision=5, suppress_small=True)), "blue")
 
 # ================================= GUI ===================================
+
 
 class myGUI(QtWidgets.QWidget):
 
@@ -1214,7 +1208,6 @@ def GUI():
     ex.setFixedSize(800, 590)
     ex.show()
     sys.exit(app.exec_())
-
 
 if __name__ == '__main__':
     GUI()
