@@ -3,7 +3,7 @@ long_description = open('README.rst').read()
 
 setup(
     name='pySOT',
-    version='0.1.35',
+    version='0.1.36',
     packages=['pySOT', 'pySOT.test'],
     url='https://github.com/dme65/pySOT',
     license='LICENSE.rst',
