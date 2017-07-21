@@ -1,8 +1,8 @@
 Graphical user interface
 ========================
 
-pySOT comes with a graphical user interface (GUI) built in PySide. In order to use the
-GUI you need to have PySide installed together with all other dependencies of pySOT.
+pySOT comes with a graphical user interface (GUI) built in PyQt5. In order to use the
+GUI you need to have PyQt5 installed together with all other dependencies of pySOT.
 Initializing the GUI is as easy as typing from the terminal:
 
 .. code-block:: python

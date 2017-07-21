@@ -10,8 +10,7 @@
 """
 
 import sys
-from PySide import QtGui, QtCore
-import matplotlib.pyplot as plt
+
 import ntpath
 import imp
 import os
@@ -26,17 +25,24 @@ from pySOT.rs_wrappers import RSCapped
 from pySOT.adaptive_sampling import *
 from pySOT.ensemble_surrogate import *
 from pySOT.rbf import *
-from pySOT.utils import check_opt_prob
-from pySOT.mars_interpolant import MARSInterpolant
+from pySOT.utils import check_opt_prob\
+
+try:
+    from pySOT.mars_interpolant import MARSInterpolant
+except ImportError as err:
+    pass
 
 import logging
 ntpath.basename("a/b/c")
 
-# =========================== Timing ==============================
+from PyQt5 import QtCore, QtGui, QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 
 class TimerThread(QtCore.QThread):
-    time_elapsed = QtCore.Signal(int)
+    time_elapsed = QtCore.pyqtSignal(int)
 
     def __init__(self, parent=None):
         super(TimerThread, self).__init__(parent)
@@ -54,7 +60,7 @@ class TimerThread(QtCore.QThread):
 
 
 class MyThread(QtCore.QThread):
-    time_elapsed = QtCore.Signal(int)
+    time_elapsed = QtCore.pyqtSignal(int)
     run_timer = False
 
     def __init__(self, parent=None):
@@ -72,32 +78,31 @@ class MyThread(QtCore.QThread):
 # ======================= Dynamic Plot Update =======================
 
 
-class DynamicUpdate:
+class PlotCanvas(FigureCanvas):
 
-    def __init__(self):
-        plt.ion()
-        self.figure = None
-        self.ax = None
+    def __init__(self, parent=None, width=6, height=4, dpi=200):
+        self.figure = Figure(figsize=(width, height), dpi=dpi)
+        self.ax = self.figure.add_subplot(111)
         self.pts = None
         self.lines = None
         self.min_x = None
         self.max_x = None
 
+        FigureCanvas.__init__(self, self.figure)
+        self.setParent(parent)
+
+        FigureCanvas.updateGeometry(self)
+
     def on_launch(self, min_x, max_x):
-        self.figure, self.ax = plt.subplots()
-        self.pts, = self.ax.plot([], [], 'bo')  # Points
-        self.lines, = self.ax.plot([], [], 'r-', linewidth=4.0)  # Lines
+        self.pts, = self.ax.plot([], [], 'bo', markersize=3)  # Points
+        self.lines, = self.ax.plot([], [], 'r-', linewidth=2.0)  # Lines
         self.ax.set_xlim(min_x, max_x)
         self.ax.grid()
         self.min_x = min_x
         self.max_x = max_x
-        plt.xlabel('Evaluations')
-        plt.ylabel('Function Value')
+        self.draw()
 
     def on_running(self, xdata, ydata):
-        if not plt.fignum_exists(self.figure.number):
-            self.on_launch(self.min_x, self.max_x)
-
         self.lines.set_xdata(xdata)
         ycummin = np.minimum.accumulate(ydata)
         self.lines.set_ydata(ycummin)
@@ -110,8 +115,33 @@ class DynamicUpdate:
         self.pts.set_ydata(ydata)
         self.ax.relim()
         self.ax.autoscale_view()
-        self.figure.canvas.draw()
-        self.figure.canvas.flush_events()
+        self.draw()
+
+
+class DynamicPlot(QtWidgets.QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.left = 10
+        self.top = 10
+        self.title = 'Progress plot'
+        self.width = 600
+        self.height = 400
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.m = PlotCanvas(self, width=6, height=4)
+        self.m.move(0, 0)
+        self.show()
+
+    # We don't want the user accidentally to close this window
+    def closeEvent(self, event):
+        reply = QtWidgets.QMessageBox.question(self, 'Message',
+            "Are you sure to quit?", QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes)
+
+        if reply == QtWidgets.QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 # ============================= Helpers =============================
 
@@ -155,8 +185,8 @@ class Manager(InputStrategy):
         self.plot_progress = plot_progress
         self.feasible_merit = feasible_merit
         if self.plot_progress:
-            self.dynamic_plot = DynamicUpdate()
-            self.dynamic_plot.on_launch(0, maxeval)
+            self.dynamic_plot = DynamicPlot()
+            self.dynamic_plot.m.on_launch(0, maxeval)
             self.xdata = np.arange(0, maxeval)
             self.ydata = np.nan * np.ones(maxeval,)
 
@@ -175,7 +205,7 @@ class Manager(InputStrategy):
         # Plot
         if self.plot_progress:
             self.ydata[self.numeval-1] = self.feasible_merit(rec)
-            self.dynamic_plot.on_running(self.xdata[:self.numeval], self.ydata[:self.numeval])
+            self.dynamic_plot.m.on_running(self.xdata[:self.numeval], self.ydata[:self.numeval])
 
     def on_kill(self, rec):
         self.killed += 1
@@ -196,7 +226,7 @@ class Manager(InputStrategy):
 # ================================= GUI ===================================
 
 
-class myGUI(QtGui.QWidget):
+class myGUI(QtWidgets.QWidget):
 
     def __init__(self):
         # Constructor
@@ -238,24 +268,24 @@ class myGUI(QtGui.QWidget):
         self.myThread.time_elapsed.connect(self.on_myThread_timeElapsed)
 
         # Title
-        self.titlelbl = QtGui.QLabel("Surrogate Optimization Toolbox (pySOT)", self)
+        self.titlelbl = QtWidgets.QLabel("Surrogate Optimization Toolbox (pySOT)", self)
         self.titlelbl.move(300, 10)
 
         # Plot checkbox
-        self.plotprogcb = QtGui.QCheckBox("Plot progress", self)
+        self.plotprogcb = QtWidgets.QCheckBox("Plot progress", self)
         self.plotprogcb.move(680, 10)
         self.plotprogcb.toggle()
 
         # Default options
-        self.defaultopts = QtGui.QPushButton('Default Options', self)
+        self.defaultopts = QtWidgets.QPushButton('Default Options', self)
         self.defaultopts.clicked.connect(self.defaultOpts)
         self.defaultopts.move(10, 5)
         self.defaultopts.resize(140, 20)
 
         """ Log text area """
-        self.log = QtGui.QTextEdit("", self)
+        self.log = QtWidgets.QTextEdit("", self)
         self.log.setReadOnly(True)
-        self.log.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        self.log.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
         font = self.log.font()
         font.setFamily("Courier")
         font.setPointSize(10)
@@ -266,11 +296,11 @@ class myGUI(QtGui.QWidget):
         self.printMessage("Please import your optimization problem\n")
 
         """ File dialog """
-        self.inputDlgBtn = QtGui.QPushButton("Optimization problem", self)
-        self.importBtn = QtGui.QPushButton("Import", self)
-        self.connect(self.inputDlgBtn, QtCore.SIGNAL("clicked()"), self.openInputDialog)
-        self.connect(self.importBtn, QtCore.SIGNAL("clicked()"), self.importAction)
-        self.inputline = QtGui.QLineEdit("", self)
+        self.inputDlgBtn = QtWidgets.QPushButton("Optimization problem", self)
+        self.importBtn = QtWidgets.QPushButton("Import", self)
+        self.inputDlgBtn.clicked.connect(self.openInputDialog)
+        self.importBtn.clicked.connect(self.importAction)
+        self.inputline = QtWidgets.QLineEdit("", self)
         self.inputDlgBtn.move(0, 25)
         self.importBtn.move(710, 25)
         self.inputline.setFixedWidth(540)
@@ -279,23 +309,23 @@ class myGUI(QtGui.QWidget):
         self.importBtn.show()
 
         """ Info lines """
-        self.info1 = QtGui.QLabel(self)
+        self.info1 = QtWidgets.QLabel(self)
         self.info1.move(570, 65)
-        self.info2 = QtGui.QLabel(self)
+        self.info2 = QtWidgets.QLabel(self)
         self.info2.move(570, 85)
-        self.info3 = QtGui.QLabel(self)
+        self.info3 = QtWidgets.QLabel(self)
         self.info3.move(570, 105)
-        self.info4 = QtGui.QLabel(self)
+        self.info4 = QtWidgets.QLabel(self)
         self.info4.move(570, 125)
-        self.info5 = QtGui.QLabel(self)
+        self.info5 = QtWidgets.QLabel(self)
         self.info5.move(570, 145)
 
         """ Input lines """
 
         # Number of threads
-        self.threadlbl = QtGui.QLabel("Number of threads", self)
-        self.threaderr = QtGui.QLabel(self)
-        self.threadline = QtGui.QLineEdit("4", self)
+        self.threadlbl = QtWidgets.QLabel("Number of threads", self)
+        self.threaderr = QtWidgets.QLabel(self)
+        self.threadline = QtWidgets.QLineEdit("4", self)
         self.threadline.setFixedWidth(60)
         self.threadline.move(150, 60)
         self.threadlbl.move(5, 65)
@@ -304,9 +334,9 @@ class myGUI(QtGui.QWidget):
         self.threadline.show()
 
         # Number of evaluations
-        self.evallbl = QtGui.QLabel("Maximum evaluations", self)
-        self.evalerr = QtGui.QLabel(self)
-        self.evalline = QtGui.QLineEdit("500", self)
+        self.evallbl = QtWidgets.QLabel("Maximum evaluations", self)
+        self.evalerr = QtWidgets.QLabel(self)
+        self.evalline = QtWidgets.QLineEdit("500", self)
         self.evalline.setFixedWidth(60)
         self.evalline.move(150, 90)
         self.evallbl.move(5, 95)
@@ -315,9 +345,9 @@ class myGUI(QtGui.QWidget):
         self.evalline.show()
 
         # Simultaneous evaluations
-        self.simlbl = QtGui.QLabel("Simultaneous evaluations", self)
-        self.simerr = QtGui.QLabel(self)
-        self.simline = QtGui.QLineEdit("4", self)
+        self.simlbl = QtWidgets.QLabel("Simultaneous evaluations", self)
+        self.simerr = QtWidgets.QLabel(self)
+        self.simline = QtWidgets.QLineEdit("4", self)
         self.simline.setFixedWidth(60)
         self.simline.move(420, 60)
         self.simlbl.move(250, 65)
@@ -328,8 +358,8 @@ class myGUI(QtGui.QWidget):
         """ Drop-down lists """
 
         # Asynchronous
-        self.synchlbl = QtGui.QLabel("Asynchronous", self)
-        self.synchlist = QtGui.QComboBox(self)
+        self.synchlbl = QtWidgets.QLabel("Asynchronous", self)
+        self.synchlist = QtWidgets.QComboBox(self)
         self.synchlist.addItem("Yes")
         self.synchlist.addItem("No")
         self.synchlist.move(420, 90)
@@ -340,8 +370,8 @@ class myGUI(QtGui.QWidget):
         self.synchlist.setEnabled(False)
 
         # Experimental design
-        self.explbl = QtGui.QLabel("Experimental design", self)
-        self.explist = QtGui.QComboBox(self)
+        self.explbl = QtWidgets.QLabel("Experimental design", self)
+        self.explist = QtWidgets.QComboBox(self)
         self.explist.addItem("LatinHypercube")
         self.explist.addItem("SymmetricLatinHypercube")
         self.explist.move(150, 180)
@@ -351,9 +381,9 @@ class myGUI(QtGui.QWidget):
         self.explist.activated[str].connect(self.expActivated)
 
         # Initial evaluations
-        self.inevlbl = QtGui.QLabel("Initial evaluations", self)
-        self.ineverr = QtGui.QLabel(self)
-        self.inevline = QtGui.QLineEdit("", self)
+        self.inevlbl = QtWidgets.QLabel("Initial evaluations", self)
+        self.ineverr = QtWidgets.QLabel(self)
+        self.inevline = QtWidgets.QLineEdit("", self)
         self.inevline.setFixedWidth(60)
         self.inevline.move(540, 180)
         self.inevlbl.move(420, 185)
@@ -362,8 +392,8 @@ class myGUI(QtGui.QWidget):
         self.inevline.show()
 
         # Controller
-        self.controllerlbl = QtGui.QLabel("Controller", self)
-        self.controllerlist = QtGui.QComboBox(self)
+        self.controllerlbl = QtWidgets.QLabel("Controller", self)
+        self.controllerlist = QtWidgets.QComboBox(self)
         self.controllerlist.addItem("ThreadController")
         self.controllerlist.addItem("SerialController")
         self.controllerlist.move(150, 120)
@@ -372,8 +402,8 @@ class myGUI(QtGui.QWidget):
         self.controllerlist.show()
 
         # Strategy
-        self.stratlbl = QtGui.QLabel("Strategy", self)
-        self.stratlist = QtGui.QComboBox(self)
+        self.stratlbl = QtWidgets.QLabel("Strategy", self)
+        self.stratlist = QtWidgets.QComboBox(self)
         self.stratlist.addItem("SyncStrategyNoConstraints")
         self.stratlist.addItem("SyncStrategyPenalty")
         self.stratlist.move(150, 150)
@@ -382,8 +412,8 @@ class myGUI(QtGui.QWidget):
         self.stratlist.show()
 
         # Penalty
-        self.penaltylbl = QtGui.QLabel("Penalty", self)
-        self.penaltyline = QtGui.QLineEdit("", self)
+        self.penaltylbl = QtWidgets.QLabel("Penalty", self)
+        self.penaltyline = QtWidgets.QLineEdit("", self)
         self.penaltyline.setFixedWidth(60)
         self.penaltyline.move(450, 150)
         self.penaltylbl.move(400, 155)
@@ -391,8 +421,8 @@ class myGUI(QtGui.QWidget):
         self.penaltyline.setDisabled(True)
 
         # Search strategy
-        self.searchlbl = QtGui.QLabel("Sampling Method", self)
-        self.searchlist = QtGui.QComboBox(self)
+        self.searchlbl = QtWidgets.QLabel("Sampling Method", self)
+        self.searchlist = QtWidgets.QComboBox(self)
         self.searchlist.addItem("CandidateDYCORS")
         self.searchlist.addItem("CandidateDDS")
         self.searchlist.addItem("CandidateSRBF")
@@ -404,8 +434,8 @@ class myGUI(QtGui.QWidget):
         self.searchlist.show()
 
         # Response surface
-        self.rslbl = QtGui.QLabel("Response Surface", self)
-        self.rslist = QtGui.QComboBox(self)
+        self.rslbl = QtWidgets.QLabel("Response Surface", self)
+        self.rslist = QtWidgets.QComboBox(self)
         self.rslist.addItem("Cubic RBF")
         self.rslist.addItem("Linear RBF")
         self.rslist.addItem("Thin-Plate RBF")
@@ -427,8 +457,8 @@ class myGUI(QtGui.QWidget):
         self.rslist.show()
 
         # Tail for RBF
-        self.taillbl = QtGui.QLabel("Tail function", self)
-        self.taillist = QtGui.QComboBox(self)
+        self.taillbl = QtWidgets.QLabel("Tail function", self)
+        self.taillist = QtWidgets.QComboBox(self)
         self.taillist.addItem("LinearTail")
         self.taillist.addItem("ConstantTail")
         self.taillist.move(540, 250)
@@ -436,8 +466,8 @@ class myGUI(QtGui.QWidget):
         self.taillist.show()
 
         # Capping
-        self.rsclbl = QtGui.QLabel("Wrapper", self)
-        self.rsclist = QtGui.QComboBox(self)
+        self.rsclbl = QtWidgets.QLabel("Wrapper", self)
+        self.rsclist = QtWidgets.QComboBox(self)
         self.rsclist.addItem("None")
         self.rsclist.addItem("RSCapped")
         self.rsclist.addItem("RSUnitBox")
@@ -447,14 +477,14 @@ class myGUI(QtGui.QWidget):
         self.rsclist.show()
 
         # Optimization button
-        self.optimizebtn = QtGui.QPushButton('Optimize', self)
+        self.optimizebtn = QtWidgets.QPushButton('Optimize', self)
         self.optimizebtn.setStyleSheet("background-color: silver")
         self.optimizebtn.clicked.connect(self.optimizeActivated)
         self.optimizebtn.move(10, 420)
         self.optimizebtn.resize(80, 50)
 
         # Stop button
-        self.stopbtn = QtGui.QPushButton('Stop', self)
+        self.stopbtn = QtWidgets.QPushButton('Stop', self)
         self.stopbtn.setStyleSheet("background-color: red")
         self.stopbtn.clicked.connect(self.stopActivated)
         self.stopbtn.move(100, 420)
@@ -464,99 +494,99 @@ class myGUI(QtGui.QWidget):
         """ Run information """
 
         # Number of Evaluations
-        temp = QtGui.QLabel("Completed Evals: ", self)
+        temp = QtWidgets.QLabel("Completed Evals: ", self)
         temp.move(5, 480)
-        self.nevallbl = QtGui.QLabel("", self)
+        self.nevallbl = QtWidgets.QLabel("", self)
         self.nevallbl.move(120, 480)
 
         # Number of crashed evaluations
-        temp = QtGui.QLabel("Failed Evals: ", self)
+        temp = QtWidgets.QLabel("Failed Evals: ", self)
         temp.move(5, 500)
-        self.faillbl = QtGui.QLabel("", self)
+        self.faillbl = QtWidgets.QLabel("", self)
         self.faillbl.move(120, 500)
 
         # Best value found
-        temp = QtGui.QLabel("Best value: ", self)
+        temp = QtWidgets.QLabel("Best value: ", self)
         temp.move(5, 520)
-        self.bestlbl = QtGui.QLabel("", self)
+        self.bestlbl = QtWidgets.QLabel("", self)
         self.bestlbl.move(120, 520)
 
         # Best solution feasible
-        temp = QtGui.QLabel("Feasible: ", self)
+        temp = QtWidgets.QLabel("Feasible: ", self)
         temp.move(5, 540)
-        self.feaslbl = QtGui.QLabel("", self)
+        self.feaslbl = QtWidgets.QLabel("", self)
         self.feaslbl.move(120, 540)
 
         # Time
-        temp = QtGui.QLabel("Time elapsed: ", self)
+        temp = QtWidgets.QLabel("Time elapsed: ", self)
         temp.move(5, 560)
-        self.timelbl = QtGui.QLabel("Not running", self)
+        self.timelbl = QtWidgets.QLabel("Not running", self)
         self.timelbl.move(120, 560)
 
         """ Add Tables for Search Strategies and Ensemble Surrogates """
 
         # Search strategies
-        self.searchadd = QtGui.QPushButton('Add', self)
+        self.searchadd = QtWidgets.QPushButton('Add', self)
         self.searchadd.clicked.connect(self.searchAdd)
         self.searchadd.move(320, 222)
         self.searchadd.resize(70, 20)
 
-        self.searchremove = QtGui.QPushButton('Remove', self)
+        self.searchremove = QtWidgets.QPushButton('Remove', self)
         self.searchremove.clicked.connect(self.searchRemove)
         self.searchremove.move(320, 245)
         self.searchremove.resize(70, 20)
         self.searchremove.setEnabled(False)
 
-        self.searchup = QtGui.QPushButton('Move\nUp', self)
+        self.searchup = QtWidgets.QPushButton('Move\nUp', self)
         self.searchup.clicked.connect(self.searchUp)
         self.searchup.move(315, 277)
         self.searchup.resize(60, 50)
         self.searchup.setEnabled(False)
 
-        self.searchdown = QtGui.QPushButton('Move\nDown', self)
+        self.searchdown = QtWidgets.QPushButton('Move\nDown', self)
         self.searchdown.clicked.connect(self.searchDown)
         self.searchdown.move(315, 318)
         self.searchdown.resize(60, 50)
         self.searchdown.setEnabled(False)
 
-        self.searchtable = QtGui.QTableWidget(0, 1, self)
+        self.searchtable = QtWidgets.QTableWidget(0, 1, self)
         self.searchtable.horizontalHeader().setVisible(False)
         self.searchtable.move(10, 250)
         self.searchtable.resize(300, 152)
         self.searchtable.setColumnWidth(0, 275)
-        self.searchtable.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
+        self.searchtable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.searchtable.show()
 
         # Surrogates
-        self.rsadd = QtGui.QPushButton('Add', self)
+        self.rsadd = QtWidgets.QPushButton('Add', self)
         self.rsadd.clicked.connect(self.rsAdd)
         self.rsadd.move(705, 252)
         self.rsadd.resize(50, 20)
 
-        self.rsremove = QtGui.QPushButton('Remove', self)
+        self.rsremove = QtWidgets.QPushButton('Remove', self)
         self.rsremove.clicked.connect(self.rsRemove)
         self.rsremove.move(685, 282)
         self.rsremove.resize(90, 20)
         self.rsremove.setEnabled(False)
 
-        self.rsup = QtGui.QPushButton('Move\nUp', self)
+        self.rsup = QtWidgets.QPushButton('Move\nUp', self)
         self.rsup.clicked.connect(self.rsUp)
         self.rsup.move(720, 310)
         self.rsup.resize(60, 50)
         self.rsup.setEnabled(False)
 
-        self.rsdown = QtGui.QPushButton('Move\nDown', self)
+        self.rsdown = QtWidgets.QPushButton('Move\nDown', self)
         self.rsdown.clicked.connect(self.rsDown)
         self.rsdown.move(720, 350)
         self.rsdown.resize(60, 50)
         self.rsdown.setEnabled(False)
 
-        self.rstable = QtGui.QTableWidget(0, 1, self)
+        self.rstable = QtWidgets.QTableWidget(0, 1, self)
         self.rstable.horizontalHeader().setVisible(False)
         self.rstable.move(420, 310)
         self.rstable.resize(300, 92)
         self.rstable.setColumnWidth(0, 275)
-        self.rstable.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
+        self.rstable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.rstable.show()
 
     def defaultOpts(self):
@@ -565,7 +595,7 @@ class myGUI(QtGui.QWidget):
     def searchAdd(self):
         row = self.searchtable.rowCount()
         self.searchtable.insertRow(row)
-        self.searchtable.setItem(row, 0, QtGui.QTableWidgetItem(self.searchlist.currentText()))
+        self.searchtable.setItem(row, 0, QtWidgets.QTableWidgetItem(self.searchlist.currentText()))
         self.searchremove.setEnabled(True)
         if self.searchtable.rowCount() > 1:
             self.searchup.setEnabled(True)
@@ -616,7 +646,7 @@ class myGUI(QtGui.QWidget):
                 return
 
         self.rstable.insertRow(row)
-        self.rstable.setItem(row, 0, QtGui.QTableWidgetItem(str))
+        self.rstable.setItem(row, 0, QtWidgets.QTableWidgetItem(str))
         self.rsremove.setEnabled(True)
         if self.rstable.rowCount() > 1:
             self.rsup.setEnabled(True)
@@ -650,7 +680,7 @@ class myGUI(QtGui.QWidget):
 
     def printMessage(self, text, color="blue"):
         self.log.moveCursor(QtGui.QTextCursor.End)
-        self.log.setTextColor(color)
+        #self.log.setTextColor(color)
         self.log.insertPlainText(text)
         sb = self.log.verticalScrollBar()
         sb.setValue(sb.maximum())
@@ -746,7 +776,7 @@ class myGUI(QtGui.QWidget):
         self.ineverr.adjustSize()
 
     def openInputDialog(self):
-        path, _ = QtGui.QFileDialog.getOpenFileName(self, "Open File", os.getcwd())
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open File", os.getcwd())
         self.inputline.setText(path)
         self.inputline.adjustSize()
 
@@ -792,7 +822,7 @@ class myGUI(QtGui.QWidget):
             self.info5.adjustSize()
 
         except Exception as err:
-            self.printMessage("Import failed: " + err.message + "\n", "red")
+            self.printMessage("Import failed: " + err.args[0] + "\n", "red")
             self.data = None
             self.datainp = False
             self.external = False
@@ -836,7 +866,7 @@ class myGUI(QtGui.QWidget):
         self.faillbl.adjustSize()
 
         # Force redraw
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def paintEvent(self, event):
 
@@ -860,17 +890,26 @@ class myGUI(QtGui.QWidget):
         qp.drawLine(795, 210, 795, 410)
         qp.end()
 
-    @QtCore.Slot()
+    #@QtCore.Slot()
     def on_timer_activated(self):
         self.myThread.start()
 
-    @QtCore.Slot(int)
+    #@QtCore.Slot(int)
     def on_myThread_timeElapsed(self, seconds):
         self.timelbl.setText("{0} seconds".format(seconds))
         self.timelbl.adjustSize()
 
         # Force redraw
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
+
+    def closeEvent(self, event):
+        reply = QtWidgets.QMessageBox.question(self, 'Message',
+            "Are you sure to quit?", QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes)
+
+        if reply == QtWidgets.QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 # ==============================================================================
 
@@ -982,7 +1021,7 @@ class myGUI(QtGui.QWidget):
                 self.exp_des = exp_design_class(dim=self.data.dim, npts=int(self.inevline.text()))
             except Exception as err:
                 self.printMessage("Failed to initialize experimental design: " +
-                                  err.message + "\n", "red")
+                                  err.args[0] + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -1015,7 +1054,7 @@ class myGUI(QtGui.QWidget):
 
             except Exception as err:
                 self.printMessage("Failed to initialize sampling method: " +
-                                  err.message + "\n", "red")
+                                  err.args[0] + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -1078,7 +1117,7 @@ class myGUI(QtGui.QWidget):
 
             except Exception as err:
                 self.printMessage("Failed to initialize response surface: " +
-                                  err.message + "\n", "red")
+                                  err.args[0] + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -1112,7 +1151,7 @@ class myGUI(QtGui.QWidget):
                             self.controller.launch_worker(worker)
             except Exception as err:
                 self.printMessage("Failed to initiate controller/strategy: " +
-                                  err.message + "\n", "red")
+                                  err.args[0] + "\n", "red")
                 self.turnActionsOn()
                 return
 
@@ -1143,7 +1182,7 @@ class myGUI(QtGui.QWidget):
                 self.manager.run(self)
             except Exception as err:
                 self.printMessage("Optimization failed: " +
-                                  err.message + "\n", "red")
+                                  err.args[0] + "\n", "red")
 
             self.myThread.run_timer = False
             time.sleep(1)
@@ -1154,23 +1193,21 @@ class myGUI(QtGui.QWidget):
             self.turnActionsOn()
 
             # Force redraw
-            QtGui.QApplication.processEvents()
-
+            QtWidgets.QApplication.processEvents()
 
 def GUI():
     # Use logger
     logging.basicConfig(filename="./pySOT_GUI.log",
                         level=logging.INFO)
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     ex = myGUI()
     qr = ex.frameGeometry()
-    cp = QtGui.QDesktopWidget().availableGeometry().center()
+    cp = QtWidgets.QDesktopWidget().availableGeometry().center()
     qr.moveCenter(cp)
     ex.move(qr.topLeft())
     ex.setFixedSize(800, 590)
     ex.show()
     sys.exit(app.exec_())
-
 
 if __name__ == '__main__':
     GUI()
