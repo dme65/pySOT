@@ -10,6 +10,7 @@
 """
 
 import numpy as np
+from pySOT.experimental_design import SymmetricLatinHypercube
 
 
 def to_unit_box(x, data):

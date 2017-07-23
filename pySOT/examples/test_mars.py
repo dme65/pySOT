@@ -4,7 +4,11 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import Ackley, SyncStrategyNoConstraints, SymmetricLatinHypercube, CandidateDYCORS
+from pySOT.adaptive_sampling import CandidateDYCORS
+from pySOT.experimental_design import SymmetricLatinHypercube
+from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.test_problems import Ackley
+
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
@@ -12,7 +16,7 @@ import logging
 
 # Try to import MARS
 try:
-    from pySOT import MARSInterpolant
+    from pySOT.surrogate import MARSInterpolant
 except Exception as err:
     print("\nERROR: Failed to import MARS. This is likely "
           "because py-earth is not installed. Aborting.....\n")
@@ -28,16 +32,16 @@ def main():
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
+    print("Maximum number of evaluations: 200")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: MARS interpolant")
 
     nthreads = 4
-    maxeval = 500
+    maxeval = 200
     nsamples = nthreads
 
-    data = Ackley(dim=10)
+    data = Ackley(dim=5)
     print(data.info)
 
     # Create a strategy and a controller

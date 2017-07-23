@@ -1,71 +1,77 @@
 """
-.. module:: test_gp_regression
-  :synopsis: Test GP Regression
+.. module:: test_simple_mpi
+  :synopsis: Test Simple MPI
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.test_problems import Ackley
 
-from poap.controller import ThreadController, BasicWorkerThread
+from poap.mpiserve import MPIController, MPISimpleWorker
 import numpy as np
 import os.path
 import logging
 
-# Try to import MARS
+# Try to import mpi4py
 try:
-    from pySOT.surrogate import GPRegression
+    from mpi4py import MPI
 except Exception as err:
-    print("\nERROR: Failed to import GPRegression. This is likely "
-          "because scikit-learn>=0.18 is not installed. Aborting.....\n")
+    print("ERROR: You need mpi4py to use the POAP MPI controller.")
     exit()
 
 
-def main():
+def main_worker(objfunction):
+    MPISimpleWorker(objfunction).run()
+
+
+def main_master(data, nworkers):
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_gp.log"):
-        os.remove("./logfiles/test_gp.log")
-    logging.basicConfig(filename="./logfiles/test_gp.log",
+    if os.path.exists("./logfiles/test_simple_mpi.log"):
+        os.remove("./logfiles/test_simple_mpi.log")
+    logging.basicConfig(filename="./logfiles/test_simple_mpi.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
+    print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
     print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Gaussian process regression")
+    print("Surrogate: Cubic RBF")
 
-    nthreads = 4
     maxeval = 500
-    nsamples = nthreads
-
-    data = Ackley(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
-    controller = ThreadController()
-    controller.strategy = \
+    strategy = \
         SyncStrategyNoConstraints(
             worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
+            maxeval=maxeval, nsamples=nworkers,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=GPRegression(maxp=maxeval),
+            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
+                                            maxp=maxeval),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
+    controller = MPIController(strategy)
 
-    # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.objfunction)
-        controller.launch_worker(worker)
-
-    # Run the optimization strategy
     result = controller.run()
-
     print('Best value found: {0}'.format(result.value))
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 
+
 if __name__ == '__main__':
-    main()
+    # Optimization problem
+    data = Ackley(dim=10)
+
+    # Extract the rank
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    nprocs = comm.Get_size()
+
+    if rank == 0:
+        main_master(data, nprocs)
+    else:
+        main_worker(data.objfunction)

@@ -44,7 +44,7 @@ install:
   - python setup.py install
 
 script:
-  - cd ./pySOT/test/
+  - cd ./pySOT/examples/
   - make all
   - make test
   - make testmpi

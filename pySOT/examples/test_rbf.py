@@ -4,7 +4,8 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import Sphere, RBFInterpolant, CubicKernel, LinearTail
+from pySOT.test_problems import Sphere
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 import numpy as np
 
 

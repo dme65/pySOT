@@ -4,9 +4,12 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import check_opt_prob, SyncStrategyProjection, \
-    LatinHypercube, RBFInterpolant, CubicKernel, LinearTail, \
-    CandidateDYCORS
+from pySOT.adaptive_sampling import CandidateDYCORS
+from pySOT.experimental_design import LatinHypercube
+from pySOT.strategy import SyncStrategyProjection
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.utils import check_opt_prob
+
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path

@@ -4,10 +4,13 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import LinearMI, SymmetricLatinHypercube, RBFInterpolant, \
-    CubicKernel, LinearTail, MultiSampling, CandidateDYCORS, \
-    CandidateUniform, CandidateDYCORS_INT, CandidateDYCORS_CONT, \
-    SyncStrategyPenalty
+from pySOT.adaptive_sampling import MultiSampling, CandidateDYCORS, \
+    CandidateUniform, CandidateDYCORS_INT, CandidateDYCORS_CONT
+from pySOT.experimental_design import SymmetricLatinHypercube
+from pySOT.strategy import SyncStrategyPenalty
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.test_problems import LinearMI
+
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path

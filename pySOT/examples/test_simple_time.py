@@ -4,9 +4,12 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import Ackley, SyncStrategyNoConstraints, \
-    SymmetricLatinHypercube, RBFInterpolant, CubicKernel, \
-    LinearTail, CandidateDYCORS
+from pySOT.adaptive_sampling import CandidateDYCORS
+from pySOT.experimental_design import SymmetricLatinHypercube
+from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.test_problems import Ackley
+
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path

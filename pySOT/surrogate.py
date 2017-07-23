@@ -712,147 +712,147 @@ class PolyRegression(object):
         return dfx[0]
 
 
-# def legendre(x, d):
-#     """Evaluate Legendre polynomials at all coordinates in x.
-#
-#     :param x: Array of coordinates
-#     :type x: numpy.array
-#     :param d: Max degree of polynomials
-#     :type d: int
-#     :return: A x.shape-by-d array of Legendre polynomial values
-#     :rtype: numpy.array
-#     """
-#
-#     x = np.array(x)
-#     s = x.shape + (d+1,)
-#     x = np.ravel(x)
-#     P = np.zeros((x.shape[0], d+1))
-#     P[:, 0] = 1
-#     if d > 0:
-#         P[:, 1] = x
-#     for n in range(1, d):
-#         P[:, n+1] = ((2*n+1)*(x*P[:, n]) - n*P[:, n-1])/(n+1)
-#     return P.reshape(s)
-#
-#
-# def dlegendre(x, d):
-#     """Evaluate Legendre polynomial derivatives at all coordinates in x.
-#
-#     :param x: Array of coordinates
-#     :type x: numpy.array
-#     :param d: Max degree of polynomials
-#     :type d: int
-#     :return: x.shape-by-d arrays of Legendre polynomial values and derivatives
-#     :rtype: numpy.array
-#     """
-#
-#     x = np.array(x)
-#     s = x.shape + (d+1,)
-#     x = np.ravel(x)
-#     P = np.zeros((x.shape[0], d+1))
-#     dP = np.zeros((x.shape[0], d+1))
-#     P[:, 0] = 1
-#     if d > 0:
-#         P[:, 1] = x
-#         dP[:, 1] = 1
-#     for n in range(1,d):
-#         P[:, n+1] = ((2*n+1)*(x*P[:, n]) - n*P[:, n-1])/(n+1)
-#         dP[:, n+1] = ((2*n+1)*(P[:, n] + x*dP[:, n]) - n*dP[:, n-1])/(n+1)
-#     return P.reshape(s), dP.reshape(s)
-#
-#
-# def basis_base(n, testf):
-#     """Generate list of shape functions for a subset of a TP poly space.
-#
-#     :param n: Dimension of the space
-#     :type n: int
-#     :param testf: Return True if a given multi-index is in range
-#     :type testf: Object
-#     :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
-#     :rtype: numpy.array
-#     """
-#
-#     snext = np.zeros((n,), dtype=np.int32)
-#     done = False
-#
-#     # Follow carry chain through
-#     s = []
-#     while not done:
-#         s.append(snext.copy())
-#         done = True
-#         for i in range(n):
-#             snext[i] += 1
-#             if testf(snext):
-#                 done = False
-#                 break
-#             snext[i] = 0
-#     return np.array(s)
-#
-#
-# def basis_TP(n, d):
-#     """Generate list of shape functions for TP poly space.
-#
-#     :param n: Dimension of the space
-#     :type n: int
-#     :param d: Degree bound
-#     :type d: int
-#     :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
-#            There are N = n^d shapes.
-#     :rtype: numpy.array
-#     """
-#
-#     return basis_base(n, lambda s: np.all(s <= d))
-#
-#
-# def basis_TD(n, d):
-#     """Generate list of shape functions for TD poly space.
-#
-#     :param n: Dimension of the space
-#     :type n: int
-#     :param d: Degree bound
-#     :type d: int
-#     :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
-#     :rtype: numpy.array
-#     """
-#
-#     return basis_base(n, lambda s: np.sum(s) <= d)
-#
-#
-# def basis_HC(n, d):
-#     """Generate list of shape functions for HC poly space.
-#
-#     :param n: Dimension of the space
-#     :type n: int
-#     :param d: Degree bound
-#     :type d: int
-#     :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
-#     :rtype: numpy.array
-#     """
-#
-#     return basis_base(n, lambda s: np.prod(s+1) <= d+1)
-#
-#
-# def basis_SM(n, d):
-#     """Generate list of shape functions for SM poly space.
-#
-#     :param n: Dimension of the space
-#     :type n: int
-#     :param d: Degree bound
-#     :type d: int
-#     :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
-#     :rtype: numpy.array
-#     """
-#
-#     def fSM(p):
-#         return p if p < 2 else np.ceil(np.log2(p))
-#
-#     def fSMv(s):
-#         f = 0
-#         for j in range(s.shape[0]):
-#             f += fSM(s[j])
-#         return f
-#
-#     return basis_base(n, lambda s: fSMv(s) <= fSM(d))
+def legendre(x, d):
+    """Evaluate Legendre polynomials at all coordinates in x.
+
+    :param x: Array of coordinates
+    :type x: numpy.array
+    :param d: Max degree of polynomials
+    :type d: int
+    :return: A x.shape-by-d array of Legendre polynomial values
+    :rtype: numpy.array
+    """
+
+    x = np.array(x)
+    s = x.shape + (d+1,)
+    x = np.ravel(x)
+    P = np.zeros((x.shape[0], d+1))
+    P[:, 0] = 1
+    if d > 0:
+        P[:, 1] = x
+    for n in range(1, d):
+        P[:, n+1] = ((2*n+1)*(x*P[:, n]) - n*P[:, n-1])/(n+1)
+    return P.reshape(s)
+
+
+def dlegendre(x, d):
+    """Evaluate Legendre polynomial derivatives at all coordinates in x.
+
+    :param x: Array of coordinates
+    :type x: numpy.array
+    :param d: Max degree of polynomials
+    :type d: int
+    :return: x.shape-by-d arrays of Legendre polynomial values and derivatives
+    :rtype: numpy.array
+    """
+
+    x = np.array(x)
+    s = x.shape + (d+1,)
+    x = np.ravel(x)
+    P = np.zeros((x.shape[0], d+1))
+    dP = np.zeros((x.shape[0], d+1))
+    P[:, 0] = 1
+    if d > 0:
+        P[:, 1] = x
+        dP[:, 1] = 1
+    for n in range(1,d):
+        P[:, n+1] = ((2*n+1)*(x*P[:, n]) - n*P[:, n-1])/(n+1)
+        dP[:, n+1] = ((2*n+1)*(P[:, n] + x*dP[:, n]) - n*dP[:, n-1])/(n+1)
+    return P.reshape(s), dP.reshape(s)
+
+
+def basis_base(n, testf):
+    """Generate list of shape functions for a subset of a TP poly space.
+
+    :param n: Dimension of the space
+    :type n: int
+    :param testf: Return True if a given multi-index is in range
+    :type testf: Object
+    :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
+    :rtype: numpy.array
+    """
+
+    snext = np.zeros((n,), dtype=np.int32)
+    done = False
+
+    # Follow carry chain through
+    s = []
+    while not done:
+        s.append(snext.copy())
+        done = True
+        for i in range(n):
+            snext[i] += 1
+            if testf(snext):
+                done = False
+                break
+            snext[i] = 0
+    return np.array(s)
+
+
+def basis_TP(n, d):
+    """Generate list of shape functions for TP poly space.
+
+    :param n: Dimension of the space
+    :type n: int
+    :param d: Degree bound
+    :type d: int
+    :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
+           There are N = n^d shapes.
+    :rtype: numpy.array
+    """
+
+    return basis_base(n, lambda s: np.all(s <= d))
+
+
+def basis_TD(n, d):
+    """Generate list of shape functions for TD poly space.
+
+    :param n: Dimension of the space
+    :type n: int
+    :param d: Degree bound
+    :type d: int
+    :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
+    :rtype: numpy.array
+    """
+
+    return basis_base(n, lambda s: np.sum(s) <= d)
+
+
+def basis_HC(n, d):
+    """Generate list of shape functions for HC poly space.
+
+    :param n: Dimension of the space
+    :type n: int
+    :param d: Degree bound
+    :type d: int
+    :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
+    :rtype: numpy.array
+    """
+
+    return basis_base(n, lambda s: np.prod(s+1) <= d+1)
+
+
+def basis_SM(n, d):
+    """Generate list of shape functions for SM poly space.
+
+    :param n: Dimension of the space
+    :type n: int
+    :param d: Degree bound
+    :type d: int
+    :return: An N-by-n matrix with S(i,j) = degree of variable j in shape i
+    :rtype: numpy.array
+    """
+
+    def fSM(p):
+        return p if p < 2 else np.ceil(np.log2(p))
+
+    def fSMv(s):
+        f = 0
+        for j in range(s.shape[0]):
+            f += fSM(s[j])
+        return f
+
+    return basis_base(n, lambda s: fSMv(s) <= fSM(d))
 
 
 class CubicKernel(object):

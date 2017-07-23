@@ -1,16 +1,21 @@
+
 """
 .. module:: test_ensemble
   :synopsis: Test Ensemble surrogates
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT import Ackley, EnsembleSurrogate, SyncStrategyNoConstraints, \
-    PolyRegression, basis_TD, RBFInterpolant, CubicKernel, LinearTail, \
-    SymmetricLatinHypercube, CandidateSRBF
+from pySOT.adaptive_sampling import CandidateSRBF
+from pySOT.experimental_design import SymmetricLatinHypercube
+from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.surrogate import EnsembleSurrogate, PolyRegression, basis_TD, RBFInterpolant, CubicKernel, LinearTail
+from pySOT.test_problems import Ackley
+
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 import logging
+
 
 def main():
     if not os.path.exists("./logfiles"):
