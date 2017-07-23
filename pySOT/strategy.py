@@ -12,16 +12,17 @@
 """
 
 from __future__ import print_function
-import numpy as np
-import math
+
 import logging
-from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
-from pySOT.adaptive_sampling import CandidateDYCORS
-from poap.strategy import BaseStrategy, RetryStrategy
-from pySOT.rbf import *
-from pySOT.utils import *
-from pySOT.rs_wrappers import *
+import math
 import time
+
+from poap.strategy import BaseStrategy, RetryStrategy
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+
+from pySOT.adaptive_sampling import CandidateDYCORS
+from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
+from pySOT.utils import *
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
     :type data: Object
     :param response_surface: Surrogate model object
     :type response_surface: Object
-    :param maxeval: Stopping criterion. If positive, this is an 
+    :param maxeval: Stopping criterion. If positive, this is an
                     evaluation budget. If negative, this is a time
                     budget in seconds.
     :type maxeval: int

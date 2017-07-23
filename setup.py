@@ -3,12 +3,12 @@ long_description = open('README.rst').read()
 
 setup(
     name='pySOT',
-    version='0.1.36',
-    packages=['pySOT', 'pySOT.test'],
+    version='0.2.0',
+    packages=['pySOT', 'pySOT.examples', 'pySOT.tests'],
     url='https://github.com/dme65/pySOT',
     license='LICENSE.rst',
-    author='David Bindel, David Eriksson, Christine Shoemaker',
-    author_email='bindel@cornell.edu, dme65@cornell.edu, shoemaker@nus.edu.sg',
+    author='David Eriksson, David Bindel, Christine Shoemaker',
+    author_email='dme65@cornell.edu, bindel@cornell.edu, shoemaker@nus.edu.sg',
     description='Surrogate Optimization Toolbox',
     long_description=long_description,
     setup_requires=['numpy'],

@@ -12,13 +12,13 @@
 """
 
 import math
-from pySOT.utils import *
-import scipy.spatial as scp
-from pySOT.heuristic_methods import GeneticAlgorithm as GA
-from scipy.optimize import minimize
-import scipy.stats as stats
-from pySOT.merit_functions import *
 import types
+import numpy as np
+import scipy.spatial as scpspatial
+import scipy.stats as stats
+from pySOT.utils import GeneticAlgorithm as GA
+from pySOT.utils import unit_rescale
+from scipy.optimize import minimize
 
 
 def __fix_docs(cls):
@@ -31,6 +31,39 @@ def __fix_docs(cls):
                     func.__doc__ = parfunc.__doc__
                     break
     return cls
+
+
+def candidate_merit_weighted_distance(cand, npts=1):
+    """Weighted distance merit function for the candidate points based methods
+
+    :param cand: Candidate point object
+    :type cand: Object
+    :param npts: Number of points selected for evaluation
+    :type npts: int
+
+    :return: Points selected for evaluation, of size npts x dim
+    :rtype: numpy.array
+    """
+
+    new_points = np.ones((npts,  cand.data.dim))
+
+    for i in range(npts):
+        ii = cand.next_weight
+        weight = cand.weights[(ii+len(cand.weights)) % len(cand.weights)]
+        merit = weight*cand.fhvals + \
+            (1-weight)*(1.0 - unit_rescale(cand.dmerit))
+
+        merit[cand.dmerit < cand.dtol] = np.inf
+        jj = np.argmin(merit)
+        cand.fhvals[jj] = np.inf
+        new_points[i, :] = cand.xcand[jj, :]
+
+        # Update distances and weights
+        ds = scpspatial.distance.cdist(cand.xcand, np.atleast_2d(new_points[i, :]))
+        cand.dmerit = np.minimum(cand.dmerit, ds)
+        cand.next_weight += 1
+
+    return new_points
 
 
 class MultiSampling(object):
@@ -326,7 +359,7 @@ class CandidateSRBF(object):
         if proj_fun is not None:
             self.xcand = proj_fun(self.xcand)
 
-        dists = scp.distance.cdist(self.xcand, self.proposed_points)
+        dists = scpspatial.distance.cdist(self.xcand, self.proposed_points)
         fhvals = self.fhat.evals(self.xcand)
 
         self.dmerit = np.amin(np.asmatrix(dists), axis=1)
@@ -1062,7 +1095,7 @@ class GeneticAlgorithm(object):
             x_min, f_min = ga.optimize()
 
             dist = np.atleast_2d(np.min(
-                scp.distance.cdist(self.proposed_points, np.atleast_2d(x_min)), axis=1)).T
+                scpspatial.distance.cdist(self.proposed_points, np.atleast_2d(x_min)), axis=1)).T
 
             x_new = x_min
             if np.min(dist) < self.dtol:
@@ -1074,7 +1107,7 @@ class GeneticAlgorithm(object):
                     x_new = np.maximum(x_new, self.data.xlow)
                     x_new = np.minimum(x_new, self.data.xup)
                     d = np.atleast_2d(np.min(
-                        scp.distance.cdist(self.proposed_points, np.atleast_2d(x_new)), axis=1)).T.min()
+                        scpspatial.distance.cdist(self.proposed_points, np.atleast_2d(x_new)), axis=1)).T.min()
 
             new_points[i, :] = x_new
             self.proposed_points = np.vstack((self.proposed_points, np.asarray(x_new)))
@@ -1218,7 +1251,7 @@ class MultiStartGradient(object):
                 if proj_fun is not None:
                     xx = proj_fun(xx)
                 dist = np.atleast_2d(np.min(
-                    scp.distance.cdist(self.proposed_points, xx), axis=1)).T
+                    scpspatial.distance.cdist(self.proposed_points, xx), axis=1)).T
 
                 fvals[i] = res.fun
                 xvals[i, :] = xx
@@ -1242,7 +1275,7 @@ class MultiStartGradient(object):
                     if proj_fun is not None:
                         x_new = proj_fun(x_new)
                     d = np.atleast_2d(np.min(
-                        scp.distance.cdist(self.proposed_points, np.atleast_2d(x_new)), axis=1)).T.min()
+                        scpspatial.distance.cdist(self.proposed_points, np.atleast_2d(x_new)), axis=1)).T.min()
 
             new_points[j, :] = x_new
             self.proposed_points = np.vstack((self.proposed_points, np.asarray(x_new)))

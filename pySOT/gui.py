@@ -9,26 +9,25 @@
 
 """
 
+ \
+import imp
+import importlib
+import ntpath
+import os
 import sys
 
-import ntpath
-import imp
-import os
-import numpy as np
-import importlib
 from poap.controller import *
 from poap.strategy import *
-import time
-from pySOT.sot_sync_strategies import *
-from pySOT.experimental_design import *
-from pySOT.rs_wrappers import RSCapped
-from pySOT.adaptive_sampling import *
 from pySOT.ensemble_surrogate import *
 from pySOT.rbf import *
-from pySOT.utils import check_opt_prob\
+from pySOT.rs_wrappers import RSCapped
+from pySOT.strategy.adaptive_sampling import *
 
-try:
-    from pySOT.mars_interpolant import MARSInterpolant
+from pySOT.sot_sync_strategies import *
+from pySOT.utils import check_opt_prob \
+ \
+    try:
+    from pySOT.surrogate.mars import MARSInterpolant
 except ImportError as err:
     pass
 
@@ -38,7 +37,6 @@ ntpath.basename("a/b/c")
 from PyQt5 import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 
 
 class TimerThread(QtCore.QThread):
