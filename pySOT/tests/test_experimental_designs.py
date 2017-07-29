@@ -10,10 +10,10 @@ def main():
     slhd = SymmetricLatinHypercube(3, 10)
     print(slhd.generate_points())
 
-    print("\n========================= 2-Factorial =======================")
-    twofact = TwoFactorial(3)
-    print(twofact.generate_points())
-    print(twofact.npts)
+    # print("\n========================= 2-Factorial =======================")
+    # twofact = TwoFactorial(3)
+    # print(twofact.generate_points())
+    # print(twofact.npts)
 
     print("\n========================= Box-Behnken =======================")
     bb = BoxBehnken(3)

@@ -1,4 +1,4 @@
-|Travis| |ReadTheDocs| |Gitter| |DOI|
+|Travis| |ReadTheDocs| |Gitter| |DOI| |codecov|
 
 pySOT: Surrogate Optimization Toolbox
 -------------------------------------
@@ -75,3 +75,5 @@ FAQ
    :target: https://gitter.im/pySOT/Lobby
 .. |DOI| image:: https://zenodo.org/badge/36836292.svg
    :target: https://zenodo.org/badge/latestdoi/36836292
+.. |codecov| image:: https://codecov.io/gh/dme65/pySOT/branch/dme/graph/badge.svg
+   :target: https://codecov.io/gh/dme65/pySOT

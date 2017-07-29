@@ -7,10 +7,10 @@ all:
 	g++ -o sumfun_ext sumfun_ext.cpp -std=c++0x
 
 test: sphere_ext sphere_ext_files sumfun_ext
-	for f in test*.py; do python $$f; done
+	for f in test*.py; do python $$f || break 0; done
 
 testmpi: sphere_ext
-	for f in mpitest_*.py; do mpiexec -n 5 python $$f; done
+	for f in mpitest_*.py; do mpiexec -n 5 python $$f || break 0; done
 
 clean:
 	rm -f sphere_ext
