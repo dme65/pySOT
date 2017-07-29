@@ -1,5 +1,5 @@
 """
-.. module:: sot_sync_strategies
+.. module:: strategy
    :synopsis: Parallel synchronous optimization strategy
 
 .. moduleauthor:: David Bindel <bindel@cornell.edu>,

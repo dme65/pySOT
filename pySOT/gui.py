@@ -9,7 +9,6 @@
 
 """
 
- \
 import imp
 import importlib
 import ntpath
@@ -18,18 +17,11 @@ import sys
 
 from poap.controller import *
 from poap.strategy import *
-from pySOT.ensemble_surrogate import *
-from pySOT.rbf import *
-from pySOT.rs_wrappers import RSCapped
-from pySOT.strategy.adaptive_sampling import *
-
-from pySOT.sot_sync_strategies import *
-from pySOT.utils import check_opt_prob \
- \
-    try:
-    from pySOT.surrogate.mars import MARSInterpolant
-except ImportError as err:
-    pass
+from pySOT.adaptive_sampling import *
+from pySOT.experimental_design import *
+from pySOT.strategy import *
+from pySOT.surrogate import *
+from pySOT.utils import check_opt_prob
 
 import logging
 ntpath.basename("a/b/c")

@@ -10,13 +10,6 @@ pySOT.adaptive_sampling module
     :members:
     :undoc-members:
 
-pySOT.ensemble_surrogate module
--------------------------------
-
-.. automodule:: pySOT.ensemble_surrogate
-    :members:
-    :undoc-members:
-
 pySOT.experimental_design module
 --------------------------------
 
@@ -24,73 +17,17 @@ pySOT.experimental_design module
     :members:
     :undoc-members:
 
-pySOT.heuristic_methods module
-------------------------------
+pySOT.strategy module
+---------------------
 
-.. automodule:: pySOT.heuristic_methods
+.. automodule:: pySOT.strategy
     :members:
     :undoc-members:
 
-pySOT.gp_regression module
---------------------------
+pySOT.surrogate module
+----------------------
 
-.. automodule:: pySOT.gp_regression
-    :members:
-    :undoc-members:
-
-pySOT.mars_interpolant module
------------------------------
-
-.. automodule:: pySOT.mars_interpolant
-    :members:
-    :undoc-members:
-
-pySOT.merit_functions module
-----------------------------
-
-.. automodule:: pySOT.merit_functions
-    :members:
-    :undoc-members:
-
-pySOT.poly_regression module
-----------------------------
-
-.. automodule:: pySOT.poly_regression
-    :members:
-    :undoc-members:
-
-pySOT.kernels module
---------------------
-
-.. automodule:: pySOT.kernels
-    :members:
-    :undoc-members:
-
-pySOT.tails module
-------------------
-
-.. automodule:: pySOT.tails
-    :members:
-    :undoc-members:
-
-pySOT.rbf module
-----------------
-
-.. automodule:: pySOT.rbf
-    :members:
-    :undoc-members:
-
-pySOT.rs_wrappers module
-------------------------
-
-.. automodule:: pySOT.rs_wrappers
-    :members:
-    :undoc-members:
-
-pySOT.sot_sync_strategies module
---------------------------------
-
-.. automodule:: pySOT.sot_sync_strategies
+.. automodule:: pySOT.surrogate
     :members:
     :undoc-members:
 

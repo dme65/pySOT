@@ -471,11 +471,10 @@ class CandidateDYCORS(CandidateSRBF):
         if data.dim <= 1:
             raise ValueError("You can't use DYCORS on a 1d problem")
 
-        def probfun(numevals, budget):
-            if budget < 2:
-                return 0
-            return min([20.0/data.dim, 1.0]) * (1.0 - (np.log(numevals + 1.0) / np.log(budget)))
-        self.probfun = probfun
+    def probfun(self, numevals, budget):
+        if budget < 2:
+            return 0
+        return min([20.0 / self.data.dim, 1.0]) * (1.0 - (np.log(numevals + 1.0) / np.log(budget)))
 
     def init(self, start_sample, fhat, budget):
         CandidateSRBF.init(self, start_sample, fhat, budget)

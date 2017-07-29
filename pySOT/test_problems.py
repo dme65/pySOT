@@ -16,6 +16,63 @@ import random
 from time import time
 import numpy as np
 from pySOT.utils import check_opt_prob
+import abc
+
+
+class OptimizationProblem(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def dim(self):
+        return
+
+    @abc.abstractmethod
+    def lb(self):
+        return
+
+    @abc.abstractmethod
+    def ub(self):
+        return
+
+    @abc.abstractmethod
+    def num_expensive_constraints(self):
+        return
+
+    @abc.abstractmethod
+    def num_cheap_constraints(self):
+        return
+
+    @abc.abstractmethod
+    def num_linear_constraints(self):
+        return
+
+    @abc.abstractmethod
+    def eval_linear_constraints(self, X):
+        return
+
+    @abc.abstractmethod
+    def deval_linear_constraints(self, X):
+        return
+
+    @abc.abstractmethod
+    def eval_cheap_constraints(self, X):
+        return
+
+    @abc.abstractmethod
+    def deval_cheap_constraints(self, X):
+        return
+
+    @abc.abstractmethod
+    def integer_variables(self):
+        return
+
+    @abc.abstractmethod
+    def continuous_variables(self):
+        return
+
+    @abc.abstractmethod
+    def eval(self, record):
+        return
 
 # ========================= 3-dimensional =======================
 

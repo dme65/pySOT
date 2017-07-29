@@ -16,9 +16,74 @@ import math
 import numpy.linalg as la
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
+import abc
 
 
-class EnsembleSurrogate:
+class Surrogate(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def reset(self):
+        pass
+
+    @abc.abstractmethod
+    def get_x(self):
+        return
+
+    @abc.abstractmethod
+    def add_point(self, xx, fx):
+        return
+
+    @abc.abstractmethod
+    def eval(self, x):
+        return
+
+    @abc.abstractmethod
+    def deriv(self, x):
+        return
+
+
+class Kernel(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def order(self):
+        return
+
+    @abc.abstractmethod
+    def phi_zero(self):
+        return
+
+    @abc.abstractmethod
+    def eval(self, dists):
+        return
+
+    @abc.abstractmethod
+    def deriv(self, dists):
+        return
+
+
+class Tail(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def degree(self):
+        return
+
+    @abc.abstractmethod
+    def dim_tail(self):
+        return
+
+    @abc.abstractmethod
+    def eval(self, X):
+        return
+
+    @abc.abstractmethod
+    def deriv(self, x):
+        return
+
+
+class EnsembleSurrogate(Surrogate):
     """Compute and evaluate an ensemble of interpolants.
 
     Maintains a list of surrogates and decides how to weights them
@@ -331,7 +396,7 @@ class EnsembleSurrogate:
         return val
 
 
-class GPRegression(object):
+class GPRegression(Surrogate):
     """Compute and evaluate a GP
 
     Gaussian Process Regression object.
@@ -499,7 +564,7 @@ class GPRegression(object):
         raise NotImplementedError
 
 
-class PolyRegression(object):
+class PolyRegression(Surrogate):
     """Compute and evaluate a polynomial regression surface.
 
     :param bounds: a (dims, 2) array of lower and upper bounds in each coordinate
@@ -855,7 +920,7 @@ def basis_SM(n, d):
     return basis_base(n, lambda s: fSMv(s) <= fSM(d))
 
 
-class CubicKernel(object):
+class CubicKernel(Kernel):
     """Cubic RBF kernel
 
     This is a basic class for the Cubic RBF kernel: :math:`\\varphi(r) = r^3` which is
@@ -889,7 +954,7 @@ class CubicKernel(object):
         :rtype: numpy.array
         """
 
-        return np.multiply(dists, np.multiply(dists, dists))
+        return dists ** 3
 
     def deriv(self, dists):
         """evaluates the derivative of the Cubic kernel for a distance matrix
@@ -900,10 +965,10 @@ class CubicKernel(object):
         :rtype: numpy.array
         """
 
-        return 3 * np.multiply(dists, dists)
+        return 3 * dists ** 2
 
 
-class TPSKernel(object):
+class TPSKernel(Kernel):
     """Thin-plate spline RBF kernel
 
     This is a basic class for the TPS RBF kernel: :math:`\\varphi(r) = r^2 \log(r)` which is
@@ -937,7 +1002,8 @@ class TPSKernel(object):
         :rtype: numpy.array
         """
 
-        return np.multiply(np.multiply(dists, dists), np.log(dists + np.finfo(float).tiny))
+        dists[dists < np.finfo(float).tiny] = np.finfo(float).tiny
+        return (dists ** 2) * np.log(dists)
 
     def deriv(self, dists):
         """evaluates the derivative of the Cubic kernel for a distance matrix
@@ -948,10 +1014,11 @@ class TPSKernel(object):
         :rtype: numpy.array
         """
 
-        return np.multiply(dists, 1 + 2 * np.log(dists + np.finfo(float).tiny))
+        dists[dists < np.finfo(float).tiny] = np.finfo(float).tiny
+        return dists * (1 + 2 * np.log(dists))
 
 
-class LinearKernel(object):
+class LinearKernel(Kernel):
     """Linear RBF kernel
 
      This is a basic class for the Linear RBF kernel: :math:`\\varphi(r) = r` which is
@@ -999,7 +1066,7 @@ class LinearKernel(object):
         return np.ones((dists.shape[0], dists.shape[1]))
 
 
-class LinearTail(object):
+class LinearTail(Tail):
     """Linear polynomial tail
 
     This is a standard linear polynomial in d-dimension, built from the basis
@@ -1051,7 +1118,7 @@ class LinearTail(object):
         return np.hstack((np.zeros((len(x), 1)), np.eye((len(x)))))
 
 
-class ConstantTail(object):
+class ConstantTail(Tail):
     """Constant polynomial tail
 
     This is a standard linear polynomial in d-dimension, built from the basis
@@ -1103,7 +1170,7 @@ class ConstantTail(object):
         return np.ones((len(x), 1))
 
 
-class RBFInterpolant(object):
+class RBFInterpolant(Surrogate):
     """Compute and evaluate RBF interpolant.
 
     Manages an expansion of the form
@@ -1415,7 +1482,11 @@ class RBFInterpolant(object):
         return dfx
 
 
-class MARSInterpolant(object):
+# class RBFInterpolant(RBFRegression):
+#     pass
+
+
+class MARSInterpolant(Surrogate):
     """Compute and evaluate a MARS interpolant
 
     MARS builds a model of the form

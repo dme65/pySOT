@@ -12,9 +12,26 @@
 
 import numpy as np
 import pyDOE as pydoe
+import abc
 
 
-class LatinHypercube(object):
+class ExperimentalDesign(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def dim(self):
+        return
+
+    @abc.abstractmethod
+    def npts(self):
+        return
+
+    @abc.abstractmethod
+    def generate_points(self):
+        return
+
+
+class LatinHypercube(ExperimentalDesign):
     """Latin Hypercube experimental design
 
     :param dim: Number of dimensions
@@ -46,6 +63,12 @@ class LatinHypercube(object):
         self.npts = npts
         self.criterion = criterion
 
+    def dim(self):
+        return self.dim
+
+    def npts(self):
+        return self.npts
+
     def generate_points(self):
         """Generate a matrix with the initial sample points,
         scaled to the unit hypercube
@@ -57,7 +80,7 @@ class LatinHypercube(object):
         return pydoe.lhs(self.dim, self.npts, self.criterion)
 
 
-class SymmetricLatinHypercube(object):
+class SymmetricLatinHypercube(ExperimentalDesign):
     """Symmetric Latin Hypercube experimental design
 
     :param dim: Number of dimensions
@@ -72,6 +95,12 @@ class SymmetricLatinHypercube(object):
     def __init__(self, dim, npts):
         self.dim = dim
         self.npts = npts
+
+    def dim(self):
+        return self.dim
+
+    def npts(self):
+        return self.npts
 
     def _slhd(self):
         """Generate a matrix with the initial sample points,
@@ -132,7 +161,7 @@ class SymmetricLatinHypercube(object):
         return xsample
 
 
-class TwoFactorial(object):
+class TwoFactorial(ExperimentalDesign):
     """Two-factorial experimental design
 
     The two-factorial experimental design consists of the corners
@@ -152,6 +181,12 @@ class TwoFactorial(object):
         self.dim = dim
         self.npts = 2 ** dim
 
+    def dim(self):
+        return self.dim
+
+    def npts(self):
+        return self.npts
+
     def generate_points(self):
         """Generate a matrix with the initial sample points,
         scaled to the unit hypercube
@@ -163,7 +198,7 @@ class TwoFactorial(object):
         return 0.5*(1 + pydoe.ff2n(self.dim))
 
 
-class BoxBehnken(object):
+class BoxBehnken(ExperimentalDesign):
     """Box-Behnken experimental design
 
     The Box-Behnken experimental design consists of the midpoint
@@ -179,6 +214,12 @@ class BoxBehnken(object):
     def __init__(self, dim):
         self.dim = dim
         self.npts = pydoe.bbdesign(self.dim, center=1).shape[0]
+
+    def dim(self):
+        return self.dim
+
+    def npts(self):
+        return self.npts
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
