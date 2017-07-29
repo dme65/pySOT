@@ -15,10 +15,10 @@ def main():
     # print(twofact.generate_points())
     # print(twofact.npts)
 
-    print("\n========================= Box-Behnken =======================")
-    bb = BoxBehnken(3)
-    print(bb.generate_points())
-    print(bb.npts)
+    # print("\n========================= Box-Behnken =======================")
+    # bb = BoxBehnken(3)
+    # print(bb.generate_points())
+    # print(bb.npts)
 
 
 def test_answer():
