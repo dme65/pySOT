@@ -34,6 +34,8 @@ install:
   - pip install "scikit-learn >= 0.18.1"
   - pip install six http://github.com/scikit-learn-contrib/py-earth/tarball/master
   - pip install matlab_wrapper
+  - pip install codecov
+  - pip install pytest-cov
 
   # Install subprocess32 if Python2 is being used
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -48,3 +50,8 @@ script:
   - make all
   - make test
   - make testmpi
+  - cd -
+  - py.test --cov-config .coveragerc --cov=pySOT
+
+after_success:
+  - codecov
