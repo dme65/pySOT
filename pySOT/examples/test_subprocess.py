@@ -34,7 +34,8 @@ def array2str(x):
 class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         try:
-            self.process = Popen(['./sphere_ext', array2str(record.params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
+            self.process = Popen(['./sphere_ext', array2str(record.params[0])],
+                                 stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
             self.finish_success(record, float(val))
         except ValueError:
@@ -73,8 +74,8 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
-                                            maxp=maxeval))
+            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                            tail=LinearTail(data.dim), maxp=maxeval))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

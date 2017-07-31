@@ -69,7 +69,8 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval),
+            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                            tail=LinearTail(data.dim), maxp=maxeval),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             proj_fun=projection
         )

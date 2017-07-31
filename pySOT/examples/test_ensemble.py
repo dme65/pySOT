@@ -8,7 +8,7 @@
 from pySOT.adaptive_sampling import CandidateSRBF
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
-from pySOT.surrogate import EnsembleSurrogate, PolyRegression, basis_TD, RBFInterpolant, CubicKernel, LinearTail
+from pySOT.surrogate import EnsembleSurrogate, PolyRegression, basis_TD, RBFInterpolant, CubicKernel, TPSKernel, LinearTail
 from pySOT.test_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -43,8 +43,9 @@ def main():
     basisp = basis_TD(data.dim, 2)  # use order 2
 
     models = [
-        RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval),
-        PolyRegression(bounds, basisp)
+        RBFInterpolant(data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim), maxp=maxeval),
+        RBFInterpolant(data.dim, kernel=TPSKernel(), tail=LinearTail(data.dim), maxp=maxeval)
+        #PolyRegression(bounds, basisp)
     ]
     response_surface = EnsembleSurrogate(model_list=models, maxp=maxeval)
 

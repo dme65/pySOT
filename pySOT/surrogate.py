@@ -383,7 +383,7 @@ class EnsembleSurrogate(Surrogate):
 
         vals = np.zeros((x.shape[0], 1))
         for i in range(self.M):
-            vals += self.weights[i] * self.model_list[i].evals(x, ds)
+            vals += self.weights[i] * self.model_list[i].eval(x, ds)
 
         return vals
 
@@ -597,8 +597,9 @@ class PolyRegression(Surrogate):
     def _normalize(self, x):
         """Normalize points to the box [-1,1]^d"""
 
+        # Todo: This is broken
         xx = np.copy(x)
-        for k in range(x.shape[1]):
+        for k in range(x.shape[0]):
             l = self.bounds[k, 0]
             u = self.bounds[k, 1]
             w = u-l
@@ -1226,7 +1227,7 @@ class RBFInterpolant(Surrogate):
 
         if self.kernel.order() - 1 > self.tail.degree():
             raise ValueError("Kernel and tail mismatch")
-        # assert self.dim == self.tail.dim
+        assert self.dim == self.tail.dim
 
     def reset(self):
         """Reset the RBF interpolant"""

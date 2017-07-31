@@ -46,6 +46,8 @@ def candidate_merit_weighted_distance(cand, npts=1):
     """
 
     new_points = np.ones((npts,  cand.data.dim))
+    if cand.fhvals.shape[0] == 1: # Todo: Why is this happening?
+        cand.fhvals = cand.fhvals.T
 
     for i in range(npts):
         ii = cand.next_weight
@@ -360,7 +362,7 @@ class CandidateSRBF(object):
             self.xcand = proj_fun(self.xcand)
 
         dists = scpspatial.distance.cdist(self.xcand, self.proposed_points)
-        fhvals = self.fhat.evals(self.xcand)
+        fhvals = self.fhat.eval(self.xcand)
 
         self.dmerit = np.amin(np.asmatrix(dists), axis=1)
         self.fhvals = unit_rescale(fhvals)
@@ -471,10 +473,10 @@ class CandidateDYCORS(CandidateSRBF):
         if data.dim <= 1:
             raise ValueError("You can't use DYCORS on a 1d problem")
 
-    def probfun(self, numevals, budget):
+    def probfun(self, numeval, budget):
         if budget < 2:
             return 0
-        return min([20.0 / self.data.dim, 1.0]) * (1.0 - (np.log(numevals + 1.0) / np.log(budget)))
+        return min([20.0 / self.data.dim, 1.0]) * (1.0 - (np.log(numeval + 1.0) / np.log(budget)))
 
     def init(self, start_sample, fhat, budget):
         CandidateSRBF.init(self, start_sample, fhat, budget)
@@ -560,8 +562,8 @@ class CandidateDDS(CandidateDYCORS):
         self.weights = np.array([1.0])
         self.numcand = max([0.5*data.dim, 2])
 
-        def probfun(numevals, budget):
-            return 1.0-(np.log(numevals + 1.0) / np.log(budget))
+        def probfun(numeval, budget):
+            return 1.0-(np.log(numeval + 1.0) / np.log(budget))
         self.probfun = probfun
 
     def init(self, start_sample, fhat, budget):
@@ -1089,7 +1091,7 @@ class GeneticAlgorithm(object):
 
         new_points = np.zeros((npts, self.data.dim))
         for i in range(npts):
-            ga = GA(self.fhat.evals, self.data.dim, self.data.xlow, self.data.xup,
+            ga = GA(self.fhat.eval, self.data.dim, self.data.xlow, self.data.xup,
                     popsize=max([2*self.data.dim, 100]), ngen=100, projfun=proj_fun)
             x_min, f_min = ga.optimize()
 

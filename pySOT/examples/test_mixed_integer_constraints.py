@@ -41,7 +41,8 @@ def main():
     print(data.info)
 
     exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1))
-    response_surface = RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval)
+    response_surface = RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                      tail=LinearTail(data.dim), maxp=maxeval)
 
     # Use a multi-search strategy for candidate points
     sampling_method = MultiSampling(

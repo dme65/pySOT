@@ -253,7 +253,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             if self.numeval > 0:
                 for i in range(len(self.extra_vals)):
                     xx = self.proj_fun(np.copy(self.extra[i, :]))
-                    self.fhat.add_point(np.ravel(xx), self.extra_vals[i])
+                    self.fhat.add_points(xx, self.extra_vals[i])
             else:  # Check if we know the values of the points
                 if self.extra_vals is None:
                     self.extra_vals = np.nan * np.ones((self.extra.shape[0], 1))
@@ -265,7 +265,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
                         proposal.extra_point_id = i  # Decorate the proposal
                         self.resubmitter.rput(proposal)
                     else:  # We know this value
-                        self.fhat.add_point(np.ravel(xx), self.extra_vals[i])
+                        self.fhat.add_points(xx, self.extra_vals[i])
 
         # Evaluate the experimental design
         for j in range(min(start_sample.shape[0], self.maxeval - self.numeval)):
@@ -334,7 +334,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         record.worker_numeval = self.numeval
         record.feasible = True
         self.log_completion(record)
-        self.fhat.add_point(np.copy(record.params[0]), record.value)
+        self.fhat.add_points(np.copy(record.params[0]), record.value)
         if record.value < self.fbest:
             self.xbest = np.copy(record.params[0])
             self.fbest = record.value
@@ -391,7 +391,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         # Evals wrapper for penalty method
         def penalty_evals(fhat, xx):
             penalty = self.penalty_fun(xx).T
-            vals = fhat.evals(xx)
+            vals = fhat.eval(xx)
             if xx.shape[0] > 1:
                 ind = (np.where(penalty <= 0.0)[0]).T
                 if ind.shape[0] > 1:
@@ -469,7 +469,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         self.numeval += 1
         record.worker_id = self.worker_id
         record.worker_numeval = self.numeval
-        self.fhat.add_point(np.copy(record.params[0]), record.value)
+        self.fhat.add_points(np.copy(record.params[0]), record.value)
         # Check if the penalty function is a new best
         if record.value + penalty < self.fbest:
             self.xbest = np.copy(record.params[0])

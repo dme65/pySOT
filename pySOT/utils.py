@@ -363,7 +363,7 @@ class RSPenalty(object):
         self.fvalues[:] = 0
         self.nump = 0
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
@@ -377,7 +377,7 @@ class RSPenalty(object):
         self.fvalues[self.nump] = fx
         self.nump += 1
         self.updated = False
-        self.model.add_point(xx, fx)
+        self.model.add_points(xx, fx)
 
     def get_x(self):
         """Get the list of data points
@@ -474,7 +474,7 @@ class RSUnitbox(object):
         self.fvalues[:] = 0
         self.nump = 0
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
@@ -488,7 +488,7 @@ class RSUnitbox(object):
         self.fvalues[self.nump] = fx
         self.nump += 1
         self.updated = False
-        self.model.add_point(to_unit_box(xx, self.data), fx)
+        self.model.add_points(to_unit_box(xx, self.data), fx)
 
     def get_x(self):
         """Get the list of data points

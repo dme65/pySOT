@@ -51,8 +51,8 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail,
-                                            maxp=maxeval),
+            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
+                                            maxp=maxeval + nextra),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             extra=extra, extra_vals=extra_vals)
 

@@ -44,7 +44,8 @@ def main():
         SyncStrategyPenalty(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
-            response_surface=RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval),
+            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                            tail=LinearTail(data.dim), maxp=maxeval),
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             penalty=penalty)
