@@ -1,4 +1,4 @@
-|Travis| |ReadTheDocs| |Gitter| |DOI| |codecov|
+|Travis| |codecov| |ReadTheDocs| |Gitter| |DOI|
 
 pySOT: Surrogate Optimization Toolbox
 -------------------------------------

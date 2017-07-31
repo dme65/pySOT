@@ -1,25 +1,18 @@
 from pySOT.experimental_design import *
+import inspect
+import sys
 
 
-def main():
-    print("========================= LHD =======================")
-    lhs = LatinHypercube(4, 10, criterion='c')
-    print(lhs.generate_points())
+def test_lhd():
+    lhd = LatinHypercube(4, 10, criterion='c')
+    X = lhd.generate_points()
 
-    print("\n========================= SLHD =======================")
+
+def test_slhd():
     slhd = SymmetricLatinHypercube(3, 10)
-    print(slhd.generate_points())
-
-    # print("\n========================= 2-Factorial =======================")
-    # twofact = TwoFactorial(3)
-    # print(twofact.generate_points())
-    # print(twofact.npts)
-
-    # print("\n========================= Box-Behnken =======================")
-    # bb = BoxBehnken(3)
-    # print(bb.generate_points())
-    # print(bb.npts)
+    X = slhd.generate_points()
 
 
-def test_answer():
-    main()
+if __name__ == "__main__":
+    test_lhd()
+    test_slhd()

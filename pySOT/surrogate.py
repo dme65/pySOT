@@ -24,27 +24,50 @@ class Surrogate(object):
 
     @abc.abstractmethod
     def reset(self):
+        """Reset the object"""
         pass
 
     @abc.abstractmethod
     def get_x(self):
+        """Return centers fx of the interpolant"""
         return
 
     @abc.abstractmethod
-    def add_point(self, xx, fx):
+    def get_fx(self):
+        """Return values fx of the interpolant"""
         return
 
     @abc.abstractmethod
-    def eval(self, x):
+    def add_points(self, xx, fxx):
+        """Add points xx with values fxx
+
+        xx must be of size npts x dim or (dim, )
+        fxx must be of size npts x 1 or (npts, )
+        """
         return
 
     @abc.abstractmethod
-    def deriv(self, x):
+    def eval(self, xx):
+        """Evaluate interpolant at points xx
+
+        xx must be of size npts x dim or (dim, )
+        """
+        return
+
+    @abc.abstractmethod
+    def deriv(self, xx):
+        """Evaluate derivative of interpolant at points xx
+
+        xx must be of size npts x dim or (dim, )
+        """
         return
 
 
 class Kernel(object):
     __metaclass__ = abc.ABCMeta
+
+    def __init__(self):
+        pass
 
     @abc.abstractmethod
     def order(self):
@@ -65,6 +88,10 @@ class Kernel(object):
 
 class Tail(object):
     __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def __init__(self, dim):
+        pass
 
     @abc.abstractmethod
     def degree(self):
@@ -291,7 +318,7 @@ class EnsembleSurrogate(Surrogate):
 
         return self.fx[:self.nump, :]
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
         This function also updates the list of LOOCV surrogate models by cleverly
@@ -324,42 +351,23 @@ class EnsembleSurrogate(Surrogate):
                 x0 = copy(self.x[0, :])
                 x1 = copy(self.x[1, :])
                 self.surrogate_list[i][0] = deepcopy(self.model_list[i])
-                self.surrogate_list[i][0].add_point(x1, self.fx[1])
+                self.surrogate_list[i][0].add_points(x1, self.fx[1])
                 self.surrogate_list[i][1] = deepcopy(self.model_list[i])
-                self.surrogate_list[i][1].add_point(x0, self.fx[0])
+                self.surrogate_list[i][1].add_points(x0, self.fx[0])
                 self.surrogate_list[i][2] = deepcopy(self.surrogate_list[i][1])
-                self.surrogate_list[i][2].add_point(x1, self.fx[1])
+                self.surrogate_list[i][2].add_points(x1, self.fx[1])
         elif self.nump > 2:
             for i in range(self.M):
                 for j in range(self.nump-1):
-                    self.surrogate_list[i][j].add_point(xx, fx)
+                    self.surrogate_list[i][j].add_points(xx, fx)
                 self.surrogate_list[i][self.nump] = deepcopy(
                     self.surrogate_list[i][self.nump-1])
-                self.surrogate_list[i][self.nump].add_point(xx, fx)
+                self.surrogate_list[i][self.nump].add_points(xx, fx)
                 # Point to the model with all points
                 self.model_list[i] = self.surrogate_list[i][self.nump]
         self.weights = None
 
     def eval(self, x, ds=None):
-        """Evaluate the ensemble surrogate the point xx
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the ensemble surrogate at x
-        :rtype: float
-        """
-
-        if self.weights is None:
-            self.compute_weights()
-
-        val = 0
-        for i in range(self.M):
-            val += self.weights[i]*self.model_list[i].eval(x, ds)
-        return val
-
-    def evals(self, x, ds=None):
         """Evaluate the ensemble surrogate at the points xx
 
         :param x: Points where to evaluate, of size npts x dim
@@ -496,7 +504,7 @@ class GPRegression(Surrogate):
 
         return self.fx[:self.nump, :]
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
@@ -513,25 +521,6 @@ class GPRegression(Surrogate):
         self.updated = False
 
     def eval(self, x, ds=None):
-        """Evaluate the GP regression object at the point x
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the GP regression obejct at x
-        :rtype: float
-        """
-
-        if self.updated is False:
-            self.model.fit(self.get_x(), self.get_fx())
-        self.updated = True
-
-        x = np.expand_dims(x, axis=0)
-        fx = self.model.predict(x)
-        return fx
-
-    def evals(self, x, ds=None):
         """Evaluate the GP regression object at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -710,7 +699,7 @@ class PolyRegression(Surrogate):
         """
         return self.fx[:self.nump, :]
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
@@ -723,24 +712,6 @@ class PolyRegression(Surrogate):
         self.updated = False
 
     def eval(self, x, ds=None):
-        """Evaluate the regression surface at point xx
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Prediction at the point x
-        :rtype: float
-        """
-        if self.updated is False:
-            self._fit()
-        self.updated = True
-
-        x = np.expand_dims(x, axis=0)
-        fx = self._predict(x)
-        return fx[0]
-
-    def evals(self, x, ds=None):
         """Evaluate the regression surface at points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -927,6 +898,9 @@ class CubicKernel(Kernel):
     conditionally positive definite of order 2.
     """
 
+    def __init__(self):
+        super(CubicKernel, self).__init__()
+
     def order(self):
         """returns the order of the Cubic RBF kernel
 
@@ -1073,6 +1047,10 @@ class LinearTail(Tail):
     :math:`\{1,x_1,x_2,\ldots,x_d\}`.
     """
 
+    def __init__(self, dim):
+        super(LinearTail, self).__init__(dim)
+        self.dim = dim
+
     def degree(self):
         """returns the degree of the linear polynomial tail
 
@@ -1082,7 +1060,7 @@ class LinearTail(Tail):
 
         return 1
 
-    def dim_tail(self, dim):
+    def dim_tail(self):
         """returns the dimensionality of the linear polynomial space for a given dimension
 
         :param dim: Number of dimensions of the Cartesian space
@@ -1091,7 +1069,7 @@ class LinearTail(Tail):
         :rtype: int
         """
 
-        return 1 + dim
+        return 1 + self.dim
 
     def eval(self, X):
         """evaluates the linear polynomial tail for a set of points
@@ -1102,7 +1080,7 @@ class LinearTail(Tail):
         :rtype: numpy.array
         """
 
-        if len(X.shape) == 1:
+        if X.ndim == 1:
             X = np.atleast_2d(X)
         return np.hstack((np.ones((X.shape[0], 1)), X))
 
@@ -1125,6 +1103,10 @@ class ConstantTail(Tail):
     :math:`\{1\}`.
     """
 
+    def __init__(self, dim):
+        super(ConstantTail, self).__init__(dim)
+        self.dim = dim
+
     def degree(self):
         """returns the degree of the constant polynomial tail
 
@@ -1134,7 +1116,7 @@ class ConstantTail(Tail):
 
         return 0
 
-    def dim_tail(self, dim):
+    def dim_tail(self):
         """returns the dimensionality of the constant polynomial space for a given dimension
 
         :param dim: Number of dimensions of the Cartesian space
@@ -1154,7 +1136,7 @@ class ConstantTail(Tail):
         :rtype: numpy.array
         """
 
-        if len(X.shape) == 1:
+        if X.ndim == 1:
             X = np.atleast_2d(X)
         return np.ones((X.shape[0], 1))
 
@@ -1219,34 +1201,32 @@ class RBFInterpolant(Surrogate):
     :ivar updated: True if the RBF coefficients are up to date
     """
 
-    def __init__(self, kernel=CubicKernel, tail=LinearTail, maxp=500, eta=1e-8):
+    def __init__(self, dim, kernel=CubicKernel, tail=LinearTail, maxp=500, eta=1e-6):
 
         if kernel is None or tail is None:
-            kernel = CubicKernel
-            tail = LinearTail
+            kernel = CubicKernel()
+            tail = LinearTail(dim)
 
         self.maxp = maxp
         self.nump = 0
-        self.kernel = kernel()
-        self.tail = tail()
-        self.ntail = None
+        self.kernel = kernel
+        self.tail = tail
+        self.ntail = tail.dim_tail()
         self.A = None
-        self.LU = None
+        self.L = None
+        self.U = None
         self.piv = None
         self.c = None
-        self.dim = None
+        self.dim = dim
         self.x = None
         self.fx = None
         self.rhs = None
-        self.c = None
         self.eta = eta
-        self.updated = False
-
-        if eta is not 'adapt' and (eta < 0 or eta >= 1):
-            raise ValueError("eta has to be in [0,1) or be the string 'adapt' ")
+        self.dirty = True
 
         if self.kernel.order() - 1 > self.tail.degree():
             raise ValueError("Kernel and tail mismatch")
+        # assert self.dim == self.tail.dim
 
     def reset(self):
         """Reset the RBF interpolant"""
@@ -1254,50 +1234,44 @@ class RBFInterpolant(Surrogate):
         self.x = None
         self.fx = None
         self.rhs = None
-        self.A = None
-        self.LU = None
+        self.L = None
+        self.U = None
         self.piv = None
         self.c = None
-        self.updated = False
+        self.dirty = True
 
-    def _alloc(self, dim, ntail):
+    def _alloc(self, ntail):
         """Allocate storage for x, fx, rhs, and A.
 
-        :param dim: Number of dimensions
-        :type dim: int
         :param ntail: Number of tail functions
         :type ntail: int
         """
 
         maxp = self.maxp
-        self.dim = dim
         self.ntail = ntail
-        self.x = np.zeros((maxp, dim))
-        self.fx = np.zeros((maxp, 1))
-        self.rhs = np.zeros((maxp+ntail, 1))
-        self.A = np.zeros((maxp+ntail, maxp+ntail))
+        self.x = np.zeros((maxp, self.dim))
+        self.fx = np.zeros((maxp,))
+        self.rhs = np.zeros((maxp+ntail,))
+        self.L = np.zeros((self.maxp+self.ntail, self.maxp+self.ntail))
+        self.U = np.zeros((self.maxp + self.ntail, self.maxp + self.ntail))
+        self.piv = np.zeros((self.maxp+self.ntail,), dtype=np.int)
 
-    def _realloc(self, dim, extra=1):
+    def _realloc(self, extra=1):
         """Expand allocation to accommodate more points (if needed)
 
-        :param dim: Number of dimensions
-        :type dim: int
         :param extra: Number of additional points to accommodate
         :type extra: int
         """
 
-        self.dim = dim
-        self.ntail = self.tail.dim_tail(dim)
+        self.ntail = self.tail.dim_tail()
         if self.nump == 0:
-            self._alloc(dim, self.ntail)
-        elif self.nump + extra > self.maxp:
+            self._alloc(self.ntail)
+        elif self.nump + extra > self.maxp:  # TODO: This is not correct
             self.maxp = max(self.maxp*2, self.maxp+extra)
-            self.x.resize((self.maxp, dim))
-            self.fx.resize((self.maxp, 1))
-            self.rhs.resize((self.maxp + self.ntail, 1))
-            A0 = self.A  # pylint: disable=invalid-name
-            self.A = np.zeros((self.maxp + self.ntail, self.maxp + self.ntail))
-            self.A[:A0.shape[0], :A0.shape[1]] = A0
+            self.x.resize((self.maxp, self.dim))
+            self.fx.resize((self.maxp,))
+            self.rhs.resize((self.maxp + self.ntail,))
+            # TODO: Extend LU
 
     def coeffs(self):
         """Compute the expansion coefficients
@@ -1306,52 +1280,70 @@ class RBFInterpolant(Surrogate):
         :rtype: numpy.array
         """
 
-        if self.c is None:
-            nact = self.ntail + self.nump
+        if self.dirty:
 
-            if self.eta is 'adapt':
-                eta_vec = np.linspace(0, 0.99, 30)
-            else:
-                eta_vec = np.array([self.eta])
+            n = self.nump
+            ntail = self.ntail
+            nact = ntail + n
 
-            rms_best = np.inf
+            if self.c is None:  # Initial fit
+                assert self.nump >= ntail
 
-            for i in range(len(eta_vec)):
-                eta = eta_vec[i]
+                X = self.x[0:n, :]
+                D = scpspatial.distance.cdist(X, X)
+                Phi = self.kernel.eval(D) + self.eta * np.eye(n)
+                P = self.tail.eval(X)
 
-                Aa = np.copy(self.A[:nact, :nact])
-                for j in range(self.nump):
-                    Aa[j + self.ntail, j + self.ntail] += eta/(1-eta)*self.nump
+                # Set up the systems matrix
+                A1 = np.hstack((np.zeros((ntail, ntail)), P.T))
+                A2 = np.hstack((P, Phi))
+                A = np.vstack((A1, A2))
 
-                [LU, piv] = scplinalg.lu_factor(Aa)
-                c = scplinalg.lu_solve((LU, piv), self.rhs[:nact])
+                [LU, piv] = scplinalg.lu_factor(A)
+                self.L[:nact, :nact] = np.tril(LU, -1) + np.eye(nact)
+                self.U[:nact, :nact] = np.triu(LU)
 
-                # Do LOOCV if requested
-                if self.eta is 'adapt':
-                    I = np.eye(nact)
-                    AinvI = scplinalg.lu_solve((LU, piv), I[:, self.ntail:])
+                # Construct the usual pivoting vector so that we can increment later
+                self.piv[:nact] = np.arange(0, nact)
+                for i in range(nact):
+                    self.piv[i], self.piv[piv[i]] = self.piv[piv[i]], self.piv[i]
 
-                    chat = c - np.multiply(AinvI, np.transpose(
-                        c[self.ntail:]/np.transpose(np.atleast_2d(np.diag(AinvI[self.ntail:, :])))))
+            else:  # Extend LU factorization
+                k = self.c.shape[0] - ntail
+                numnew = n - k
+                kact = ntail + k
+                self.piv[kact:nact] = np.arange(kact, nact)
 
-                    for j in range(self.nump):
-                        chat[j + self.ntail, j] = 0
+                X = self.x[:n, :]
+                XX = self.x[k:n, :]
+                D = scpspatial.distance.cdist(X, XX)
+                Pnew = np.vstack((self.tail.eval(XX).T, self.kernel.eval(D[:k, :])))
+                Phinew = self.kernel.eval(D[k:, :]) + self.eta * np.eye(numnew)
 
-                    f_pred = np.sum(np.transpose(self.A[self.ntail:nact, self.ntail:nact]) * chat[self.ntail:, :], axis=0) + \
-                        np.sum(np.transpose(self.A[self.ntail:nact, :self.ntail]) * chat[:self.ntail, :], axis=0)
-                    rms_val = np.sqrt(np.sum((self.fx[:self.nump] - np.transpose(np.atleast_2d(f_pred))) ** 2)/self.nump)
+                L21 = np.zeros((kact, numnew))
+                U12 = np.zeros((kact, numnew))
+                for i in range(numnew):  # Todo: Too bad we can't use level-3 BLAS here
+                    L21[:, i] = scplinalg.solve_triangular(a=self.U[:kact, :kact], b=Pnew[:kact, i],
+                                                           lower=False, trans='T')
+                    U12[:, i] = scplinalg.solve_triangular(a=self.L[:kact, :kact], b=Pnew[self.piv[:kact], i],
+                                                           lower=True, trans='N')
+                L21 = L21.T
+                try:
+                    C = scplinalg.cholesky(a=Phinew - np.dot(L21, U12), lower=True)
+                except Exception as e:
+                    # Todo: Deal with this more gracefully
+                    raise e
 
-                    if rms_val < rms_best:
-                        rms_best = rms_val
-                        self.eta_best = eta
-                        self.c = np.copy(c)
-                        self.piv = piv
-                        self.LU = LU
-                else:
-                    self.c = c
-                    self.piv = piv
-                    self.LU = LU
-                    return self.c
+                self.L[kact:nact, :kact] = L21
+                self.U[:kact, kact:nact] = U12
+                self.L[kact:nact, kact:nact] = C
+                self.U[kact:nact, kact:nact] = C.T
+
+            # Update coefficients
+            self.c = scplinalg.solve_triangular(a=self.L[:nact, :nact], b=self.rhs[self.piv[:nact]], lower=True)
+            self.c = scplinalg.solve_triangular(a=self.U[:nact, :nact], b=self.c, lower=False)
+            self.c = np.asmatrix(self.c).T
+            self.dirty = False
 
         return self.c
 
@@ -1373,70 +1365,28 @@ class RBFInterpolant(Surrogate):
 
         return self.fx[:self.nump, :]
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
-        :param xx: Point to add
+        :param xx: Points to add
         :type xx: numpy.array
         :param fx: The function value of the point to add
         :type fx: float
         """
 
-        dim = len(xx)
-        self._realloc(dim)
+        if xx.ndim == 1:
+            xx = np.atleast_2d(xx)  # Make x 1-by-dim
+        newpts = xx.shape[0]
+        self._realloc(extra=newpts)
 
-        self.x[self.nump, :] = xx
-        self.fx[self.nump] = fx
-        self.rhs[self.ntail + self.nump] = fx
+        self.x[self.nump:self.nump+newpts, :] = xx
+        self.fx[self.nump:self.nump+newpts] = fx
+        self.rhs[self.ntail+self.nump:self.ntail+self.nump+newpts] = fx
+        self.nump += newpts
 
-        self.nump += 1
-        nact = self.nump + self.ntail
-
-        p = self.tail.eval(xx)
-        phi = self.kernel.eval(scpspatial.distance.cdist(self.get_x(), np.atleast_2d(xx)))
-
-        #  Create the matrix with the initial points
-        self.A[nact-1, 0:self.ntail] = p.ravel()
-        self.A[0:self.ntail, nact-1] = p.ravel()
-        self.A[nact-1, self.ntail:nact] = phi.ravel()
-        self.A[self.ntail:nact, nact-1] = phi.ravel()
-
-        # Coefficients and LU are outdated
-        self.LU = None
-        self.piv = None
-        self.c = None
-
-        self.updated = False
-
-    def transform_fx(self, fx):
-        """Replace f with transformed function values for the fitting
-
-        :param fx: Transformed function values
-        :type fx: numpy.array
-        """
-        self.rhs[self.ntail:self.ntail+self.nump] = fx
-        self.LU = None
-        self.piv = None
-        self.c = None
+        self.dirty = True
 
     def eval(self, x, ds=None):
-        """Evaluate the RBF interpolant at the point x
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :return: Value of the RBF interpolant at x
-        :rtype: float
-        """
-
-        px = self.tail.eval(x)
-        ntail = self.ntail
-        c = self.coeffs()
-        if ds is None:
-            ds = scpspatial.distance.cdist(np.atleast_2d(x), self.x[:self.nump, :])
-        fx = np.dot(px, c[:ntail]) + np.dot(self.kernel.eval(ds), c[ntail:ntail+self.nump])
-        return fx[0][0]
-
-    def evals(self, x, ds=None):
         """Evaluate the RBF interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -1447,8 +1397,10 @@ class RBFInterpolant(Surrogate):
         :rtype: numpy.array
         """
 
+        if x.ndim == 1:
+            x = np.atleast_2d(x)  # Make x 1-by-dim
         ntail = self.ntail
-        c = np.asmatrix(self.coeffs())
+        c = self.coeffs()
         if ds is None:
             ds = scpspatial.distance.cdist(x, self.x[:self.nump, :])
         fx = self.kernel.eval(ds)*c[ntail:ntail+self.nump] + self.tail.eval(x)*c[:ntail]
@@ -1465,7 +1417,8 @@ class RBFInterpolant(Surrogate):
         :rtype: numpy.array
         """
 
-        if len(x.shape) == 1:
+        # Todo: Accept matrix input
+        if x.ndim == 1:
             x = np.atleast_2d(x)  # Make x 1-by-dim
         ntail = self.ntail
         dpx = self.tail.deriv(x.transpose())
@@ -1586,7 +1539,7 @@ class MARSInterpolant(Surrogate):
 
         return self.fx[:self.nump, :]
 
-    def add_point(self, xx, fx):
+    def add_points(self, xx, fx):
         """Add a new function evaluation
 
         :param xx: Point to add
@@ -1603,25 +1556,6 @@ class MARSInterpolant(Surrogate):
         self.updated = False
 
     def eval(self, x, ds=None):
-        """Evaluate the MARS interpolant at the point x
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the MARS interpolant at x
-        :rtype: float
-        """
-
-        if self.updated is False:
-            self.model.fit(self.get_x(), self.get_fx())
-        self.updated = True
-
-        x = np.expand_dims(x, axis=0)
-        fx = self.model.predict(x)
-        return fx[0]
-
-    def evals(self, x, ds=None):
         """Evaluate the MARS interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
