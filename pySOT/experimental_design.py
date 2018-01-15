@@ -59,15 +59,15 @@ class LatinHypercube(ExperimentalDesign):
     """
 
     def __init__(self, dim, npts, criterion='c'):
-        self.dim = dim
-        self.npts = npts
-        self.criterion = criterion
+        self.__dim__ = dim
+        self.__npts__ = npts
+        self.__criterion__ = criterion
 
     def dim(self):
-        return self.dim
+        return self.__dim__
 
     def npts(self):
-        return self.npts
+        return self.__npts__
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
@@ -77,7 +77,7 @@ class LatinHypercube(ExperimentalDesign):
         :rtype: numpy.array
         """
 
-        return pydoe.lhs(self.dim, self.npts, self.criterion)
+        return pydoe.lhs(self.__dim__, self.__npts__, self.__criterion__)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
@@ -93,14 +93,14 @@ class SymmetricLatinHypercube(ExperimentalDesign):
     """
 
     def __init__(self, dim, npts):
-        self.dim = dim
-        self.npts = npts
+        self.__dim__ = dim
+        self.__npts__ = npts
 
     def dim(self):
-        return self.dim
+        return self.__dim__
 
     def npts(self):
-        return self.npts
+        return self.__npts__
 
     def _slhd(self):
         """Generate a matrix with the initial sample points,
@@ -111,30 +111,30 @@ class SymmetricLatinHypercube(ExperimentalDesign):
         """
 
         # Generate a one-dimensional array based on sample number
-        points = np.zeros([self.npts, self.dim])
-        points[:, 0] = np.arange(1, self.npts+1)
+        points = np.zeros([self.__npts__, self.__dim__])
+        points[:, 0] = np.arange(1, self.__npts__+1)
 
         # Get the last index of the row in the top half of the hypercube
-        middleind = self.npts//2
+        middleind = self.__npts__//2
 
         # special manipulation if odd number of rows
-        if self.npts % 2 == 1:
+        if self.__npts__ % 2 == 1:
             points[middleind, :] = middleind + 1
 
         # Generate the top half of the hypercube matrix
-        for j in range(1, self.dim):
+        for j in range(1, self.__dim__):
             for i in range(middleind):
                 if np.random.random() < 0.5:
-                    points[i, j] = self.npts-i
+                    points[i, j] = self.__npts__-i
                 else:
                     points[i, j] = i + 1
             np.random.shuffle(points[:middleind, j])
 
         # Generate the bottom half of the hypercube matrix
-        for i in range(middleind, self.npts):
-            points[i, :] = self.npts + 1 - points[self.npts - 1 - i, :]
+        for i in range(middleind, self.__npts__):
+            points[i, :] = self.__npts__ + 1 - points[self.__npts__ - 1 - i, :]
 
-        return points/self.npts
+        return points/self.__npts__
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
@@ -147,11 +147,11 @@ class SymmetricLatinHypercube(ExperimentalDesign):
         """
 
         rank_pmat = 0
-        pmat = np.ones((self.npts, self.dim + 1))
+        pmat = np.ones((self.__npts__, self.__dim__ + 1))
         xsample = None
         max_tries = 100
         counter = 0
-        while rank_pmat != self.dim + 1:
+        while rank_pmat != self.__dim__ + 1:
             xsample = self._slhd()
             pmat[:, 1:] = xsample
             rank_pmat = np.linalg.matrix_rank(pmat)
@@ -178,14 +178,14 @@ class TwoFactorial(ExperimentalDesign):
     def __init__(self, dim):
         if dim >= 15:
             raise ValueError("Not generating a design with 2^15 points or more, sorry.")
-        self.dim = dim
-        self.npts = 2 ** dim
+        self.__dim__ = dim
+        self.__npts__ = 2 ** dim
 
     def dim(self):
-        return self.dim
+        return self.__dim__
 
     def npts(self):
-        return self.npts
+        return self.__npts__
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
@@ -195,7 +195,7 @@ class TwoFactorial(ExperimentalDesign):
         :rtype: numpy.array
         """
 
-        return 0.5*(1 + pydoe.ff2n(self.dim))
+        return 0.5*(1 + pydoe.ff2n(self.__dim__))
 
 
 class BoxBehnken(ExperimentalDesign):
@@ -212,14 +212,14 @@ class BoxBehnken(ExperimentalDesign):
     """
 
     def __init__(self, dim):
-        self.dim = dim
-        self.npts = pydoe.bbdesign(self.dim, center=1).shape[0]
+        self.__dim__ = dim
+        self.__npts__ = pydoe.bbdesign(self.__dim__, center=1).shape[0]
 
     def dim(self):
-        return self.dim
+        return self.__dim__
 
     def npts(self):
-        return self.npts
+        return self.__npts__
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
@@ -229,4 +229,4 @@ class BoxBehnken(ExperimentalDesign):
         :rtype: numpy.array
         """
 
-        return 0.5*(1 + pydoe.bbdesign(self.dim, center=1))
+        return 0.5*(1 + pydoe.bbdesign(self.__dim__, center=1))
