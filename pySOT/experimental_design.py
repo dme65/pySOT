@@ -13,22 +13,25 @@
 import numpy as np
 import pyDOE as pydoe
 import abc
+import six
+import itertools
 
 
+@six.add_metaclass(abc.ABCMeta)
 class ExperimentalDesign(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def dim(self):
-        return
+    def dim(self):  # pragma: no cover
+        pass
 
     @abc.abstractmethod
-    def npts(self):
-        return
+    def npts(self):  # pragma: no cover
+        pass
 
     @abc.abstractmethod
-    def generate_points(self):
-        return
+    def generate_points(self):  # pragma: no cover
+        pass
 
 
 class LatinHypercube(ExperimentalDesign):
@@ -39,7 +42,6 @@ class LatinHypercube(ExperimentalDesign):
     :param npts: Number of desired sampling points
     :type npts: int
     :param criterion: Sampling criterion
-
         - "center" or "c"
             center the points within the sampling intervals
         - "maximin" or "m"
@@ -50,16 +52,11 @@ class LatinHypercube(ExperimentalDesign):
             centered within the intervals
         - "correlation" or "corr"
             minimize the maximum correlation coefficient
-
     :type criterion: string
-
-    :ivar dim: Number of dimensions
-    :ivar npts: Number of desired sampling points
-    :ivar criterion: A string that specifies how to sample
     """
 
     def __init__(self, dim, npts, criterion='c'):
-        self.__dim__ = dim
+        self.dim = dim
         self.__npts__ = npts
         self.__criterion__ = criterion
 
@@ -73,11 +70,11 @@ class LatinHypercube(ExperimentalDesign):
         """Generate a matrix with the initial sample points,
         scaled to the unit hypercube
 
-        :return: Latin hypercube design in the unit cube of size npts x dim
+        :return: Latin hypercube design in  the unit cube of size npts x dim
         :rtype: numpy.array
         """
 
-        return pydoe.lhs(self.__dim__, self.__npts__, self.__criterion__)
+        return pydoe.lhs(self.dim, self.__npts__, self.__criterion__)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
@@ -88,13 +85,14 @@ class SymmetricLatinHypercube(ExperimentalDesign):
     :param npts: Number of desired sampling points
     :type npts: int
 
-    :ivar dim: Number of dimensions
-    :ivar npts: Number of desired sampling points
+    :raises ValueError: If npts < 2*dim
     """
 
     def __init__(self, dim, npts):
         self.__dim__ = dim
         self.__npts__ = npts
+        if npts < 2*dim:
+            raise ValueError("We need npts >= 2*dim to make sure the SLHD has full rank")
 
     def dim(self):
         return self.__dim__
@@ -141,24 +139,10 @@ class SymmetricLatinHypercube(ExperimentalDesign):
         scaled to the unit hypercube
 
         :return: Symmetric Latin hypercube design in the unit cube of size npts x dim
-            that is of full rank
         :rtype: numpy.array
-        :raises ValueError: Unable to find an SLHD of rank at least dim + 1
         """
 
-        rank_pmat = 0
-        pmat = np.ones((self.__npts__, self.__dim__ + 1))
-        xsample = None
-        max_tries = 100
-        counter = 0
-        while rank_pmat != self.__dim__ + 1:
-            xsample = self._slhd()
-            pmat[:, 1:] = xsample
-            rank_pmat = np.linalg.matrix_rank(pmat)
-            counter += 1
-            if counter == max_tries:
-                raise ValueError("Unable to find a SLHD of rank at least dim + 1, is npts too smal?")
-        return xsample
+        return self._slhd()
 
 
 class TwoFactorial(ExperimentalDesign):
@@ -170,9 +154,6 @@ class TwoFactorial(ExperimentalDesign):
     :param dim: Number of dimensions
     :type dim: int
     :raises ValueError: If dim >= 15
-
-    :ivar dim: Number of dimensions
-    :ivar npts: Number of desired sampling points (2^dim)
     """
 
     def __init__(self, dim):
@@ -195,38 +176,4 @@ class TwoFactorial(ExperimentalDesign):
         :rtype: numpy.array
         """
 
-        return 0.5*(1 + pydoe.ff2n(self.__dim__))
-
-
-class BoxBehnken(ExperimentalDesign):
-    """Box-Behnken experimental design
-
-    The Box-Behnken experimental design consists of the midpoint
-    of the edges plus a center point of the unit hypercube
-
-    :param dim: Number of dimensions
-    :type dim: int
-
-    :ivar dim: Number of dimensions
-    :ivar npts: Number of desired sampling points (2^dim)
-    """
-
-    def __init__(self, dim):
-        self.__dim__ = dim
-        self.__npts__ = pydoe.bbdesign(self.__dim__, center=1).shape[0]
-
-    def dim(self):
-        return self.__dim__
-
-    def npts(self):
-        return self.__npts__
-
-    def generate_points(self):
-        """Generate a matrix with the initial sample points,
-        scaled to the unit hypercube
-
-        :return: Box-Behnken design in the unit cube of size npts x dim
-        :rtype: numpy.array
-        """
-
-        return 0.5*(1 + pydoe.bbdesign(self.__dim__, center=1))
+        return np.array(list(itertools.product([0, 1], repeat=self.__dim__)))

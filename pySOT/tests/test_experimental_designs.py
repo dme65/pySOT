@@ -1,6 +1,7 @@
 from pySOT.experimental_design import *
 import inspect
 import sys
+import pytest
 
 
 def test_lhd():
@@ -22,17 +23,8 @@ def test_slhd():
         assert (slhd.npts() == i)
         assert (slhd.dim() == 3)
 
-
-def test_box_behnken():
-    bb = BoxBehnken(3)
-    X = bb.generate_points()
-    assert(isinstance(bb, ExperimentalDesign))
-    assert(np.all(X.shape == (13, 3)))
-    assert (bb.npts() == 13)
-    assert (bb.dim() == 3)
-
-    try:
-
+    with pytest.raises(ValueError):  # This should raise an exception
+        SymmetricLatinHypercube(3, 5)
 
 
 def test_full_factorial():
@@ -42,3 +34,6 @@ def test_full_factorial():
     assert (np.all(X.shape == (8, 3)))
     assert (ff.npts() == 8)
     assert (ff.dim() == 3)
+
+    with pytest.raises(ValueError):  # This should raise an exception
+        TwoFactorial(20)
