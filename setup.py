@@ -12,7 +12,7 @@ setup(
     description='Surrogate Optimization Toolbox',
     long_description=long_description,
     setup_requires=['numpy'],
-    install_requires=['scipy', 'pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer', 'pytest'],
+    install_requires=['scipy', 'pyDOE', 'POAP>=0.1.25', 'py_dempster_shafer', 'pytest', 'six'],
     classifiers=['Intended Audience :: Science/Research',
                  'Programming Language :: Python',
                  'Topic :: Scientific/Engineering',
@@ -26,5 +26,6 @@ setup(
                  'Programming Language :: Python :: 3.3',
                  'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
+                 'Programming Language :: Python :: 3.6',
                  ]
 )

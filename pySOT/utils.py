@@ -11,7 +11,7 @@
 
 import numpy as np
 from pySOT.experimental_design import SymmetricLatinHypercube
-
+from pySOT.optimization_problems import OptimizationProblem
 
 def to_unit_box(x, data):
     """Maps a set of points to the unit box
@@ -95,55 +95,60 @@ def check_opt_prob(obj):
     :raise AttributeError: If object doesn't follow the pySOT standard
     """
 
-    if not hasattr(obj, "dim"):
-        raise AttributeError("Problem dimension required")
-    if not hasattr(obj, "xlow"):
-        raise AttributeError("Numpy array of lower bounds required")
-    if not isinstance(obj.xlow, np.ndarray):
-        raise AttributeError("Numpy array of lower bounds required")
-    if not hasattr(obj, "xup"):
-        raise AttributeError("Numpy array of upper bounds required")
-    if not isinstance(obj.xup, np.ndarray):
-        raise AttributeError("Numpy array of upper bounds required")
-    if not hasattr(obj, "integer"):
-        raise AttributeError("Integer variables must be specified")
-    if len(obj.integer) > 0:
-        if not isinstance(obj.integer, np.ndarray):
-            raise AttributeError("Integer variables must be specified")
-    else:
-        if not(isinstance(obj.integer, np.ndarray) or
-               isinstance(obj.integer, list)):
-            raise AttributeError("Integer variables must be specified")
-    if not hasattr(obj, "continuous"):
-        raise AttributeError("Continuous variables must be specified")
-    if len(obj.continuous) > 0:
-        if not isinstance(obj.continuous, np.ndarray):
-            raise AttributeError("Continuous variables must be specified")
-    else:
-        if not(isinstance(obj.continuous, np.ndarray) or
-               isinstance(obj.continuous, list)):
-            raise AttributeError("Continuous variables must be specified")
+    if not isinstance(obj, OptimizationProblem):  # Check that we implement the base class
+        raise TypeError("Input does not implement OptimizationProblem")
 
-    # Check for logical errors
-    if not (isinstance(obj.dim, int) and obj.dim > 0):
-        raise AttributeError("Problem dimension must be a positive integer.")
-    if not(len(obj.xlow) == obj.dim and
-            len(obj.xup) == obj.dim):
-        raise AttributeError("Incorrect size for xlow and xup")
-    if not(all(obj.xlow[i] < obj.xup[i] for i in range(obj.dim))):
-        raise AttributeError("Lower bounds must be below upper bounds.")
-    if len(obj.integer) > 0:
-        if not(np.amax(obj.integer) < obj.dim and np.amin(obj.integer) >= 0):
-            raise AttributeError("Integer variable index can't exceed "
-                                 "number of dimensions or be negative")
-    if len(obj.continuous) > 0:
-        if not(np.amax(obj.continuous) < obj.dim and
-               np.amin(obj.continuous) >= 0):
+    if not isinstance(obj.dim(), int) and obj.dim() > 0:
+        raise ValueError("dim must be a positive integer")
+
+    if not isinstance(obj.lb(), np.ndarray):
+        raise ValueError("Numpy array of lower bounds required")
+    if not isinstance(obj.ub(), np.ndarray):
+        raise ValueError("Numpy array of upper bounds required")
+    if not(len(obj.lb()) == obj.dim() and len(obj.ub()) == obj.dim()):
+        raise AttributeError("Incorrect size for lb and ub")
+    if not(all(obj.lb()[i] < obj.ub()[i] for i in range(obj.dim()))):
+        raise AttributeError("Lower bounds must be smaller than upper bounds.")
+
+    if not isinstance(obj.num_expensive_constraints(), int) and obj.num_expensive_constraints() >= 0:
+        raise ValueError("num_expensive_constraints must be a non-negative integer")
+    if not isinstance(obj.num_cheap_constraints(), int) and obj.num_cheap_constraints() >= 0:
+        raise ValueError("num_cheap_constraints must be a non-negative integer")
+
+    if obj.num_cheap_constraints() > 0:
+        npts = 10
+        X = np.random.uniform(obj.lb(), obj.ub(), (npts, obj.dim()))
+        Y = obj.eval_cheap_constraints(X)
+        if not(all(Y.shape == np.array([npts, obj.num_cheap_constraints()]))):
+            raise ValueError("eval_cheap_constraints returned an object of the wrong size")
+        # Todo Test deval_cheap_constraints
+
+    contvar = obj.continuous_variables()
+    intvar = obj.integer_variables()
+    if len(contvar) > 0:
+        if not isinstance(contvar, np.ndarray):
+            raise ValueError("Numpy array of continuous variables required")
+        else:
+            if not(isinstance(contvar, np.ndarray) or isinstance(contvar, list)):
+                raise AttributeError("Continuous variables must be specified")
+    if len(intvar) > 0:
+        if not isinstance(intvar, np.ndarray):
+            raise ValueError("Numpy array of integer variables required")
+        else:
+            if not (isinstance(intvar, np.ndarray) or isinstance(intvar, list)):
+                raise AttributeError("Integer variables must be specified")
+
+    if len(contvar) > 0:
+        if not(np.amax(contvar) < obj.dim() and np.amin(contvar) >= 0):
             raise AttributeError("Continuous variable index can't exceed "
                                  "number of dimensions or be negative")
-    if not(len(np.intersect1d(obj.continuous, obj.integer)) == 0):
+    if len(intvar) > 0:
+        if not(np.amax(intvar) < obj.dim() and np.amin(intvar) >= 0):
+            raise AttributeError("Integer variable index can't exceed "
+                                 "number of dimensions or be negative")
+    if not(len(np.intersect1d(contvar, intvar)) == 0):
         raise AttributeError("A variable can't be both an integer and continuous")
-    if not(len(obj.continuous)+len(obj.integer) == obj.dim):
+    if not(len(contvar) + len(intvar) == obj.dim()):
         raise AttributeError("All variables must be either integer or continuous")
 
 

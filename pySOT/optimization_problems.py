@@ -1184,7 +1184,7 @@ class Keane(OptimizationProblem):
         return 0
 
     def num_cheap_constraints(self):
-        return 0
+        return 2
 
     def eval_cheap_constraints(self, X):
         """Evaluate the Keane inequality constraints at x

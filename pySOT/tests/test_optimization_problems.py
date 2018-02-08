@@ -4,6 +4,7 @@ from pySOT.optimization_problems import OptimizationProblem
 import inspect
 import pytest
 import importlib
+from pySOT.utils import check_opt_prob
 
 
 def test_all():
@@ -21,3 +22,6 @@ def test_all():
                 val = opt.eval(np.zeros(opt.dim()))
             with pytest.raises(ValueError):  # This should raise an exception
                 opt.eval(np.zeros(opt.dim() + 1))
+
+            # Sanity check all methods
+            check_opt_prob(opt)
