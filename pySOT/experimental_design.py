@@ -56,7 +56,7 @@ class LatinHypercube(ExperimentalDesign):
     """
 
     def __init__(self, dim, npts, criterion='c'):
-        self.dim = dim
+        self.__dim__ = dim
         self.__npts__ = npts
         self.__criterion__ = criterion
 
@@ -74,7 +74,7 @@ class LatinHypercube(ExperimentalDesign):
         :rtype: numpy.array
         """
 
-        return pydoe.lhs(self.dim, self.__npts__, self.__criterion__)
+        return pydoe.lhs(self.__dim__, self.__npts__, self.__criterion__)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
