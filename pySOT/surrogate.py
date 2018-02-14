@@ -1609,19 +1609,6 @@ class RSCapped(Surrogate):
     according to some transformation. A very common transformation
     is to replace all values above the median by the median in order
     to reduce the influence of large function values.
-
-    :param model: Original response surface object
-    :type model: Object
-    :param transformation: Function value transformation object. Median capping
-        is used if no object (or None) is provided
-    :type transformation: Object
-
-    :ivar transformation: Object used to transform the function values.
-    :ivar model: original response surface object
-    :ivar fvalues: Function values
-    :ivar nump: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar updated: True if the surface is updated
     """
 
     def __init__(self, model, transformation=None):
@@ -1733,115 +1720,43 @@ class RSPenalty(Surrogate):
     This adapter can be used for approximating an objective function plus
     a penalty function. The response surface is fitted only to the objective
     function and the penalty is added on after.
-
-    :param model: Original response surface object
-    :type model: Object
-    :param evals: Object that takes the response surface and the points and adds up
-        the response surface value and the penalty function value
-    :type evals: Object
-    :param devals: Object that takes the response surface and the points and adds up
-        the response surface derivative and the penalty function derivative
-    :type devals: Object
-
-    :ivar eval_method: Object that takes the response surface and the points and adds up
-        the response surface value and the penalty function value
-    :ivar deval_method: Object that takes the response surface and the points and adds up
-        the response surface derivative and the penalty function derivative
-    :ivar model: original response surface object
-    :ivar fvalues: Function values
-    :ivar nump: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar updated: True if the surface is updated
     """
 
     def __init__(self, model, evals, derivs):
-
         self.model = model
-        self.fvalues = np.zeros((model.maxpts, 1))
-        self.nump = 0
-        self.maxp = model.maxpts
         self.eval_method = evals
         self.deriv_method = derivs
-        self.updated = True
+
+    @property
+    def dim(self):
+        return self.model.dim
+
+    @property
+    def npts(self):
+        return self.model.npts
+
+    @property
+    def maxpts(self):
+        return self.model.maxpts
+
+    @property
+    def X(self):
+        return self.model.X
+
+    @property
+    def fX(self):
+        return self.model.fX
 
     def reset(self):
-        """Reset the capped response surface"""
-
         self.model.reset()
-        self.fvalues[:] = 0
-        self.nump = 0
 
     def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Point to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        if self.nump >= self.fvalues.shape[0]:
-            self.fvalues.resize(2*self.fvalues.shape[0], 1)
-        self.fvalues[self.nump] = fx
-        self.nump += 1
-        self.updated = False
         self.model.add_points(xx, fx)
 
-    def get_x(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self.model.get_x()
-
-    def get_fx(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self.eval_method(self.model, self.model.get_x())[0, 0]
-
     def eval(self, x, ds=None):
-        """Evaluate the penalty adapter interpolant at the point xx
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the interpolant at x
-        :rtype: float
-        """
-
-        return self.eval_method(self.model, np.atleast_2d(x)).ravel()
-
-    def evals(self, x, ds=None):
-        """Evaluate the penalty adapter at the points xx
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
         return self.eval_method(self.model, x)
 
     def deriv(self, x, ds=None):
-        """Evaluate the derivative of the penalty adapter at x
-
-        :param x: Point for which we want to compute the gradient
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Derivative of the interpolant at x
-        :rtype: numpy.array
-        """
-
         return self.deriv_method(self.model, x)
 
 
