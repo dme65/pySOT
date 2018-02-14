@@ -8,7 +8,7 @@ from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.test_problems import Ackley
+from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread, EvalRecord
 import numpy as np
@@ -38,11 +38,11 @@ def main():
     print(data.info)
 
     nextra = 10
-    extra = np.random.uniform(data.xlow, data.xup, (nextra, data.dim))
+    extra = np.random.uniform(data.lb, data.ub, (nextra, data.dim))
     extra_vals = np.nan * np.ones((nextra, 1))
     for i in range(nextra):  # Evaluate every second point
         if i % 2 == 0:
-            extra_vals[i] = data.objfunction(extra[i, :])
+            extra_vals[i] = data.eval(extra[i, :])
 
     # Create a strategy and a controller
     controller = ThreadController()
@@ -52,7 +52,7 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
-                                            maxp=maxeval + nextra),
+                                            maxpts=maxeval + nextra),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             extra=extra, extra_vals=extra_vals)
 
@@ -66,7 +66,7 @@ def main():
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.objfunction)
+        worker = BasicWorkerThread(controller, data.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy
@@ -76,6 +76,7 @@ def main():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     main()

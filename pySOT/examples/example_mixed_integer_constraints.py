@@ -9,7 +9,7 @@ from pySOT.adaptive_sampling import MultiSampling, CandidateDYCORS, \
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyPenalty
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.test_problems import LinearMI
+from pySOT.optimization_problems import LinearMI
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
@@ -42,7 +42,7 @@ def main():
 
     exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1))
     response_surface = RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                      tail=LinearTail(data.dim), maxp=maxeval)
+                                      tail=LinearTail(data.dim), maxpts=maxeval)
 
     # Use a multi-search strategy for candidate points
     sampling_method = MultiSampling(
@@ -65,7 +65,7 @@ def main():
 
     # Launch the threads
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.objfunction)
+        worker = BasicWorkerThread(controller, data.eval)
         controller.launch_worker(worker)
 
     # Use penalty based merit
@@ -81,7 +81,7 @@ def main():
     print('Best solution: {0}'.format(
         np.array_str(xbest, max_line_width=np.inf,
                      precision=5, suppress_small=True)))
-    print('Feasible: {0}\n'.format(np.max(data.eval_ineq_constraints(np.atleast_2d(xbest))) <= 0.0))
+    print('Feasible: {0}\n'.format(np.max(data.eval_cheap(np.atleast_2d(xbest))) <= 0.0))
 
 
 if __name__ == '__main__':

@@ -2,29 +2,47 @@
 .. module:: utils
    :synopsis: Help functions for pySOT
 
-.. moduleauthor:: David Eriksson <dme65@cornell.edu>
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>, David Bindel <bindel@cornell.edu>
 
 :Module: utils
-:Author: David Eriksson <dme65@cornell.edu>
+:Author: David Eriksson <dme65@cornell.edu>, David Bindel <bindel@cornell.edu>
 
 """
 
 import numpy as np
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.optimization_problems import OptimizationProblem
+import numpy as np
+
+
+def reallocate(A, dims, **kwargs):
+    """Reallocate A with at most 2 dimensions to have size according to dims"""
+    if A is None:
+        A = np.zeros(dims, **kwargs)
+        return A
+
+    assert(A.ndim <= 2 and A.ndim == len(dims))
+    assert(np.all(dims >= A.shape))
+    AA = np.zeros(dims, **kwargs)
+    if A.ndim == 1:
+        AA[:A.shape[0]] = A
+    else:
+        AA[:A.shape[0], :A.shape[1]] = A
+    return AA
+
 
 def to_unit_box(x, data):
     """Maps a set of points to the unit box
 
     :param x: Points to be mapped to the unit box, of size npts x dim
     :type x: numpy.array
-    :param data: Optimization problem, needs to have attributes xlow and xup
+    :param data: Optimization problem, needs to have attributes lb and ub
     :type data: Object
     :return: Points mapped to the unit box
     :rtype: numpy.array
     """
 
-    return (np.copy(x) - data.xlow) / (data.xup - data.xlow)
+    return (np.copy(x) - data.lb) / (data.ub - data.lb)
 
 
 def from_unit_box(x, data):
@@ -32,13 +50,13 @@ def from_unit_box(x, data):
 
     :param x: Points to be mapped from the unit box, of size npts x dim
     :type x: numpy.array
-    :param data: Optimization problem, needs to have attributes xlow and xup
+    :param data: Optimization problem, needs to have attributes lb and ub
     :type data: Object
     :return: Points mapped to the original domain
     :rtype: numpy.array
     """
 
-    return data.xlow + (data.xup - data.xlow) * np.copy(x)
+    return data.lb + (data.ub - data.lb) * np.copy(x)
 
 
 def unit_rescale(xx):
@@ -70,14 +88,14 @@ def round_vars(data, x):
     :rtype: numpy.array
     """
 
-    if len(data.integer) > 0:
+    if len(data.int_var) > 0:
         # Round the original ranged integer variables
-        x[:, data.integer] = np.round(x[:, data.integer])
+        x[:, data.int_var] = np.round(x[:, data.int_var])
         # Make sure we don't violate the bound constraints
-        for i in data.integer:
-            ind = np.where(x[:, i] < data.xlow[i])
+        for i in data.int_var:
+            ind = np.where(x[:, i] < data.lb[i])
             x[ind, i] += 1
-            ind = np.where(x[:, i] > data.xup[i])
+            ind = np.where(x[:, i] > data.ub[i])
             x[ind, i] -= 1
     return x
 
@@ -98,33 +116,33 @@ def check_opt_prob(obj):
     if not isinstance(obj, OptimizationProblem):  # Check that we implement the base class
         raise TypeError("Input does not implement OptimizationProblem")
 
-    if not isinstance(obj.dim(), int) and obj.dim() > 0:
+    if not isinstance(obj.dim, int) and obj.dim() > 0:
         raise ValueError("dim must be a positive integer")
 
-    if not isinstance(obj.lb(), np.ndarray):
+    if not isinstance(obj.lb, np.ndarray):
         raise ValueError("Numpy array of lower bounds required")
-    if not isinstance(obj.ub(), np.ndarray):
+    if not isinstance(obj.ub, np.ndarray):
         raise ValueError("Numpy array of upper bounds required")
-    if not(len(obj.lb()) == obj.dim() and len(obj.ub()) == obj.dim()):
+    if not(len(obj.lb) == obj.dim and len(obj.ub) == obj.dim):
         raise AttributeError("Incorrect size for lb and ub")
-    if not(all(obj.lb()[i] < obj.ub()[i] for i in range(obj.dim()))):
+    if not(all(obj.lb[i] < obj.ub[i] for i in range(obj.dim))):
         raise AttributeError("Lower bounds must be smaller than upper bounds.")
 
-    if not isinstance(obj.num_expensive_constraints(), int) and obj.num_expensive_constraints() >= 0:
-        raise ValueError("num_expensive_constraints must be a non-negative integer")
-    if not isinstance(obj.num_cheap_constraints(), int) and obj.num_cheap_constraints() >= 0:
-        raise ValueError("num_cheap_constraints must be a non-negative integer")
+    if not isinstance(obj.nexp, int) and obj.nexp >= 0:
+        raise ValueError("nexp must be a non-negative integer")
+    if not isinstance(obj.ncheap, int) and obj.ncheap >= 0:
+        raise ValueError("ncheap must be a non-negative integer")
 
-    if obj.num_cheap_constraints() > 0:
+    if obj.ncheap > 0:
         npts = 10
-        X = np.random.uniform(obj.lb(), obj.ub(), (npts, obj.dim()))
-        Y = obj.eval_cheap_constraints(X)
-        if not(all(Y.shape == np.array([npts, obj.num_cheap_constraints()]))):
+        X = np.random.uniform(obj.lb, obj.ub, (npts, obj.dim))
+        Y = obj.eval_cheap(X)
+        if not(all(Y.shape == np.array([npts, obj.ncheap]))):
             raise ValueError("eval_cheap_constraints returned an object of the wrong size")
-        # Todo Test deval_cheap_constraints
+        # Todo Test deval_cheap
 
-    contvar = obj.continuous_variables()
-    intvar = obj.integer_variables()
+    contvar = obj.cont_var
+    intvar = obj.int_var
     if len(contvar) > 0:
         if not isinstance(contvar, np.ndarray):
             raise ValueError("Numpy array of continuous variables required")
@@ -139,16 +157,16 @@ def check_opt_prob(obj):
                 raise AttributeError("Integer variables must be specified")
 
     if len(contvar) > 0:
-        if not(np.amax(contvar) < obj.dim() and np.amin(contvar) >= 0):
+        if not(np.amax(contvar) < obj.dim and np.amin(contvar) >= 0):
             raise AttributeError("Continuous variable index can't exceed "
                                  "number of dimensions or be negative")
     if len(intvar) > 0:
-        if not(np.amax(intvar) < obj.dim() and np.amin(intvar) >= 0):
+        if not(np.amax(intvar) < obj.dim and np.amin(intvar) >= 0):
             raise AttributeError("Integer variable index can't exceed "
                                  "number of dimensions or be negative")
     if not(len(np.intersect1d(contvar, intvar)) == 0):
         raise AttributeError("A variable can't be both an integer and continuous")
-    if not(len(contvar) + len(intvar) == obj.dim()):
+    if not(len(contvar) + len(intvar) == obj.dim):
         raise AttributeError("All variables must be either integer or continuous")
 
 
@@ -198,361 +216,6 @@ def progress_plot(controller, title='', interactive=False):
     plt.show()
 
 
-class RSCapped(object):
-    """Cap adapter for response surfaces.
-
-    This adapter takes an existing response surface and replaces it
-    with a modified version in which the function values are replaced
-    according to some transformation. A very common transformation
-    is to replace all values above the median by the median in order
-    to reduce the influence of large function values.
-
-    :param model: Original response surface object
-    :type model: Object
-    :param transformation: Function value transformation object. Median capping
-        is used if no object (or None) is provided
-    :type transformation: Object
-
-    :ivar transformation: Object used to transform the function values.
-    :ivar model: original response surface object
-    :ivar fvalues: Function values
-    :ivar nump: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar updated: True if the surface is updated
-    """
-
-    def __init__(self, model, transformation=None):
-
-        self.transformation = transformation
-        if self.transformation is None:
-            def transformation(fvalues):
-                medf = np.median(fvalues)
-                fvalues[fvalues > medf] = medf
-                return fvalues
-            self.transformation = transformation
-        self.model = model
-        self.fvalues = np.zeros((model.maxp, 1))
-        self.nump = 0
-        self.maxp = model.maxp
-        self.updated = True
-
-    def reset(self):
-        """Reset the capped response surface"""
-
-        self.model.reset()
-        self.fvalues[:] = 0
-        self.nump = 0
-
-    def add_point(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Point to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        if self.nump >= self.fvalues.shape[0]:
-            self.fvalues.resize(2*self.fvalues.shape[0], 1)
-        self.fvalues[self.nump] = fx
-        self.nump += 1
-        self.updated = False
-        self.model.add_point(xx, fx)
-
-    def get_x(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self.model.get_x()
-
-    def get_fx(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self.model.get_fx()
-
-    def eval(self, x, ds=None):
-        """Evaluate the capped interpolant at the point x
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :return: Value of the RBF interpolant at x
-        :rtype: float
-        """
-
-        self._apply_transformation()
-        return self.model.eval(x, ds)
-
-    def evals(self, x, ds=None):
-        """Evaluate the capped interpolant at the points x
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Distances between the centers and the points x, of size npts x ncenters
-        :type ds: numpy.array
-        :return: Values of the capped interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
-        self._apply_transformation()
-        return self.model.evals(x, ds)
-
-    def deriv(self, x, ds=None):
-        """Evaluate the derivative of the capped interpolant at a point x
-
-        :param x: Point for which we want to compute the RBF gradient
-        :type x: numpy.array
-        :param ds: Distances between the centers and the point x
-        :type ds: numpy.array
-        :return: Derivative of the capped interpolant at x
-        :rtype: numpy.array
-        """
-
-        self._apply_transformation()
-        return self.model.deriv(x, ds)
-
-    def _apply_transformation(self):
-        """ Apply the cap to the function values."""
-
-        fvalues = np.copy(self.fvalues[0:self.nump])
-        self.model.transform_fx(self.transformation(fvalues))
-
-
-class RSPenalty(object):
-    """Penalty adapter for response surfaces.
-
-    This adapter can be used for approximating an objective function plus
-    a penalty function. The response surface is fitted only to the objective
-    function and the penalty is added on after.
-
-    :param model: Original response surface object
-    :type model: Object
-    :param evals: Object that takes the response surface and the points and adds up
-        the response surface value and the penalty function value
-    :type evals: Object
-    :param devals: Object that takes the response surface and the points and adds up
-        the response surface derivative and the penalty function derivative
-    :type devals: Object
-
-    :ivar eval_method: Object that takes the response surface and the points and adds up
-        the response surface value and the penalty function value
-    :ivar deval_method: Object that takes the response surface and the points and adds up
-        the response surface derivative and the penalty function derivative
-    :ivar model: original response surface object
-    :ivar fvalues: Function values
-    :ivar nump: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar updated: True if the surface is updated
-    """
-
-    def __init__(self, model, evals, derivs):
-
-        self.model = model
-        self.fvalues = np.zeros((model.maxp, 1))
-        self.nump = 0
-        self.maxp = model.maxp
-        self.eval_method = evals
-        self.deriv_method = derivs
-        self.updated = True
-
-    def reset(self):
-        """Reset the capped response surface"""
-
-        self.model.reset()
-        self.fvalues[:] = 0
-        self.nump = 0
-
-    def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Point to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        if self.nump >= self.fvalues.shape[0]:
-            self.fvalues.resize(2*self.fvalues.shape[0], 1)
-        self.fvalues[self.nump] = fx
-        self.nump += 1
-        self.updated = False
-        self.model.add_points(xx, fx)
-
-    def get_x(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self.model.get_x()
-
-    def get_fx(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self.eval_method(self.model, self.model.get_x())[0, 0]
-
-    def eval(self, x, ds=None):
-        """Evaluate the penalty adapter interpolant at the point xx
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the interpolant at x
-        :rtype: float
-        """
-
-        return self.eval_method(self.model, np.atleast_2d(x)).ravel()
-
-    def evals(self, x, ds=None):
-        """Evaluate the penalty adapter at the points xx
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
-        return self.eval_method(self.model, x)
-
-    def deriv(self, x, ds=None):
-        """Evaluate the derivative of the penalty adapter at x
-
-        :param x: Point for which we want to compute the gradient
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Derivative of the interpolant at x
-        :rtype: numpy.array
-        """
-
-        return self.deriv_method(self.model, x)
-
-
-class RSUnitbox(object):
-    """Unit box adapter for response surfaces
-
-    This adapter takes an existing response surface and replaces it
-    with a modified version where the domain is rescaled to the unit
-    box. This is useful for response surfaces that are sensitive to
-    scaling, such as radial basis functions.
-
-    :param model: Original response surface object
-    :type model: Object
-    :param data: Optimization problem object
-    :type data: Object
-
-    :ivar data: Optimization problem object
-    :ivar model: original response surface object
-    :ivar fvalues: Function values
-    :ivar nump: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar updated: True if the surface is updated
-    """
-
-    def __init__(self, model, data):
-
-        self.model = model
-        self.fvalues = np.zeros((model.maxp, 1))
-        self.nump = 0
-        self.maxp = model.maxp
-        self.data = data
-        self.updated = True
-
-    def reset(self):
-        """Reset the capped response surface"""
-
-        self.model.reset()
-        self.fvalues[:] = 0
-        self.nump = 0
-
-    def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Point to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        if self.nump >= self.fvalues.shape[0]:
-            self.fvalues.resize(2*self.fvalues.shape[0], 1)
-        self.fvalues[self.nump] = fx
-        self.nump += 1
-        self.updated = False
-        self.model.add_points(to_unit_box(xx, self.data), fx)
-
-    def get_x(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return from_unit_box(self.model.get_x(), self.data)
-
-    def get_fx(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self.model.get_fx()
-
-    def eval(self, x, ds=None):
-        """Evaluate the response surface at the point xx
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the interpolant at x
-        :rtype: float
-        """
-
-        return self.model.eval(to_unit_box(x, self.data), ds)
-
-    def evals(self, x, ds=None):
-        """Evaluate the capped rbf interpolant at the points xx
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the MARS interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
-        return self.model.evals(to_unit_box(x, self.data), ds)
-
-    def deriv(self, x, ds=None):
-        """Evaluate the derivative of the rbf interpolant at x
-
-        :param x: Point for which we want to compute the MARS gradient
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Derivative of the MARS interpolant at x
-        :rtype: numpy.array
-        """
-
-        return self.model.deriv(to_unit_box(x, self.data), ds)
-
-
 class GeneticAlgorithm:
     """Genetic algorithm
 
@@ -569,10 +232,10 @@ class GeneticAlgorithm:
     :type function: Object
     :param dim: Number of dimensions
     :type dim: int
-    :param xlow: Lower variable bounds, of length dim
-    :type xlow: numpy.array
-    :param xup: Lower variable bounds, of length dim
-    :type xup: numpy.array
+    :param lb: Lower variable bounds, of length dim
+    :type lb: numpy.array
+    :param ub: Lower variable bounds, of length dim
+    :type ub: numpy.array
     :param intvar: List of indices with the integer valued variables (e.g., [0, 1, 5])
     :type intvar: list
     :param popsize: Population size
@@ -599,11 +262,11 @@ class GeneticAlgorithm:
     :ivar projfun: Function that can be used to project an individual onto the feasible region
     """
 
-    def __init__(self, function, dim, xlow, xup, intvar=None, popsize=100, ngen=100, start="SLHD", projfun=None):
+    def __init__(self, function, dim, lb, ub, intvar=None, popsize=100, ngen=100, start="SLHD", projfun=None):
         self.nvariables = dim
         self.nindividuals = popsize + (popsize % 2)  # Make sure this is even
-        self.lower_boundary = np.array(xlow)
-        self.upper_boundary = np.array(xup)
+        self.lower_boundary = np.array(lb)
+        self.upper_boundary = np.array(ub)
         self.integer_variables = []
         if intvar is not None:
             self.integer_variables = np.array(intvar)

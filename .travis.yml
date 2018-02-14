@@ -51,7 +51,7 @@ script:
   - make test
   - make testmpi
   - cd -
-  - py.test --cov-config .coveragerc --cov=pySOT
+  - python -m pytest --cov-config .coveragerc --cov=pySOT
 
 after_success:
   - codecov

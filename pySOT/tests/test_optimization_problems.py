@@ -19,9 +19,9 @@ def test_all():
                 val = opt.eval(opt.minimum)
                 assert(abs(val - opt.min) < 1e-3)
             else:
-                val = opt.eval(np.zeros(opt.dim()))
+                val = opt.eval(np.zeros(opt.dim))
             with pytest.raises(ValueError):  # This should raise an exception
-                opt.eval(np.zeros(opt.dim() + 1))
+                opt.eval(np.zeros(opt.dim + 1))
 
             # Sanity check all methods
             check_opt_prob(opt)

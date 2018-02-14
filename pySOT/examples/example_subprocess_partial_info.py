@@ -14,6 +14,7 @@ import numpy as np
 import sys
 import os.path
 import logging
+from pySOT.optimization_problems import OptimizationProblem
 
 if sys.version_info < (3, 0):
     # Try to import from subprocess32
@@ -31,16 +32,49 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
-class SumfunExt:
+class SumfunExt(OptimizationProblem):
     def __init__(self, dim=10):
-        self.xlow = -5 * np.ones(dim)
-        self.xup = 5 * np.ones(dim)
-        self.dim = dim
+        self._dim = dim
         self.info = str(dim)+"-dimensional Sumfun function \n" +\
                              "Global optimum: f(0,0,...,0) = 0"
         self.min = 0
-        self.integer = []
-        self.continuous = np.arange(0, dim)
+
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def lb(self):
+        return -5 * np.ones(self.dim)
+
+    @property
+    def ub(self):
+        return 5 * np.ones(self.dim)
+
+    @property
+    def nexp(self):
+        return 0
+
+    @property
+    def ncheap(self):
+        return 0
+
+    @property
+    def int_var(self):
+        return np.array([])
+
+    @property
+    def cont_var(self):
+        return np.arange(0, self.dim)
+
+    def eval_cheap(self, X):
+        raise NotImplementedError("There are no cheap constraints")
+
+    def deval_cheap(self, X):
+        raise NotImplementedError("There are no cheap constraints")
+
+    def eval(self, xx):
+        pass
 
 
 class CppSim(ProcessWorkerThread):
@@ -104,7 +138,7 @@ def main():
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
             response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxp=maxeval))
+                                            tail=LinearTail(data.dim), maxpts=maxeval))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
@@ -117,6 +151,7 @@ def main():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     main()

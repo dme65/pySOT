@@ -18,7 +18,7 @@ import math
 import time
 
 from poap.strategy import BaseStrategy, RetryStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, RSPenalty
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
@@ -101,7 +101,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
             else:
                 self.design = SymmetricLatinHypercube(data.dim, 2*(data.dim+1))
 
-        self.xrange = np.asarray(data.xup - data.xlow)
+        self.xrange = np.asarray(data.ub - data.lb)
 
         # algorithm parameters
         self.sigma_min = 0.005
@@ -421,11 +421,8 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         """Checks that the inputs are correct"""
 
         self.check_common()
-        if not hasattr(self.data, "eval_ineq_constraints"):
+        if not hasattr(self.data, "eval_cheap"):
             raise AttributeError("Optimization problem has no inequality constraints")
-        if hasattr(self.data, "eval_eq_constraints"):
-            raise AttributeError("Optimization problem has equality constraints,\n"
-                                 "SyncStrategyPenalty can't handle equality constraints")
 
     def penalty_fun(self, xx):
         """Computes the penalty for constraint violation
@@ -436,7 +433,7 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         :rtype: numpy.array
         """
 
-        vec = np.array(self.data.eval_ineq_constraints(xx))
+        vec = np.array(self.data.eval_cheap(xx))
         vec[np.where(vec < 0.0)] = 0.0
         vec **= 2
         return self.penalty * np.asmatrix(np.sum(vec, axis=1))
@@ -474,67 +471,3 @@ class SyncStrategyPenalty(SyncStrategyNoConstraints):
         if record.value + penalty < self.fbest:
             self.xbest = np.copy(record.params[0])
             self.fbest = record.value + penalty
-
-
-class SyncStrategyProjection(SyncStrategyNoConstraints):
-    """Parallel synchronous optimization strategy with non-bound constraints.
-    It uses a supplied method to project proposed points onto the feasible
-    region in order to always evaluate feasible points which is useful in
-    situations where it is easy to project onto the feasible region and where
-    the objective function is nonsensical for infeasible points.
-
-    This is an extension of SyncStrategyNoConstraints that also works with
-    bound constraints.
-
-    :param worker_id: Start ID in a multi-start setting
-    :type worker_id: int
-    :param data: Problem parameter data structure
-    :type data: Object
-    :param response_surface: Surrogate model object
-    :type response_surface: Object
-    :param maxeval: Function evaluation budget
-    :type maxeval: int
-    :param nsamples: Number of simultaneous fevals allowed
-    :type nsamples: int
-    :param exp_design: Experimental design
-    :type exp_design: Object
-    :param sampling_method: Sampling method for finding
-        points to evaluate
-    :type sampling_method: Object
-    :param extra: Points to be added to the experimental design
-    :type extra: numpy.array
-    :param proj_fun: Function that projects one point onto the feasible region
-    :type proj_fun: Object
-    """
-
-    def __init__(self, worker_id, data, response_surface, maxeval, nsamples,
-                 exp_design=None, sampling_method=None, extra=None,
-                 proj_fun=None):
-
-        self.projection = proj_fun
-        SyncStrategyNoConstraints.__init__(self,  worker_id, data,
-                                           response_surface, maxeval,
-                                           nsamples, exp_design,
-                                           sampling_method, extra)
-
-    def check_input(self):
-        """Checks that the inputs are correct"""
-
-        self.check_common()
-        if not (hasattr(self.data, "eval_ineq_constraints") or
-                hasattr(self.data, "eval_eq_constraints")):
-            raise AttributeError("Optimization problem has no constraints")
-
-    def proj_fun(self, x):
-        """Projects a set of points onto the feasible region
-
-        :param x: Points, of size npts x dim
-        :type x: numpy.array
-        :return: Projected points
-        :rtype: numpy.array
-        """
-
-        x = np.atleast_2d(x)
-        for i in range(x.shape[0]):
-            x[i, :] = self.projection(x[i, :])
-        return x

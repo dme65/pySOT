@@ -8,7 +8,7 @@ from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.test_problems import Ackley
+from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
@@ -46,12 +46,12 @@ def main():
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxp=1000),
+                                            tail=LinearTail(data.dim), maxpts=1000),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.objfunction)
+        worker = BasicWorkerThread(controller, data.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy
@@ -64,6 +64,7 @@ def main():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     main()

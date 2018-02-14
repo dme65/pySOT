@@ -1,6 +1,7 @@
 from pySOT.surrogate import *
 import inspect
 import sys
+import numpy.linalg as la
 
 
 def f(x):
@@ -17,24 +18,173 @@ def df(x):
     return dfx
 
 
-def test_rbf():
+def test_cubic_kernel():
     kernel = CubicKernel()
-    tail = LinearTail(2)
-    fhat = RBFInterpolant(2, kernel, tail, 500)
-    xx = np.random.rand(120, 2)
-    fx = f(xx)
-    fhat.add_points(xx[:100, :], fx[:100])
-    fhat.eval(xx)  # Trigger initial fit
-    fhat.add_points(xx[100:, :], fx[100:])
+    assert(isinstance(kernel, Kernel))
+    assert(kernel.order == 2)
 
-    xs = np.random.rand(20, 2)
-    fhx = fhat.eval(xs)
-    fx = f(xs)
-    dfx = df(xs)
-    for i in range(20):
-        dfhx = fhat.deriv(xs[i, :])
-        print("Err (interp): %e : %e" % (abs(fx[i] - fhx[i]) / abs(fx[i]),
-                                         la.norm(dfx[i, :] - dfhx) / la.norm(dfx[i, :])))
+    x = np.array(2)
+    np.testing.assert_allclose(kernel.eval(x), 8)
+    np.testing.assert_allclose(kernel.deriv(x), 12)
 
-if __name__ == "__main__":
-    test_rbf()
+    X = np.random.rand(10, 3)
+    np.testing.assert_allclose(kernel.eval(X), X ** 3)
+    np.testing.assert_allclose(kernel.deriv(X), 3 * X ** 2)
+
+
+def test_tps_kernel():
+    kernel = TPSKernel()
+    assert(isinstance(kernel, Kernel))
+    assert(kernel.order == 2)
+
+    x = np.array(2)
+    np.testing.assert_allclose(kernel.eval(x), 4*np.log(2))
+    np.testing.assert_allclose(kernel.deriv(x), 2*(1+2*np.log(2)))
+
+    X = np.random.rand(10, 3)
+    np.testing.assert_allclose(kernel.eval(X), X**2 * np.log(X))
+    np.testing.assert_allclose(kernel.deriv(X), X * (1+2*np.log(X)))
+
+
+def test_linear_kernel():
+    kernel = LinearKernel()
+    assert(isinstance(kernel, Kernel))
+    assert(kernel.order == 1)
+
+    x = np.array([2])
+    np.testing.assert_allclose(kernel.eval(x), x)
+    np.testing.assert_allclose(kernel.deriv(x), 1)
+
+    X = np.random.rand(10, 3)
+    np.testing.assert_allclose(kernel.eval(X), X)
+    np.testing.assert_allclose(kernel.deriv(X), np.ones((10, 3)))
+
+
+def test_linear_tail():
+    tail = LinearTail(1)
+    assert(isinstance(tail, Tail))
+
+    x = np.array([2])
+    np.testing.assert_allclose(tail.eval(x), np.array([[1, x]]))
+    np.testing.assert_allclose(tail.deriv(x), np.array([[0, 1]]))
+
+    dim = 3
+    tail = LinearTail(dim)
+    assert(tail.degree == 1)
+    assert(tail.dim_tail == dim + 1)
+    X = np.random.rand(10, dim)
+    np.testing.assert_allclose(tail.eval(X), np.hstack((np.ones((10, 1)), X)))
+    x = X[0, :]
+    np.testing.assert_allclose(tail.deriv(x), np.hstack((np.zeros((dim, 1)), np.eye(dim))))
+
+
+def test_constant_tail():
+    tail = ConstantTail(1)
+    assert(isinstance(tail, Tail))
+
+    x = np.array([2])
+    np.testing.assert_allclose(tail.eval(x), np.array([[1]]))
+    np.testing.assert_allclose(tail.deriv(x), np.array([[0]]))
+
+    dim = 3
+    tail = ConstantTail(dim)
+    assert(tail.degree == 0)
+    assert(tail.dim_tail == 1)
+    X = np.random.rand(10, dim)
+    np.testing.assert_allclose(tail.eval(X), np.ones((10, 1)))
+    x = X[0, :]
+    np.testing.assert_allclose(tail.deriv(x), np.zeros((dim, 1)))
+
+
+def make_grid(n):
+    xv, yv = np.meshgrid(np.linspace(0, 1, n), np.linspace(0, 1, n))
+    X = np.hstack((np.reshape(xv, (n*n, 1)), np.reshape(yv, (n*n, 1))))
+    return X
+
+
+def test_rbf():
+    X = make_grid(30)  # Make uniform grid with 30 x 30 points
+    rbf = RBFInterpolant(2, 500, eta=1e-6)
+    assert (isinstance(rbf, Surrogate))
+    fX = f(X)
+    rbf.add_points(X, fX)
+
+    # Derivative at random points
+    Xs = np.random.rand(10, 2)
+    fhx = rbf.eval(Xs)
+    dfhx = rbf.deriv(Xs)
+    fx = f(Xs)
+    dfx = df(Xs)
+    for i in range(Xs.shape[0]):
+        assert(abs(fx[i] - fhx[i]) < 1e-4)
+        assert(la.norm(dfx[i, :] - dfhx[i]) < 1e-2)
+
+    # Derivative at previous points
+    dfhx = rbf.deriv(X[0, :])
+    assert (la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
+
+    # Reset the surrogate
+    rbf.reset()
+    rbf._maxpts = 500
+    assert(rbf.npts == 0)
+    assert(rbf.dim == 2)
+
+    # Now add 100 points at a time and test reallocation + LU
+    for i in range(9):
+        rbf.add_points(X[i*100:(i+1)*100, :], fX[i*100:(i+1)*100])
+        rbf.eval(Xs)  # Force fit
+
+    # Derivative at random points
+    Xs = np.random.rand(10, 2)
+    fhx = rbf.eval(Xs)
+    dfhx = rbf.deriv(Xs)
+    fx = f(Xs)
+    dfx = df(Xs)
+    for i in range(Xs.shape[0]):
+        assert(abs(fx[i] - fhx[i]) < 1e-4)
+        assert(la.norm(dfx[i, :] - dfhx[i]) < 1e-2)
+
+    # Derivative at previous points
+    dfhx = rbf.deriv(X[0, :])
+    assert (la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
+
+
+#
+# def test_gp():
+#     gp = GPRegression(500)
+#     assert(isinstance(gp, Surrogate))
+#     xx = np.random.rand(120, 2)
+#     fx = f(xx)
+#     gp.add_points(xx[:100, :], fx[:100])
+#     gp.eval(xx)  # Trigger initial fit
+#     gp.add_points(xx[100:, :], fx[100:])
+#
+#     xs = np.random.rand(20, 2)
+#     fhx = gp.eval(xs)
+#     fx = f(xs)
+#     dfx = df(xs)
+#     for i in range(20):
+#         dfhx = gp.deriv(xs[i, :])
+#         print("Err (interp): %e : %e" % (abs(fx[i] - fhx[i]) / abs(fx[i]),
+#                                          la.norm(dfx[i, :] - dfhx) / la.norm(dfx[i, :])))
+
+
+# def test_rbf():
+#     kernel = CubicKernel()
+#     tail = LinearTail(2)
+#     rbf = RBFInterpolant(2, kernel, tail, 500)
+#
+#     xx = np.random.rand(120, 2)
+#     fx = f(xx)
+#     rbf.add_points(xx[:100, :], fx[:100])
+#     rbf.eval(xx)  # Trigger initial fit
+#     rbf.add_points(xx[100:, :], fx[100:])
+#
+#     xs = np.random.rand(20, 2)
+#     fhx = rbf.eval(xs)
+#     fx = f(xs)
+#     dfx = df(xs)
+#     for i in range(20):
+#         dfhx = rbf.deriv(xs[i, :])
+#         print("Err (interp): %e : %e" % (abs(fx[i] - fhx[i]) / abs(fx[i]),
+#                                          la.norm(dfx[i, :] - dfhx) / la.norm(dfx[i, :])))

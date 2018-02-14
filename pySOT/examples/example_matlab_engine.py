@@ -8,7 +8,7 @@ from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import LatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.test_problems import Ackley
+from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
@@ -54,6 +54,7 @@ def main():
 
     nthreads = 4
     maxeval = 500
+    matlab_root = "/Applications/MATLAB_R2017b.app"
 
     data = Ackley(dim=10)
     print(data.info)
@@ -66,7 +67,7 @@ def main():
             maxeval=maxeval, nsamples=nthreads,
             exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
-                                            maxp=maxeval),
+                                            maxpts=maxeval),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     print("\nNOTE: You may need to specify the matlab_root keyword in "
@@ -80,7 +81,7 @@ def main():
     for _ in range(nthreads):
         worker = MatlabWorker(controller)
         try:
-            worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm')
+            worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm', matlab_root=matlab_root)
         except Exception as err:
             print("\nERROR: Failed to initialize a MATLAB session.\n")
             exit()

@@ -8,7 +8,7 @@ from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.test_problems import Ackley
+from pySOT.optimization_problems import Ackley
 
 from poap.mpiserve import MPIController, MPISimpleWorker
 import numpy as np
@@ -51,7 +51,7 @@ def main_master(data, nworkers):
             maxeval=maxeval, nsamples=nworkers,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxp=maxeval),
+                                            tail=LinearTail(data.dim), maxpts=maxeval),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
     controller = MPIController(strategy)
 
@@ -74,4 +74,4 @@ if __name__ == '__main__':
     if rank == 0:
         main_master(data, nprocs)
     else:
-        main_worker(data.objfunction)
+        main_worker(data.eval)

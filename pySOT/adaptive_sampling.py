@@ -46,8 +46,10 @@ def candidate_merit_weighted_distance(cand, npts=1):
     """
 
     new_points = np.ones((npts,  cand.data.dim))
-    if cand.fhvals.shape[0] == 1: # Todo: Why is this happening?
+    if cand.fhvals.shape[0] == 1:  # Todo: Why is this happening?
         cand.fhvals = cand.fhvals.T
+    if cand.fhvals.ndim == 1:  # Make sure size is n x 1
+        cand.fhvals = np.expand_dims(cand.fhvals, axis=1)
 
     for i in range(npts):
         ii = cand.next_weight
@@ -233,7 +235,7 @@ class CandidateSRBF(object):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -254,7 +256,7 @@ class CandidateSRBF(object):
     def __init__(self, data, numcand=None, weights=None):
         self.data = data
         self.fhat = None
-        self.xrange = self.data.xup - self.data.xlow
+        self.xrange = self.data.ub - self.data.lb
         self.dtol = 1e-3 * math.sqrt(data.dim)
         self.weights = weights
         if self.weights is None:
@@ -317,7 +319,7 @@ class CandidateSRBF(object):
     def __generate_cand__(self, scalefactors, xbest, subset):
         self.xcand = np.ones((self.numcand,  self.data.dim)) * xbest
         for i in subset:
-            lower, upper = self.data.xlow[i], self.data.xup[i]
+            lower, upper = self.data.lb[i], self.data.ub[i]
             ssigma = scalefactors[i]
             self.xcand[:, i] = stats.truncnorm.rvs(
                 (lower - xbest[i]) / ssigma, (upper - xbest[i]) / ssigma,
@@ -352,7 +354,7 @@ class CandidateSRBF(object):
 
         # Make sure that the scale factors are correct for
         # the integer variables (at least 1)
-        ind = np.intersect1d(self.data.integer, subset)
+        ind = np.intersect1d(self.data.int_var, subset)
         if len(ind) > 0:
             scalefactors[ind] = np.maximum(scalefactors[ind], 1.0)
 
@@ -389,7 +391,7 @@ class CandidateUniform(CandidateSRBF):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -420,7 +422,7 @@ class CandidateUniform(CandidateSRBF):
     def __generate_cand__(self, scalefactors, xbest, subset):
         self.xcand = np.ones((self.numcand, self.data.dim)) * xbest
         self.xcand[:, subset] = np.random.uniform(
-            self.data.xlow[subset], self.data.xup[subset], (self.numcand, len(subset)))
+            self.data.lb[subset], self.data.ub[subset], (self.numcand, len(subset)))
 
 
 @__fix_docs
@@ -444,7 +446,7 @@ class CandidateDYCORS(CandidateSRBF):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -506,7 +508,7 @@ class CandidateDYCORS(CandidateSRBF):
 
         self.xcand = np.ones((self.numcand, self.data.dim)) * xbest
         for i in range(nlen):
-            lower, upper = self.data.xlow[i], self.data.xup[i]
+            lower, upper = self.data.lb[i], self.data.ub[i]
             ssigma = scalefactors[subset[i]]
             ind = np.where(ar[:, i] == 1)[0]
             self.xcand[ind, subset[i]] = stats.truncnorm.rvs(
@@ -538,7 +540,7 @@ class CandidateDDS(CandidateDYCORS):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -599,7 +601,7 @@ class CandidateSRBF_INT(CandidateSRBF):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -626,13 +628,13 @@ class CandidateSRBF_INT(CandidateSRBF):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.integer) > 0:
+        if len(self.data.int_var) > 0:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.integer, proj_fun=proj_fun,
+                                             subset=self.data.int_var, proj_fun=proj_fun,
                                              merit=merit)
         else:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.continuous, proj_fun=proj_fun,
+                                             subset=self.data.cont_var, proj_fun=proj_fun,
                                              merit=merit)
 
 
@@ -652,7 +654,7 @@ class CandidateDYCORS_INT(CandidateDYCORS):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -679,13 +681,13 @@ class CandidateDYCORS_INT(CandidateDYCORS):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.integer) > 0:
+        if len(self.data.int_var) > 0:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.integer, proj_fun=proj_fun,
+                                               subset=self.data.int_var, proj_fun=proj_fun,
                                                merit=merit)
         else:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.continuous, proj_fun=proj_fun,
+                                               subset=self.data.cont_var, proj_fun=proj_fun,
                                                merit=merit)
 
 
@@ -705,7 +707,7 @@ class CandidateDDS_INT(CandidateDDS):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -732,13 +734,13 @@ class CandidateDDS_INT(CandidateDDS):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.integer) > 0:
+        if len(self.data.int_var) > 0:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.integer, proj_fun=proj_fun,
+                                            subset=self.data.int_var, proj_fun=proj_fun,
                                             merit=merit)
         else:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.continuous, proj_fun=proj_fun,
+                                            subset=self.data.cont_var, proj_fun=proj_fun,
                                             merit=merit)
 
 
@@ -758,7 +760,7 @@ class CandidateUniform_INT(CandidateUniform):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -785,13 +787,13 @@ class CandidateUniform_INT(CandidateUniform):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.integer) > 0:
+        if len(self.data.int_var) > 0:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.integer, proj_fun=proj_fun,
+                                                subset=self.data.int_var, proj_fun=proj_fun,
                                                 merit=merit)
         else:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.continuous, proj_fun=proj_fun,
+                                                subset=self.data.cont_var, proj_fun=proj_fun,
                                                 merit=merit)
 
 
@@ -811,7 +813,7 @@ class CandidateSRBF_CONT(CandidateSRBF):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -838,13 +840,13 @@ class CandidateSRBF_CONT(CandidateSRBF):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.continuous) > 0:
+        if len(self.data.cont_var) > 0:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.continuous, proj_fun=proj_fun,
+                                             subset=self.data.cont_var, proj_fun=proj_fun,
                                              merit=merit)
         else:
             return CandidateSRBF.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                             subset=self.data.integer, proj_fun=proj_fun,
+                                             subset=self.data.int_var, proj_fun=proj_fun,
                                              merit=merit)
 
 
@@ -864,7 +866,7 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -891,13 +893,13 @@ class CandidateDYCORS_CONT(CandidateDYCORS):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.continuous) > 0:
+        if len(self.data.cont_var) > 0:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.continuous, proj_fun=proj_fun,
+                                               subset=self.data.cont_var, proj_fun=proj_fun,
                                                merit=merit)
         else:
             return CandidateDYCORS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                               subset=self.data.integer, proj_fun=proj_fun,
+                                               subset=self.data.int_var, proj_fun=proj_fun,
                                                merit=merit)
 
 
@@ -917,7 +919,7 @@ class CandidateDDS_CONT(CandidateDDS):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -944,13 +946,13 @@ class CandidateDDS_CONT(CandidateDDS):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.continuous) > 0:
+        if len(self.data.cont_var) > 0:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.continuous, proj_fun=proj_fun,
+                                            subset=self.data.cont_var, proj_fun=proj_fun,
                                             merit=merit)
         else:
             return CandidateDDS.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                            subset=self.data.integer, proj_fun=proj_fun,
+                                            subset=self.data.int_var, proj_fun=proj_fun,
                                             merit=merit)
 
 
@@ -970,7 +972,7 @@ class CandidateUniform_CONT(CandidateUniform):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar weights: Weights used for the merit function
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -997,13 +999,13 @@ class CandidateUniform_CONT(CandidateUniform):
 
     def make_points(self, npts, xbest, sigma, subset=None, proj_fun=None,
                     merit=candidate_merit_weighted_distance):
-        if len(self.data.continuous) > 0:
+        if len(self.data.cont_var) > 0:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.continuous, proj_fun=proj_fun,
+                                                subset=self.data.cont_var, proj_fun=proj_fun,
                                                 merit=merit)
         else:
             return CandidateUniform.make_points(self, npts=npts, xbest=xbest, sigma=sigma,
-                                                subset=self.data.integer, proj_fun=proj_fun,
+                                                subset=self.data.int_var, proj_fun=proj_fun,
                                                 merit=merit)
 
 
@@ -1015,7 +1017,7 @@ class GeneticAlgorithm(object):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar proposed_points: List of points proposed to the optimization algorithm
     :ivar budget: Remaining evaluation budget
@@ -1091,7 +1093,7 @@ class GeneticAlgorithm(object):
 
         new_points = np.zeros((npts, self.data.dim))
         for i in range(npts):
-            ga = GA(self.fhat.eval, self.data.dim, self.data.xlow, self.data.xup,
+            ga = GA(self.fhat.eval, self.data.dim, self.data.lb, self.data.ub,
                     popsize=max([2*self.data.dim, 100]), ngen=100, projfun=proj_fun)
             x_min, f_min = ga.optimize()
 
@@ -1105,8 +1107,8 @@ class GeneticAlgorithm(object):
                 x_new = None
                 while d < self.dtol:
                     x_new = x_min + self.dtol * np.random.randn(1, self.data.dim)
-                    x_new = np.maximum(x_new, self.data.xlow)
-                    x_new = np.minimum(x_new, self.data.xup)
+                    x_new = np.maximum(x_new, self.data.lb)
+                    x_new = np.minimum(x_new, self.data.ub)
                     d = np.atleast_2d(np.min(
                         scpspatial.distance.cdist(self.proposed_points, np.atleast_2d(x_new)), axis=1)).T.min()
 
@@ -1140,7 +1142,7 @@ class MultiStartGradient(object):
 
     :ivar data: Optimization problem object
     :ivar fhat: Response surface object
-    :ivar xrange: Variable ranges, xup - xlow
+    :ivar xrange: Variable ranges, ub - lb
     :ivar dtol: Smallest allowed distance between evaluated points 1e-3 * sqrt(dim)
     :ivar bounds: n x 2 matrix with lower and upper bound constraints
     :ivar proposed_points: List of points proposed to the optimization algorithm
@@ -1157,8 +1159,8 @@ class MultiStartGradient(object):
         self.data = data
         self.fhat = None
         self.bounds = np.zeros((self.data.dim, 2))
-        self.bounds[:, 0] = self.data.xlow
-        self.bounds[:, 1] = self.data.xup
+        self.bounds[:, 0] = self.data.lb
+        self.bounds[:, 1] = self.data.ub
         self.dtol = 1e-3 * math.sqrt(data.dim)
         self.proposed_points = None
         self.budget = None
@@ -1242,7 +1244,7 @@ class MultiStartGradient(object):
                 if i == 0 and j == 0:
                     x0 = np.array(xbest)
                 else:
-                    x0 = np.random.uniform(self.data.xlow, self.data.xup)
+                    x0 = np.random.uniform(self.data.lb, self.data.ub)
 
                 res = minimize(eval, x0, method=self.method,
                                jac=deriv, bounds=self.bounds)
@@ -1271,8 +1273,8 @@ class MultiStartGradient(object):
                 x_new = None
                 while d < self.dtol:
                     x_new = xvals[np.argmin(fvals), :] + self.dtol * np.random.randn(1, self.data.dim)
-                    x_new = np.maximum(x_new, self.data.xlow)
-                    x_new = np.minimum(x_new, self.data.xup)
+                    x_new = np.maximum(x_new, self.data.lb)
+                    x_new = np.minimum(x_new, self.data.ub)
                     if proj_fun is not None:
                         x_new = proj_fun(x_new)
                     d = np.atleast_2d(np.min(

@@ -9,8 +9,8 @@ def test_lhd():
     X = lhd.generate_points()
     assert (isinstance(lhd, ExperimentalDesign))
     assert (np.all(X.shape == (10, 4)))
-    assert (lhd.npts() == 10)
-    assert (lhd.dim() == 4)
+    assert (lhd.npts == 10)
+    assert (lhd.dim == 4)
 
 
 def test_slhd():
@@ -20,8 +20,8 @@ def test_slhd():
         X = slhd.generate_points()
         assert(isinstance(slhd, ExperimentalDesign))
         assert(np.all(X.shape == (i, 3)))
-        assert (slhd.npts() == i)
-        assert (slhd.dim() == 3)
+        assert (slhd.npts == i)
+        assert (slhd.dim == 3)
 
     with pytest.raises(ValueError):  # This should raise an exception
         SymmetricLatinHypercube(3, 5)
@@ -32,8 +32,8 @@ def test_full_factorial():
     X = ff.generate_points()
     assert (isinstance(ff, ExperimentalDesign))
     assert (np.all(X.shape == (8, 3)))
-    assert (ff.npts() == 8)
-    assert (ff.dim() == 3)
+    assert (ff.npts == 8)
+    assert (ff.dim == 3)
 
     with pytest.raises(ValueError):  # This should raise an exception
         TwoFactorial(20)
