@@ -32,7 +32,7 @@ def test_simple_time():
     print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    maxeval = -30
+    maxeval = -10
     nsamples = nthreads
 
     data = Ackley(dim=10)

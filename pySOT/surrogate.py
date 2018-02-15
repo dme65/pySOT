@@ -18,6 +18,7 @@ import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
 import abc
 import six
+from pySOT.utils import to_unit_box, from_unit_box
 
 
 def reallocate(A, dims, **kwargs):
@@ -55,18 +56,22 @@ class Surrogate(object):
     @property
     @abc.abstractmethod
     def X(self):  # pragma: no cover
-        """Return centers fx of the interpolant"""
+        """Return centers X of the interpolant"""
         return
 
     @property
     @abc.abstractmethod
     def fX(self):  # pragma: no cover
-        """Return values fx of the interpolant"""
+        """Return values fX of the interpolant"""
         return
 
     @abc.abstractmethod
     def reset(self):  # pragma: no cover
         """Reset the object"""
+        pass
+
+    def transform_fx(self, fX):  # pragma: no cover
+        """Replace function values used for fitting"""
         pass
 
     @abc.abstractmethod
@@ -468,7 +473,7 @@ class RBFInterpolant(Surrogate):
         self.eta = eta
         self.dirty = True
 
-        if self.kernel.order - 1 > self.tail.degree:
+        if kernel.order - 1 > tail.degree:
             raise ValueError("Kernel and tail mismatch")
         assert self.dim == self.tail.dim
 
@@ -515,6 +520,10 @@ class RBFInterpolant(Surrogate):
         self.piv = None
         self.c = None
         self.dirty = True
+
+    def transform_fx(self, fX):
+        self._fX = fX
+        self.rhs[self.ntail:self.ntail + self.npts] = fX
 
     def _realloc(self, extra=1):
         """Expand allocation to accommodate more points (if needed)
@@ -758,6 +767,9 @@ class GPRegression(Surrogate):
         self._X = None
         self._fX = None
         self.updated = False
+
+    def transform_fx(self, fX):
+        self._fX = fX
 
     def _realloc(self, extra=1):
         """Expand allocation to accommodate more points (if needed)
@@ -1251,6 +1263,9 @@ class MARSInterpolant(Surrogate):
         self._fX = None
         self.updated = False
 
+    def transform_fx(self, fX):
+        self._fX = fX
+
     def _realloc(self, extra=1):
         """Expand allocation to accommodate more points (if needed)
 
@@ -1636,96 +1651,61 @@ class RSCapped(Surrogate):
                 return fvalues
             self.transformation = transformation
         self.model = model
-        self.fvalues = np.zeros((model.maxp, 1))
-        self.nump = 0
-        self.maxp = model.maxp
-        self.updated = True
+        self._maxpts = self.model.maxpts
+        self._npts = 0
+        self._fX = None
+
+    @property
+    def dim(self):
+        return self.model.dim
+
+    @property
+    def npts(self):
+        return self.model.npts
+
+    @property
+    def maxpts(self):
+        return self.model.maxpts
+
+    @property
+    def X(self):
+        return self.model.X
+
+    @property
+    def fX(self):
+        return self._fX
 
     def reset(self):
-        """Reset the capped response surface"""
-
         self.model.reset()
-        self.fvalues[:] = 0
-        self.nump = 0
+        self._fX = None
+        self._npts = 0
 
-    def add_point(self, xx, fx):
-        """Add a new function evaluation
+    def _realloc(self, extra=1):
+        maxp = self.maxpts
+        if maxp < self.npts + extra or self.npts == 0:
+            while maxp < self.npts + extra: maxp = 2 * maxp
+            self._maxpts = maxp
+            self._fX = reallocate(self._fX, (maxp,))
 
-        :param xx: Point to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
+    def add_points(self, xx, fx):
+        xx = np.atleast_2d(xx)
+        newpts = xx.shape[0]
+        self._realloc(extra=newpts)
 
-        if self.nump >= self.fvalues.shape[0]:
-            self.fvalues.resize(2*self.fvalues.shape[0], 1)
-        self.fvalues[self.nump] = fx
-        self.nump += 1
-        self.updated = False
-        self.model.add_point(xx, fx)
-
-    def get_x(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self.model.get_x()
-
-    def get_fx(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self.model.get_fx()
+        self._fX[self.npts:self.npts + newpts] = fx
+        self._npts += newpts
+        self.model.add_points(xx, fx)
 
     def eval(self, x, ds=None):
-        """Evaluate the capped interpolant at the point x
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :return: Value of the RBF interpolant at x
-        :rtype: float
-        """
-
         self._apply_transformation()
         return self.model.eval(x, ds)
 
-    def evals(self, x, ds=None):
-        """Evaluate the capped interpolant at the points x
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Distances between the centers and the points x, of size npts x ncenters
-        :type ds: numpy.array
-        :return: Values of the capped interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
-        self._apply_transformation()
-        return self.model.evals(x, ds)
-
     def deriv(self, x, ds=None):
-        """Evaluate the derivative of the capped interpolant at a point x
-
-        :param x: Point for which we want to compute the RBF gradient
-        :type x: numpy.array
-        :param ds: Distances between the centers and the point x
-        :type ds: numpy.array
-        :return: Derivative of the capped interpolant at x
-        :rtype: numpy.array
-        """
-
         self._apply_transformation()
         return self.model.deriv(x, ds)
 
     def _apply_transformation(self):
-        """ Apply the cap to the function values."""
-
-        fvalues = np.copy(self.fvalues[0:self.nump])
+        fvalues = np.copy(self._fX[0:self.npts])
         self.model.transform_fx(self.transformation(fvalues))
 
 
@@ -1765,6 +1745,9 @@ class RSPenalty(Surrogate):
     def reset(self):
         self.model.reset()
 
+    def transform_fx(self, fX):
+        self.model.transform_fx(fX)
+
     def add_points(self, xx, fx):
         self.model.add_points(xx, fx)
 
@@ -1785,102 +1768,47 @@ class RSUnitbox(Surrogate):
 
     :param model: Original response surface object
     :type model: Object
-    :param data: Optimization problem object
-    :type data: Object
 
-    :ivar data: Optimization problem object
     :ivar model: original response surface object
-    :ivar fvalues: Function values
-    :ivar nump: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar updated: True if the surface is updated
     """
 
-    def __init__(self, model, data):
+    def __init__(self, model, lb, ub):
 
         self.model = model
-        self.fvalues = np.zeros((model.maxp, 1))
-        self.nump = 0
-        self.maxp = model.maxp
-        self.data = data
-        self.updated = True
+        self.lb = lb
+        self.ub = ub
+
+    @property
+    def dim(self):
+        return self.model.dim
+
+    @property
+    def npts(self):
+        return self.model.npts
+
+    @property
+    def maxpts(self):
+        return self.model.maxpts
+
+    @property
+    def X(self):
+        return from_unit_box(self.model.X, self.lb, self.ub)
+
+    @property
+    def fX(self):
+        return self.model.fX
 
     def reset(self):
-        """Reset the capped response surface"""
-
         self.model.reset()
-        self.fvalues[:] = 0
-        self.nump = 0
+
+    def transform_fx(self, fX):
+        self.model.transform_fx(fX)
 
     def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Point to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        if self.nump >= self.fvalues.shape[0]:
-            self.fvalues.resize(2*self.fvalues.shape[0], 1)
-        self.fvalues[self.nump] = fx
-        self.nump += 1
-        self.updated = False
-        self.model.add_points(to_unit_box(xx, self.data), fx)
-
-    def get_x(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return from_unit_box(self.model.get_x(), self.data)
-
-    def get_fx(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self.model.get_fx()
+        self.model.add_points(to_unit_box(xx, self.lb, self.ub), fx)
 
     def eval(self, x, ds=None):
-        """Evaluate the response surface at the point xx
-
-        :param x: Point where to evaluate
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Value of the interpolant at x
-        :rtype: float
-        """
-
-        return self.model.eval(to_unit_box(x, self.data), ds)
-
-    def evals(self, x, ds=None):
-        """Evaluate the capped rbf interpolant at the points xx
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the MARS interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
-        return self.model.evals(to_unit_box(x, self.data), ds)
+        return self.model.eval(to_unit_box(x, self.lb, self.ub), ds)
 
     def deriv(self, x, ds=None):
-        """Evaluate the derivative of the rbf interpolant at x
-
-        :param x: Point for which we want to compute the MARS gradient
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Derivative of the MARS interpolant at x
-        :rtype: numpy.array
-        """
-
-        return self.model.deriv(to_unit_box(x, self.data), ds)
+        return self.model.deriv(to_unit_box(x, self.lb, self.ub), ds)

@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import AsyncStrategyNoConstraints
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, RSCapped, RSUnitbox
 from pySOT.optimization_problems import Ackley
 
@@ -45,7 +45,7 @@ def test_simple():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
+        AsyncStrategyNoConstraints(
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
