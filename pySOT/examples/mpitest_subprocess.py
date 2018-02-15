@@ -37,10 +37,14 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
+# Find path of the executable
+path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext"
+
+
 class CppSim(MPIProcessWorker):
     def eval(self, record_id, params, extra_args=None):
         try:
-            self.process = Popen(['./sphere_ext', array2str(params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
+            self.process = Popen([path, array2str(params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
             self.finish_success(record_id, float(val))
         except ValueError:
@@ -68,7 +72,7 @@ def main_master(nworkers):
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
+    assert os.path.isfile(path), "You need to build sphere_ext"
 
     maxeval = 200
 
@@ -95,7 +99,7 @@ def main_master(nworkers):
                      precision=5, suppress_small=True)))
 
 
-if __name__ == '__main__':
+def test_subprocess_mpi():
     # Extract the rank
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -105,3 +109,7 @@ if __name__ == '__main__':
         main_master(nprocs)
     else:
         main_worker()
+
+
+if __name__ == '__main__':
+    test_subprocess_mpi()

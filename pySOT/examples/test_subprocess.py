@@ -31,10 +31,14 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
+# Find path of the executable
+path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext"
+
+
 class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         try:
-            self.process = Popen(['./sphere_ext', array2str(record.params[0])],
+            self.process = Popen([path, array2str(record.params[0])],
                                  stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
             self.finish_success(record, float(val))
@@ -43,7 +47,7 @@ class CppSim(ProcessWorkerThread):
             logging.info("WARNING: Incorrect output or crashed evaluation")
 
 
-def main():
+def test_subprocess():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/test_subprocess.log"):
@@ -57,7 +61,7 @@ def main():
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    assert os.path.isfile("./sphere_ext"), "You need to build sphere_ext"
+    assert os.path.isfile(path), "You need to build sphere_ext"
 
     nthreads = 4
     maxeval = 200
@@ -91,4 +95,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_subprocess()

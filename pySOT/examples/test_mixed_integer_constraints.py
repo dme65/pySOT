@@ -1,14 +1,15 @@
 """
-.. module:: test_penalty
-  :synopsis: Test constrained optimization strategy
+.. module:: test_mixed_integer_constraints
+  :synopsis: Test Mixed integer problem with constraints
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
+from pySOT.adaptive_sampling import MultiSampling, CandidateDYCORS, \
+    CandidateUniform, CandidateDYCORS_INT, CandidateDYCORS_CONT
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyPenalty
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.optimization_problems import Keane
+from pySOT.optimization_problems import LinearMI
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
@@ -16,17 +17,18 @@ import os.path
 import logging
 
 
-def main():
+def test_mixed_integer_constraints():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_penalty.log"):
-        os.remove("./logfiles/test_penalty.log")
-    logging.basicConfig(filename="./logfiles/test_penalty.log",
+    if os.path.exists("./logfiles/test_mixed_integer_constraints.log"):
+        os.remove("./logfiles/test_mixed_integer_constraints.log")
+    logging.basicConfig(filename="./logfiles/test_mixed_integer_constraints.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
-    print("Sampling method: CandidateDYCORS")
+    print("Maximum number of evaluations: 200")
+    print("Sampling methods: CandidateDYCORS, CandidateDYCORS_INT"
+          ", CandidateDYCORS_CONT, CandidateUniform")
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
@@ -35,19 +37,30 @@ def main():
     penalty = 1e6
     nsamples = nthreads
 
-    data = Keane(dim=10)
+    data = LinearMI()
     print(data.info)
+
+    exp_design = SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1))
+    response_surface = RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                      tail=LinearTail(data.dim), maxpts=maxeval)
+
+    # Use a multi-search strategy for candidate points
+    sampling_method = MultiSampling(
+        [CandidateDYCORS(data=data, numcand=100*data.dim),
+         CandidateUniform(data=data, numcand=100*data.dim),
+         CandidateDYCORS_INT(data=data, numcand=100*data.dim),
+         CandidateDYCORS_CONT(data=data, numcand=100*data.dim)],
+        [0, 1, 2, 3])
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
         SyncStrategyPenalty(
             worker_id=0, data=data,
+            response_surface=response_surface,
             maxeval=maxeval, nsamples=nsamples,
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxpts=maxeval),
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
+            exp_design=exp_design,
+            sampling_method=sampling_method,
             penalty=penalty)
 
     # Launch the threads
@@ -68,8 +81,8 @@ def main():
     print('Best solution: {0}'.format(
         np.array_str(xbest, max_line_width=np.inf,
                      precision=5, suppress_small=True)))
-    print('Feasible: {0}\n'.format(np.max(data.eval_cheap(xbest)) <= 0.0))
+    print('Feasible: {0}\n'.format(np.max(data.eval_cheap(np.atleast_2d(xbest))) <= 0.0))
 
 
 if __name__ == '__main__':
-    main()
+    test_mixed_integer_constraints()

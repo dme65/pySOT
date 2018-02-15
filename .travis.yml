@@ -48,9 +48,7 @@ install:
 
 script:
   - cd ./pySOT/examples/
-  - make all
-  - make test
-  - make testmpi
+  - make
   - cd -
   - python -m pytest --cov-config .coveragerc --cov=pySOT
 

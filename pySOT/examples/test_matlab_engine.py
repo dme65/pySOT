@@ -21,7 +21,7 @@ try:
 except Exception as err:
     print("\nERROR: Failed to import the matlab_wrapper module. "
           "Install using: pip install matlab_wrapper\n")
-    exit()
+    pass
 
 
 class MatlabWorker(ProcessWorkerThread):
@@ -38,7 +38,7 @@ class MatlabWorker(ProcessWorkerThread):
             self.finish_cancelled(record)
 
 
-def main():
+def test_matlab_engine():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/test_matlab_engine.log"):
@@ -84,7 +84,7 @@ def main():
             worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm', matlab_root=matlab_root)
         except Exception as err:
             print("\nERROR: Failed to initialize a MATLAB session.\n")
-            exit()
+            return
 
         worker.matlab.workspace.addpath(mfile_location)
         controller.launch_worker(worker)
@@ -100,4 +100,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_matlab_engine()

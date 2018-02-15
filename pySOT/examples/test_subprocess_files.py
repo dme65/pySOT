@@ -32,6 +32,10 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
+# Find path of the executable
+path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext_files"
+
+
 class CppSim(ProcessWorkerThread):
 
     def handle_eval(self, record):
@@ -41,7 +45,7 @@ class CppSim(ProcessWorkerThread):
             f.write(array2str(record.params[0]))
             f.close()
 
-            self.process = Popen(['./sphere_ext_files', self.my_filename], stdout=PIPE, bufsize=1, universal_newlines=True)
+            self.process = Popen([path, self.my_filename], stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
 
             self.finish_success(record, float(val))
@@ -52,7 +56,7 @@ class CppSim(ProcessWorkerThread):
             self.finish_cancelled(record)
 
 
-def main():
+def test_subprocess_files():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/test_subprocess_files.log"):
@@ -66,7 +70,7 @@ def main():
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    assert os.path.isfile("./sphere_ext_files"), "You need to build sphere_ext"
+    assert os.path.isfile(path), "You need to build sphere_ext_files"
 
     nthreads = 4
     maxeval = 200
@@ -102,4 +106,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_subprocess_files()

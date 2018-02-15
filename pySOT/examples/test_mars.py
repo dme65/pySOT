@@ -1,48 +1,48 @@
 """
-.. module:: test_extra_vals
-  :synopsis: Test extra values
+.. module:: test_mars
+  :synopsis: Test MARS
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
-from poap.controller import ThreadController, BasicWorkerThread, EvalRecord
+from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 import logging
 
+# Try to import MARS
+try:
+    from pySOT.surrogate import MARSInterpolant
+except Exception as err:
+    print("\nERROR: Failed to import MARS. This is likely "
+          "because py-earth is not installed. Aborting.....\n")
+    exit()
 
-def main():
+
+def test_mars():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_extra_vals.log"):
-        os.remove("./logfiles/test_extra_vals.log")
-    logging.basicConfig(filename="./logfiles/test_extra_vals.log",
+    if os.path.exists("./logfiles/test_mars.log"):
+        os.remove("./logfiles/test_mars.log")
+    logging.basicConfig(filename="./logfiles/test_mars.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
+    print("Maximum number of evaluations: 200")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF")
+    print("Surrogate: MARS interpolant")
 
     nthreads = 4
-    maxeval = 500
+    maxeval = 200
     nsamples = nthreads
 
-    data = Ackley(dim=10)
+    data = Ackley(dim=5)
     print(data.info)
-
-    nextra = 10
-    extra = np.random.uniform(data.lb, data.ub, (nextra, data.dim))
-    extra_vals = np.nan * np.ones((nextra, 1))
-    for i in range(nextra):  # Evaluate every second point
-        if i % 2 == 0:
-            extra_vals[i] = data.eval(extra[i, :])
 
     # Create a strategy and a controller
     controller = ThreadController()
@@ -51,18 +51,8 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
-                                            maxpts=maxeval + nextra),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            extra=extra, extra_vals=extra_vals)
-
-    # Append the known function values to the POAP database since POAP won't evaluate these points
-    for i in range(len(extra_vals)):
-        if not np.isnan(extra_vals[i]):
-            record = EvalRecord(params=(np.ravel(extra[i, :]),), status='completed')
-            record.value = extra_vals[i]
-            record.feasible = True
-            controller.fevals.append(record)
+            response_surface=MARSInterpolant(data.dim, maxpts=maxeval),
+            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
@@ -79,4 +69,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_mars()

@@ -7,6 +7,7 @@
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -14,34 +15,26 @@ import numpy as np
 import os.path
 import logging
 
-# Try to import MARS
-try:
-    from pySOT.surrogate import MARSInterpolant
-except Exception as err:
-    print("\nERROR: Failed to import MARS. This is likely "
-          "because py-earth is not installed. Aborting.....\n")
-    exit()
 
-
-def main():
+def test_simple():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_mars.log"):
-        os.remove("./logfiles/test_mars.log")
-    logging.basicConfig(filename="./logfiles/test_mars.log",
+    if os.path.exists("./logfiles/test_simple.log"):
+        os.remove("./logfiles/test_simple.log")
+    logging.basicConfig(filename="./logfiles/test_simple.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 200")
+    print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: MARS interpolant")
+    print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    maxeval = 200
+    maxeval = 500
     nsamples = nthreads
 
-    data = Ackley(dim=5)
+    data = Ackley(dim=10)
     print(data.info)
 
     # Create a strategy and a controller
@@ -51,7 +44,8 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=MARSInterpolant(data.dim, maxpts=maxeval),
+            response_surface=RBFInterpolant(data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
+                                            maxpts=maxeval),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function
@@ -69,4 +63,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_simple()

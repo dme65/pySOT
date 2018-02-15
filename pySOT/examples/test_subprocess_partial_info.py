@@ -32,6 +32,10 @@ def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 
+# Find path of the executable
+path = os.path.dirname(os.path.abspath(__file__)) + "/sumfun_ext"
+
+
 class SumfunExt(OptimizationProblem):
     def __init__(self, dim=10):
         self._dim = dim
@@ -82,7 +86,7 @@ class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         val = np.nan
         # Continuously check for new outputs from the subprocess
-        self.process = Popen(['./sumfun_ext', array2str(record.params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
+        self.process = Popen([path, array2str(record.params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
 
         for line in self.process.stdout:
             try:
@@ -106,7 +110,7 @@ class CppSim(ProcessWorkerThread):
             self.finish_success(record, val)
 
 
-def main():
+def test_subprocess_partial_info():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/test_subprocess_partial_info.log"):
@@ -120,7 +124,7 @@ def main():
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    assert os.path.isfile("./sumfun_ext"), "You need to build sumfun_ext"
+    assert os.path.isfile(path), "You need to build sumfun_ext"
 
     nthreads = 4
     maxeval = 200
@@ -154,4 +158,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_subprocess_partial_info()

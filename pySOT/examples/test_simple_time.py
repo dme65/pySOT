@@ -1,44 +1,38 @@
 """
-.. module:: test_gp_regression
-  :synopsis: Test GP Regression
+.. module:: test_simple_time
+  :synopsis: Test Simple with time budget
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 import logging
-
-# Try to import MARS
-try:
-    from pySOT.surrogate import GPRegression
-except Exception as err:
-    print("\nERROR: Failed to import GPRegression. This is likely "
-          "because scikit-learn>=0.18 is not installed. Aborting.....\n")
-    exit()
+import time
 
 
-def main():
+def test_simple_time():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_gp.log"):
-        os.remove("./logfiles/test_gp.log")
-    logging.basicConfig(filename="./logfiles/test_gp.log",
+    if os.path.exists("./logfiles/test_simple_time.log"):
+        os.remove("./logfiles/test_simple_time.log")
+    logging.basicConfig(filename="./logfiles/test_simple_time.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
+    print("Time budget: 30 seconds")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Gaussian process regression")
+    print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    maxeval = 500
+    maxeval = -30
     nsamples = nthreads
 
     data = Ackley(dim=10)
@@ -51,7 +45,8 @@ def main():
             worker_id=0, data=data,
             maxeval=maxeval, nsamples=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=GPRegression(dim=data.dim, maxpts=maxeval),
+            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                            tail=LinearTail(data.dim), maxpts=1000),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function
@@ -60,8 +55,11 @@ def main():
         controller.launch_worker(worker)
 
     # Run the optimization strategy
+    start_time = time.time()
     result = controller.run()
+    end_time = time.time()
 
+    print('Run time: {0} seconds'.format(end_time - start_time))
     print('Best value found: {0}'.format(result.value))
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
@@ -69,4 +67,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_simple_time()
