@@ -86,8 +86,8 @@ class SyncStrategyNoConstraints(BaseStrategy):
         self.data = data
         self.fhat = response_surface
         if self.fhat is None:
-            self.fhat = RBFInterpolant(kernel=CubicKernel, tail=LinearTail, maxp=maxeval)
-        self.fhat.reset()  # Just to be sure!
+            self.fhat = RBFInterpolant(data.dim, kernel=CubicKernel(), tail=LinearTail(), maxpts=maxeval)
+        #  self.fhat.reset()  # Just to be sure!
 
         self.nsamples = nsamples
         self.extra = extra
@@ -183,7 +183,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         """
 
         x = np.atleast_2d(x)
-        return round_vars(self.data, x)
+        return round_vars(x, self.data.int_var, self.data.lb, self.data.ub)
 
     def log_completion(self, record):
         """Record a completed evaluation to the log.
@@ -246,7 +246,7 @@ class SyncStrategyNoConstraints(BaseStrategy):
         start_sample = self.design.generate_points()
         assert start_sample.shape[1] == self.data.dim, \
             "Dimension mismatch between problem and experimental design"
-        start_sample = from_unit_box(start_sample, self.data)
+        start_sample = from_unit_box(start_sample, self.data.lb, self.data.ub)
 
         if self.extra is not None:
             # We know the values if this is a restart, so add the points to the surrogate

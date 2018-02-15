@@ -18,7 +18,22 @@ import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
 import abc
 import six
-from pySOT.utils import reallocate
+
+
+def reallocate(A, dims, **kwargs):
+    """Reallocate A with at most 2 dimensions to have size according to dims"""
+    if A is None:
+        A = np.zeros(dims, **kwargs)
+        return A
+
+    assert(A.ndim <= 2 and A.ndim == len(dims))
+    assert(np.all(dims >= A.shape))
+    AA = np.zeros(dims, **kwargs)
+    if A.ndim == 1:
+        AA[:A.shape[0]] = A
+    else:
+        AA[:A.shape[0], :A.shape[1]] = A
+    return AA
 
 
 @six.add_metaclass(abc.ABCMeta)

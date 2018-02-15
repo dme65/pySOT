@@ -9,74 +9,53 @@
 
 """
 
-import numpy as np
-from pySOT.experimental_design import SymmetricLatinHypercube
+from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
 
 
-def reallocate(A, dims, **kwargs):
-    """Reallocate A with at most 2 dimensions to have size according to dims"""
-    if A is None:
-        A = np.zeros(dims, **kwargs)
-        return A
-
-    assert(A.ndim <= 2 and A.ndim == len(dims))
-    assert(np.all(dims >= A.shape))
-    AA = np.zeros(dims, **kwargs)
-    if A.ndim == 1:
-        AA[:A.shape[0]] = A
-    else:
-        AA[:A.shape[0], :A.shape[1]] = A
-    return AA
-
-
-def to_unit_box(x, data):
+def to_unit_box(x, lb, ub):
     """Maps a set of points to the unit box
 
     :param x: Points to be mapped to the unit box, of size npts x dim
     :type x: numpy.array
-    :param data: Optimization problem, needs to have attributes lb and ub
-    :type data: Object
     :return: Points mapped to the unit box
     :rtype: numpy.array
     """
 
-    return (np.copy(x) - data.lb) / (data.ub - data.lb)
+    return (x - lb) / (ub - lb)
 
 
-def from_unit_box(x, data):
+def from_unit_box(x, lb, ub):
     """Maps a set of points from the unit box to the original domain
 
     :param x: Points to be mapped from the unit box, of size npts x dim
     :type x: numpy.array
-    :param data: Optimization problem, needs to have attributes lb and ub
-    :type data: Object
     :return: Points mapped to the original domain
     :rtype: numpy.array
     """
 
-    return data.lb + (data.ub - data.lb) * np.copy(x)
+    return lb + (ub - lb) * x
 
 
 def unit_rescale(xx):
     """Shift and rescale elements of a vector to the unit interval
 
-    :param xx: Vector that should be rescaled to the unit interval
-    :type xx: numpy.array
-    :return: Vector scaled to the unit interval
-    :rtype: numpy.array
+    :param xx: array that should be rescaled to the unit interval
+    :type xx: numpy.ndarray
+    :return: array scaled to the unit interval
+    :rtype: numpy.ndarray
     """
 
-    xmax = np.amax(xx)
-    xmin = np.amin(xx)
+    xmax = xx.max()
+    xmin = xx.min()
     if xmax == xmin:
         return np.ones(xx.shape)
     else:
-        return (xx-xmin)/(xmax-xmin)
+        return (xx - xmin)/(xmax - xmin)
 
 
-def round_vars(data, x):
+def round_vars(xx, int_var, lb, ub):
     """Round integer variables to closest integer that is still in the domain
 
     :param data: Optimization problem object
@@ -88,19 +67,19 @@ def round_vars(data, x):
     :rtype: numpy.array
     """
 
-    if len(data.int_var) > 0:
+    if len(int_var) > 0:
         # Round the original ranged integer variables
-        x[:, data.int_var] = np.round(x[:, data.int_var])
+        xx[:, int_var] = np.round(xx[:, int_var])
         # Make sure we don't violate the bound constraints
-        for i in data.int_var:
-            ind = np.where(x[:, i] < data.lb[i])
-            x[ind, i] += 1
-            ind = np.where(x[:, i] > data.ub[i])
-            x[ind, i] -= 1
-    return x
+        for i in int_var:
+            ind = np.where(xx[:, i] < lb[i])
+            xx[ind, i] = lb[i]
+            ind = np.where(xx[:, i] > ub[i])
+            xx[ind, i] = ub[i]
+    return xx
 
 
-def check_opt_prob(obj):
+def check_opt_prob(obj):  # pragma: no cover
     """Routine for checking that an implementation of the optimization problem
     follows the standard. This method checks everything, but can't make
     sure that the objective function and constraint methods return values
@@ -110,7 +89,7 @@ def check_opt_prob(obj):
 
     :param obj: Optimization problem
     :type obj: Object
-    :raise AttributeError: If object doesn't follow the pySOT standard
+    :raise Appropriate error if object doesn't follow the pySOT standard
     """
 
     if not isinstance(obj, OptimizationProblem):  # Check that we implement the base class
@@ -170,7 +149,7 @@ def check_opt_prob(obj):
         raise AttributeError("All variables must be either integer or continuous")
 
 
-def progress_plot(controller, title='', interactive=False):
+def progress_plot(controller, title='', interactive=False):  # pragma: no cover
     """Makes a progress plot from a POAP controller
 
     This method depends on matplotlib and will terminate if matplotlib.pyplot
@@ -244,8 +223,6 @@ class GeneticAlgorithm:
     :type ngen: int
     :param start: Method for generating the initial population
     :type start: string
-    :param proj_fun: Function that can project ONE infeasible individual onto the feasible region
-    :type proj_fun: Object
 
     :ivar nvariables: Number of variables (dimensions) of the objective function
     :ivar nindividuals: population size
@@ -259,10 +236,9 @@ class GeneticAlgorithm:
     :ivar p_cross: Cross-over probability (0.9)
     :ivar ngenerations: Number of generations
     :ivar function: Object that can be used to evaluate the objective function
-    :ivar projfun: Function that can be used to project an individual onto the feasible region
     """
 
-    def __init__(self, function, dim, lb, ub, intvar=None, popsize=100, ngen=100, start="SLHD", projfun=None):
+    def __init__(self, function, dim, lb, ub, intvar=None, popsize=100, ngen=100, start="SLHD"):
         self.nvariables = dim
         self.nindividuals = popsize + (popsize % 2)  # Make sure this is even
         self.lower_boundary = np.array(lb)
@@ -277,7 +253,6 @@ class GeneticAlgorithm:
         self.p_cross = 0.9
         self.ngenerations = ngen
         self.function = function
-        self.projfun = projfun
 
     def optimize(self):
         """Method used to run the Genetic algorithm
@@ -289,7 +264,7 @@ class GeneticAlgorithm:
         #  Initialize population
         if isinstance(self.start, np.ndarray):
             if self.start.shape[0] != self.nindividuals or self.start.shape[1] != self.nvariables:
-                raise ValueError("Unknown method for generating the initial population")
+                raise ValueError("Initial population has incorrect size")
             if (not all(np.min(self.start, axis=0) >= self.lower_boundary)) or \
                     (not all(np.max(self.start, axis=0) <= self.upper_boundary)):
                 raise ValueError("Initial population is outside the domain")
@@ -367,21 +342,11 @@ class GeneticAlgorithm:
             population = np.maximum(np.reshape(self.lower_boundary, (1, self.nvariables)), population)
             population = np.minimum(np.reshape(self.upper_boundary, (1, self.nvariables)), population)
 
-            # Map to feasible region if method exists
-            if self.projfun is not None:
-                for i in range(self.nindividuals):
-                    population[i, :] = self.projfun(population[i, :])
-
             # Round chromosomes
             new_population = []
             if len(self.integer_variables) > 0:
                 new_population = np.copy(population)
-                population[:, self.integer_variables] = np.round(population[:, self.integer_variables])
-                for i in self.integer_variables:
-                    ind = np.where(population[:, i] < self.lower_boundary[i])
-                    population[ind, i] += 1
-                    ind = np.where(population[:, i] > self.upper_boundary[i])
-                    population[ind, i] -= 1
+                population = round_vars(population, self.integer_variables, self.lower_boundary, self.upper_boundary)
 
             # Keep the best individual
             population[0, :] = best_individual
