@@ -1631,7 +1631,7 @@ class MARSInterpolant(Surrogate):
 #         return val
 
 
-class RSCapped(Surrogate):
+class SurrogateCapped(Surrogate):
     """Cap adapter for response surfaces.
 
     This adapter takes an existing response surface and replaces it
@@ -1758,7 +1758,7 @@ class RSPenalty(Surrogate):
         return self.deriv_method(self.model, x)
 
 
-class RSUnitbox(Surrogate):
+class SurrogateCapped(Surrogate):
     """Unit box adapter for response surfaces
 
     This adapter takes an existing response surface and replaces it

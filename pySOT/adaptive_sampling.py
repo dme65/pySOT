@@ -1278,9 +1278,9 @@ class MultiStartGradient(object):
                     if proj_fun is not None:
                         x_new = proj_fun(x_new)
                     d = np.atleast_2d(np.min(
-                        scpspatial.distance.cdist(self.proposed_points, np.atleast_2d(x_new)), axis=1)).T.min()
+                        scpspatial.distance.cdist(self.proposed_points, x_new), axis=1)).T.min()
 
             new_points[j, :] = x_new
-            self.proposed_points = np.vstack((self.proposed_points, np.asarray(x_new)))
+            self.proposed_points = np.vstack((self.proposed_points, x_new))
 
         return new_points

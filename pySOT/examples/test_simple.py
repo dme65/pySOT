@@ -6,8 +6,8 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, RSCapped, RSUnitbox
+from pySOT.strategy import SRBFStrategy
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -34,27 +34,23 @@ def test_simple():
     maxeval = 500
     nsamples = nthreads
 
-    data = Ackley(dim=10)
-    print(data.info)
+    opt_prob = Ackley(dim=10)
+    print(opt_prob.info)
 
     # This uses a surrogate with median capping and the domain scaled to the unit hypercube
-    surrogate = RSCapped(
-        RSUnitbox(RBFInterpolant(data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
-                                 maxpts=maxeval), data.lb, data.ub))
+    surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(),
+                               tail=LinearTail(opt_prob.dim), maxpts=maxeval)
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=surrogate,
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
+        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                     surrogate=surrogate, sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
+                     batch_size=nsamples, async=True)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.eval)
+        worker = BasicWorkerThread(controller, opt_prob.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy
