@@ -20,7 +20,7 @@ import abc
 import six
 
 from poap.strategy import BaseStrategy, Proposal
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, RSPenalty
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
 from pySOT.utils import *
@@ -44,6 +44,347 @@ class SurrogateStrategy(BaseStrategy):
     # @abc.abstractmethod
     # def log_event(self):  # pragma: no cover
     #     pass
+
+
+class GlobalStrategy(SurrogateStrategy):
+    """Global strategy
+
+    Once the budget of maxeval function evaluations have been assigned,
+    no further evaluations are assigned to processors.  The code returns
+    once all evaluations are completed.
+    """
+
+    def __init__(self, worker_id, maxeval, opt_prob, stopping_criterion=None, surrogate=None,
+                 exp_design=None, sampling_method=None, extra=None, extra_vals=None,
+                 async=True, batch_size=None):
+        """Initialize the asynchronous SRBF optimization.
+
+        Args:
+            worker_id: ID of current worker/start in a multistart setting
+            data: Problem parameter data structure
+            surrogate: Surrogate model object
+            maxeval: Function evaluation budget
+            design: Experimental design
+
+        """
+
+        # Check stopping criterion
+        self.start_time = time.time()
+        if maxeval < 0:  # Time budget
+            self.maxeval = np.inf
+            self.time_budget = np.abs(maxeval)
+        else:
+            self.maxeval = maxeval
+            self.time_budget = np.inf
+        maxeval = np.abs(maxeval)
+
+        self.stopping_criterion = stopping_criterion
+        self.proposal_counter = 0
+        self.terminate = False
+        self.async = async
+        self.batch_size = batch_size
+
+        self.worker_id = worker_id
+        self.opt_prob = opt_prob
+        self.surrogate = surrogate
+        if self.surrogate is None:
+            self.surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(),
+                                            tail=LinearTail(opt_prob.dim), maxpts=maxeval)
+
+        self.extra = extra
+        self.extra_vals = extra_vals
+
+        # Default to generate sampling points using Symmetric Latin Hypercube
+        self.design = exp_design
+        if self.design is None:
+            if maxeval > 10*self.opt_prob.dim:
+                self.design = SymmetricLatinHypercube(opt_prob.dim, 2*(opt_prob.dim+1))
+            else:
+                self.design = LatinHypercube(opt_prob.dim, opt_prob.dim + 1 + batch_size)
+
+        # Sampler state
+        self.xbest = None      # Current best x
+        self.fbest = np.inf    # Current best f
+        self.avoid = {}        # Points to avoid
+        self.phase = 1
+        self.rejected_count = 0
+        self.accepted_count = 0
+
+        # Event indices
+        self.ev_last = 0     # Last event index
+        self.ev_adjust = 0   # Last sampling adjustment
+        self.ev_restart = 0  # Last restart
+
+        # Initial design info
+        self.batch_queue = []   # Unassigned points in initial experiment
+        self.init_pending = 0   # Number of outstanding initial fevals
+        self.phase = 1          # 1 for initial, 2 for adaptive
+
+        # Budgeting state
+        self.numeval = 0             # Number of completed fevals
+        self.feval_budget = maxeval  # Remaining feval budget
+        self.feval_pending = 0       # Number of outstanding fevals
+
+        # Set up sampling_method and initialize
+        self.sampling_method = sampling_method
+        if self.sampling_method is None:
+            self.sampling_method = CandidateDYCORS(opt_prob)
+
+        self.check_input()
+
+        # Start with first experimental design
+        self.sample_initial()
+
+    def check_input(self):
+        pass
+
+    def proj_fun(self, x):
+        return round_vars(x, self.opt_prob.int_var, self.opt_prob.lb, self.opt_prob.ub)
+
+    def log_completion(self, record):
+        """Record a completed evaluation to the log.
+
+        :param record: Record of the function evaluation
+        """
+        xstr = np.array_str(record.params[0], max_line_width=np.inf,
+                            precision=5, suppress_small=True)
+        if record.feasible:
+            logger.info("{} {} {:.3e} @ {}".format("True", self.numeval, record.value, xstr))
+        else:
+            logger.info("{} {} {:.3e} @ {}".format("False", self.numeval, record.value, xstr))
+
+    def get_ev(self):
+        """Get event identifier."""
+        self.ev_last += 1
+        return self.ev_last
+
+    def sample_initial(self):
+        """Generate and queue an initial experimental design."""
+        if self.numeval == 0:
+            logger.info("=== Start ===")
+        else:
+            logger.info("=== Restart ===")
+        self.fbest = np.inf
+        self.surrogate.reset()
+        self.phase = 1
+
+        start_sample = self.design.generate_points()
+        assert start_sample.shape[1] == self.opt_prob.dim, \
+            "Dimension mismatch between problem and experimental design"
+        start_sample = from_unit_box(start_sample, self.opt_prob.lb, self.opt_prob.ub)
+
+        # Only use the extra points if we haven't already restarted
+        if self.extra is not None and self.numeval == 0:
+            # Check if we know the values of the points
+            if self.extra_vals is None:
+                self.extra_vals = np.nan * np.ones((self.extra.shape[0], 1))
+
+            for i in range(len(self.extra_vals)):
+                xx = self.proj_fun(np.copy(self.extra[i, :]))
+                if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):  # We don't know this value
+                    self.batch_queue.append(np.ravel(xx))
+                else:  # We know this value
+                    self.surrogate.add_points(np.ravel(xx), self.extra_vals[i])
+
+        for j in range(start_sample.shape[0]):
+            start_sample[j, :] = self.proj_fun(start_sample[j, :])  # Project onto feasible region
+            self.batch_queue.append(start_sample[j, :])
+
+        self.sampling_method.init(start_sample, self.surrogate, self.maxeval - self.numeval)
+
+    def propose_action(self):
+        """Propose an action.
+
+        NB: We allow workers to continue to the adaptive phase if the initial queue is empty.
+        This implies that we need
+        enough points in the experimental design for us to construct a surrogate.
+        """
+
+        current_time = time.time()
+        if self.numeval >= self.maxeval or (current_time - self.start_time) >= self.time_budget \
+                or self.terminate:
+            if self.feval_pending == 0:
+                return Proposal('terminate')
+        elif self.async:  # In asynchronous mode
+            if self.batch_queue:
+                return self.init_proposal()
+            else:
+                return self.adapt_proposal_async()
+        else:  # In synchronous mode
+            if self.batch_queue:
+                if self.phase == 1:
+                    return self.init_proposal()
+                else:
+                    return self.adapt_proposal_sync()
+            elif self.feval_pending == 0:  # Nothing to process
+                self.phase = 2  # Mark that we are now the adaptive phase
+                self.make_batch()
+                return self.adapt_proposal_sync()
+
+    def make_proposal(self, x):
+        """Create proposal and update counters and budgets."""
+        proposal = Proposal('eval', x)
+        self.feval_budget -= 1
+        self.feval_pending += 1
+        proposal.ev_id = self.get_ev()
+        self.avoid[proposal.ev_id] = x
+        return proposal
+
+    # == Processing in initial phase ==
+
+    def init_proposal(self):
+        """Propose a point from the initial experimental design."""
+        proposal = self.make_proposal(self.batch_queue.pop())
+        proposal.add_callback(self.on_initial_proposal)
+        self.init_pending += 1
+        return proposal
+
+    def on_initial_proposal(self, proposal):
+        """Handle accept/reject of proposal from initial design."""
+        if proposal.accepted:
+            self.on_initial_accepted(proposal)
+        else:
+            self.on_initial_rejected(proposal)
+
+    def on_initial_accepted(self, proposal):
+        """Handle proposal accept from initial design."""
+        self.accepted_count += 1
+        proposal.record.pred_val = np.nan
+        proposal.record.min_dist = np.nan
+        proposal.record.ev_id = proposal.ev_id
+        proposal.record.add_callback(self.on_initial_update)
+
+    def on_initial_rejected(self, proposal):
+        """Handle proposal rejection from initial design."""
+        self.rejected_count += 1
+        self.feval_budget += 1
+        self.feval_pending -= 1
+        self.init_pending -= 1
+        self.batch_queue.append(proposal.args[0])
+
+    def on_initial_update(self, record):
+        """Handle update of feval from initial design."""
+        if record.status == 'completed':
+            self.on_initial_completed(record)
+        elif record.is_done:
+            self.on_initial_aborted(record)
+
+    def on_initial_completed(self, record):
+        """Handle successful completion of feval from initial design."""
+
+        if self.stopping_criterion is not None:
+            if self.stopping_criterion(record.value):
+                self.terminate = True
+
+        self.numeval += 1
+        self.feval_pending -= 1
+        self.init_pending -= 1
+        self.surrogate.add_points(np.copy(record.params[0]), record.value)
+        del self.avoid[record.ev_id]
+        record.worker_id = self.worker_id
+        record.worker_numeval = self.numeval
+        record.feasible = True
+        if record.value < self.fbest:
+            self.xbest = np.copy(record.params[0])
+            self.fbest = record.value
+        self.log_completion(record)
+
+    def on_initial_aborted(self, record):
+        """Handle aborted feval from initial design."""
+        self.feval_budget += 1
+        self.feval_pending -= 1
+        self.init_pending -= 1
+        self.batch_queue.append(record.params[0])
+
+    # == Processing in adaptive phase ==
+
+    def adapt_proposal_async(self):
+        """Generate the next adaptive sample point."""
+
+        self.proposal_counter += 1
+        x = self.sampling_method.make_points(npts=1, xbest=self.xbest, sigma=0.2,
+                                             proj_fun=self.proj_fun)
+        x = np.ravel(np.asarray(x))
+        proposal = self.make_proposal(x)
+        proposal.pred_val = self.surrogate.eval(x)
+        proposal.add_callback(self.on_adapt_proposal)
+        return proposal
+
+    def adapt_proposal_sync(self):
+        """Generate the next adaptive sample point."""
+
+        self.proposal_counter += 1
+        x = np.ravel(np.asarray(self.batch_queue.pop()))
+        proposal = self.make_proposal(x)
+        proposal.pred_val = self.surrogate.eval(x)
+        proposal.add_callback(self.on_adapt_proposal)
+        return proposal
+
+    def make_batch(self):
+        """Generate the next adaptive sample point."""
+
+        nsamples = min(self.batch_size, self.maxeval - self.numeval)
+        new_points = self.sampling_method.make_points(npts=nsamples, xbest=np.copy(self.xbest),
+                                                      sigma=0.2, proj_fun=self.proj_fun)
+        for i in range(nsamples):
+            x = np.copy(np.ravel(new_points[i, :]))
+            self.batch_queue.append(x)
+
+    def on_adapt_proposal(self, proposal):
+        """Handle accept/reject of proposal from sampling phase."""
+        if proposal.accepted:
+            self.on_adapt_accept(proposal)
+        else:
+            self.on_adapt_reject(proposal)
+
+    def on_adapt_accept(self, proposal):
+        """Handle accepted proposal from sampling phase."""
+        self.accepted_count += 1
+        proposal.record.ev_id = proposal.ev_id
+        proposal.record.pred_val = proposal.pred_val
+        proposal.record.add_callback(self.on_adapt_update)
+
+    def on_adapt_reject(self, proposal):
+        """Handle rejected proposal from sampling phase."""
+        self.rejected_count += 1
+        self.feval_budget += 1
+        self.feval_pending -= 1
+        self.sampling_method.remove_point(self.avoid[proposal.ev_id])
+        del self.avoid[proposal.ev_id]
+
+    def on_adapt_update(self, record):
+        """Handle update of feval from sampling phase."""
+        if record.status == 'completed':
+            self.on_adapt_completed(record)
+        elif record.is_done:
+            self.on_adapt_aborted(record)
+
+    def on_adapt_completed(self, record):
+        """Handle completion of feval from sampling phase."""
+
+        if self.stopping_criterion is not None:
+            if self.stopping_criterion(record.value):
+                self.terminate = True
+
+        self.numeval += 1
+        self.feval_pending -= 1
+        self.surrogate.add_points(record.params[0], record.value)
+        del self.avoid[record.ev_id]
+        record.worker_id = self.worker_id
+        record.worker_numeval = self.numeval
+        record.feasible = True
+        if record.value < self.fbest:
+            self.xbest = np.copy(record.params[0])
+            self.fbest = record.value
+        print(record.value)
+        self.log_completion(record)
+
+    def on_adapt_aborted(self, record):
+        """Handle aborted feval from sampling phase."""
+        self.feval_budget += 1
+        self.feval_pending -= 1
+        self.sampling_method.remove_point(self.avoid[record.ev_id])
+        del self.avoid[record.ev_id]
 
 
 class SRBFStrategy(SurrogateStrategy):
@@ -93,6 +434,7 @@ class SRBFStrategy(SurrogateStrategy):
         else:
             self.maxeval = maxeval
             self.time_budget = np.inf
+        maxeval = np.abs(maxeval)
 
         self.stopping_criterion = stopping_criterion
         self.proposal_counter = 0
@@ -104,7 +446,8 @@ class SRBFStrategy(SurrogateStrategy):
         self.opt_prob = opt_prob
         self.surrogate = surrogate
         if self.surrogate is None:
-            self.surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim), maxpts=maxeval)
+            self.surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(),
+                                            tail=LinearTail(opt_prob.dim), maxpts=maxeval)
 
         self.extra = extra
         self.extra_vals = extra_vals
@@ -117,8 +460,6 @@ class SRBFStrategy(SurrogateStrategy):
             else:
                 self.design = LatinHypercube(opt_prob.dim, opt_prob.dim + 1 + batch_size)
 
-        self.xrange = np.asarray(opt_prob.ub - opt_prob.lb)
-
         # algorithm parameters
         self.sigma_min = 0.2 * (0.5 ** 6)
         self.sigma_max = 0.2
@@ -128,13 +469,14 @@ class SRBFStrategy(SurrogateStrategy):
         if self.async:
             self.failtol = int(max(np.ceil(float(opt_prob.dim)), np.ceil(4.0)))
         else:
-            self.failtol = int(max(np.ceil(float(opt_prob.dim) / float(batch_size)), np.ceil(4.0 / float(batch_size))))
+            self.failtol = int(max(np.ceil(float(opt_prob.dim) / float(batch_size)),
+                                   np.ceil(4.0 / float(batch_size))))
         self.succtol = 3
         self.maxfailtol = 4 * self.failtol
 
         # Budgeting state
         self.numeval = 0             # Number of completed fevals
-        self.feval_budget = np.abs(maxeval)  # Remaining feval budget
+        self.feval_budget = maxeval  # Remaining feval budget
         self.feval_pending = 0       # Number of outstanding fevals
 
         # Event indices
@@ -160,10 +502,10 @@ class SRBFStrategy(SurrogateStrategy):
         self.rejected_count = 0
         self.accepted_count = 0
 
-        # Set up search procedures and initialize
-        self.search = sampling_method
-        if self.search is None:
-            self.search = CandidateDYCORS(opt_prob)
+        # Set up sampling_method and initialize
+        self.sampling_method = sampling_method
+        if self.sampling_method is None:
+            self.sampling_method = CandidateDYCORS(opt_prob)
 
         self.check_input()
 
@@ -273,7 +615,7 @@ class SRBFStrategy(SurrogateStrategy):
             start_sample[j, :] = self.proj_fun(start_sample[j, :])  # Project onto feasible region
             self.batch_queue.append(start_sample[j, :])
 
-        self.search.init(start_sample, self.surrogate, self.maxeval - self.numeval)
+        self.sampling_method.init(start_sample, self.surrogate, self.maxeval - self.numeval)
 
     def propose_action(self):
         """Propose an action.
@@ -390,7 +732,7 @@ class SRBFStrategy(SurrogateStrategy):
         """Generate the next adaptive sample point."""
 
         self.proposal_counter += 1
-        x = self.search.make_points(npts=1, xbest=self.xbest, sigma=self.sigma,
+        x = self.sampling_method.make_points(npts=1, xbest=self.xbest, sigma=self.sigma,
                                     proj_fun=self.proj_fun)
         x = np.ravel(np.asarray(x))
         proposal = self.make_proposal(x)
@@ -414,8 +756,8 @@ class SRBFStrategy(SurrogateStrategy):
         """Generate the next adaptive sample point."""
 
         nsamples = min(self.batch_size, self.maxeval - self.numeval)
-        new_points = self.search.make_points(npts=nsamples, xbest=np.copy(self.xbest), sigma=self.sigma,
-                                             proj_fun=self.proj_fun)
+        new_points = self.sampling_method.make_points(npts=nsamples, xbest=np.copy(self.xbest),
+                                             sigma=self.sigma, proj_fun=self.proj_fun)
         for i in range(nsamples):
             x = np.copy(np.ravel(new_points[i, :]))
             self.batch_queue.append(x)
@@ -440,7 +782,7 @@ class SRBFStrategy(SurrogateStrategy):
         self.rejected_count += 1
         self.feval_budget += 1
         self.feval_pending -= 1
-        self.search.remove_point(self.avoid[proposal.ev_id])
+        self.sampling_method.remove_point(self.avoid[proposal.ev_id])
         del self.avoid[proposal.ev_id]
 
     def on_adapt_update(self, record):
@@ -476,7 +818,7 @@ class SRBFStrategy(SurrogateStrategy):
         """Handle aborted feval from sampling phase."""
         self.feval_budget += 1
         self.feval_pending -= 1
-        self.search.remove_point(self.avoid[record.ev_id])
+        self.sampling_method.remove_point(self.avoid[record.ev_id])
         del self.avoid[record.ev_id]
 
     def rec_age(self, record):

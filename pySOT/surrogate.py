@@ -638,7 +638,7 @@ class RBFInterpolant(Surrogate):
 
         self.dirty = True
 
-    def eval(self, x, ds=None):
+    def eval(self, x):
         """Evaluate the RBF interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -652,12 +652,11 @@ class RBFInterpolant(Surrogate):
         x = np.atleast_2d(x)
         ntail = self.ntail
         c = self.coeffs()
-        if ds is None:
-            ds = scpspatial.distance.cdist(x, self._X[:self.npts, :])
+        ds = scpspatial.distance.cdist(x, self._X[:self.npts, :])
         fx = self.kernel.eval(ds)*c[ntail:ntail + self.npts] + self.tail.eval(x)*c[:ntail]
         return fx
 
-    def deriv(self, xx, ds=None):
+    def deriv(self, xx):
         """Evaluate the derivative of the RBF interpolant at a point x
 
         :param xx: Point for which we want to compute the RBF gradient
@@ -672,10 +671,7 @@ class RBFInterpolant(Surrogate):
         if xx.shape[1] != self.dim:
             raise ValueError("Input has incorrect number of dimensions")
 
-        if ds is None:
-            ds = scpspatial.distance.cdist(self.X, xx)
-        elif not (ds.shape[0] == self.npts and ds.shape[1] == xx.shape[0]):
-            raise ValueError("ds has incorrect size")
+        ds = scpspatial.distance.cdist(self.X, xx)
         ds[ds < np.finfo(float).tiny] = np.finfo(float).tiny  # Better safe than sorry
 
         dfxx = np.zeros((xx.shape[0], self.dim))
@@ -700,8 +696,6 @@ class GPRegression(Surrogate):
 
     Gaussian Process Regression object.
 
-    Depends on scitkit-learn==0.18.1.
-
     More details:
         http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html
     """
@@ -710,7 +704,7 @@ class GPRegression(Surrogate):
 
         try:
             from sklearn.gaussian_process import GaussianProcessRegressor
-            from sklearn.gaussian_process.kernels import RBF, WhiteKernel
+            from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
         except ImportError as err:
             print("Failed to import sklearn.gaussian_process and sklearn.gaussian_process.kernels")
             raise err
@@ -721,7 +715,8 @@ class GPRegression(Surrogate):
         self._X = None     # pylint: disable=invalid-name
         self._fX = None
         if gp is None:
-            self.model = GaussianProcessRegressor(n_restarts_optimizer=10)
+            kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + WhiteKernel(1e-3, (1e-6, 1e-2))
+            self.model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
         else:
             self.model = gp
             if not isinstance(gp, GaussianProcessRegressor):
@@ -804,7 +799,7 @@ class GPRegression(Surrogate):
 
         self.updated = False
 
-    def eval(self, x, ds=None):
+    def eval(self, x):
         """Evaluate the GP regression object at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -824,7 +819,7 @@ class GPRegression(Surrogate):
         fx[:, 0] = self.model.predict(x)
         return fx
 
-    def deriv(self, x, ds=None):
+    def deriv(self, x):
         """Evaluate the GP regression object at a point x
 
         :param x: Point for which we want to compute the GP regression gradient
@@ -960,7 +955,7 @@ class MARSInterpolant(Surrogate):
         self._npts += newpts
         self.updated = False
 
-    def eval(self, x, ds=None):
+    def eval(self, x):
         """Evaluate the MARS interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -980,7 +975,7 @@ class MARSInterpolant(Surrogate):
         fx[:, 0] = self.model.predict(x)
         return fx
 
-    def deriv(self, x, ds=None):
+    def deriv(self, x):
         """Evaluate the derivative of the MARS interpolant at a point x
 
         :param x: Point for which we want to compute the MARS gradient
@@ -998,6 +993,282 @@ class MARSInterpolant(Surrogate):
         x = np.expand_dims(x, axis=0)
         dfx = self.model.predict_deriv(x, variables=None)
         return dfx[0]
+
+
+class PolyRegression(Surrogate):
+    """Computes a polynomial regression model
+
+    :param maxp: Initial capacity
+    :type maxp: int
+
+    :ivar npts: Current number of points
+    :ivar maxp: Initial maximum number of points (can grow)
+    :ivar x: Interpolation points
+    :ivar fx: Function evaluations of interpolation points
+    :ivar dim: Number of dimensions
+    :ivar model: MARS interpolation model
+    """
+
+    def __init__(self, dim, maxpts=100, degree=2, model=None):
+
+        try:
+            from sklearn.preprocessing import PolynomialFeatures
+            from sklearn.pipeline import make_pipeline
+            from sklearn.linear_model import Ridge
+        except ImportError as err:
+            print("Failed to import pyearth")
+            raise err
+
+        self._npts = 0
+        self._maxpts = maxpts
+        self._X = None
+        self._fX = None
+        self._dim = dim
+        self.model = model
+        if model is None:
+            self.model = make_pipeline(PolynomialFeatures(degree), Ridge())
+        self.updated = False
+
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def npts(self):
+        return self._npts
+
+    @property
+    def maxpts(self):
+        return self._maxpts
+
+    @property
+    def X(self):
+        """Get the list of data points
+
+        :return: List of data points
+        :rtype: numpy.array
+        """
+
+        return self._X[:self.npts, :]
+
+    @property
+    def fX(self):
+        """Get the list of function values for the data points.
+
+        :return: List of function values
+        :rtype: numpy.array
+        """
+
+        return self._fX[:self.npts]
+
+    def reset(self):
+        """Reset the interpolation."""
+
+        self._npts = 0
+        self._X = None
+        self._fX = None
+        self.updated = False
+
+    def transform_fx(self, fX):
+        self._fX = fX
+
+    def _realloc(self, extra=1):
+        """Expand allocation to accommodate more points (if needed)
+
+        :param extra: Number of additional points to accommodate
+        :type extra: int
+        """
+
+        maxp = self.maxpts
+        if maxp < self.npts + extra or self.npts == 0:
+            while maxp < self.npts + extra: maxp = 2 * maxp
+            self._maxpts = maxp
+            self._X = reallocate(self._X, (maxp, self.dim))
+            self._fX = reallocate(self._fX, (maxp,))
+
+    def add_points(self, xx, fx):
+        """Add a new function evaluation
+
+        :param xx: Points to add
+        :type xx: numpy.ndarray
+        :param fx: The function values of the point to add
+        :type fx: numpy.array or float
+        """
+
+        xx = np.atleast_2d(xx)
+        newpts = xx.shape[0]
+        self._realloc(extra=newpts)
+
+        self._X[self.npts:self.npts + newpts, :] = xx
+        self._fX[self.npts:self.npts + newpts] = fx
+        self._npts += newpts
+        self.updated = False
+
+    def eval(self, x):
+        """Evaluate the MARS interpolant at the points x
+
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Not used
+        :type ds: None
+        :return: Values of the MARS interpolant at x, of length npts
+        :rtype: numpy.array
+        """
+
+        x = np.atleast_2d(x)
+        if self.updated is False:
+            self.model.fit(self.X, self.fX)
+        self.updated = True
+
+        fx = np.zeros(shape=(x.shape[0], 1))
+        fx[:, 0] = self.model.predict(x)
+        return fx
+
+    def deriv(self, x):
+
+        # FIXME, To be implemented
+        raise NotImplementedError
+
+
+class SupportVectorRegression(Surrogate):
+    """Compute and evaluate a Support vector regression
+
+    :param maxp: Initial capacity
+    :type maxp: int
+
+    :ivar npts: Current number of points
+    :ivar maxp: Initial maximum number of points (can grow)
+    :ivar x: Interpolation points
+    :ivar fx: Function evaluations of interpolation points
+    :ivar dim: Number of dimensions
+    :ivar model: MARS interpolation model
+    """
+
+    def __init__(self, dim, maxpts=100):
+
+        try:
+            from sklearn.svm import SVR
+            from sklearn.model_selection import GridSearchCV
+        except ImportError as err:
+            print("Failed to import sklearn.svm")
+            raise err
+
+        self._npts = 0
+        self._maxpts = maxpts
+        self._X = None
+        self._fX = None
+        self._dim = dim
+        parameters = {'kernel': ('linear', 'rbf'),
+                      'C': [0.01, 0.1, 1, 10, 100],
+                      'epsilon': [0.001, 0.01, 0.1, 1, 10]}
+        self.grid_search = GridSearchCV(SVR(), parameters)
+        self.best_params = None
+        self.model = None
+        self.updated = False
+
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def npts(self):
+        return self._npts
+
+    @property
+    def maxpts(self):
+        return self._maxpts
+
+    @property
+    def X(self):
+        """Get the list of data points
+
+        :return: List of data points
+        :rtype: numpy.array
+        """
+
+        return self._X[:self.npts, :]
+
+    @property
+    def fX(self):
+        """Get the list of function values for the data points.
+
+        :return: List of function values
+        :rtype: numpy.array
+        """
+
+        return self._fX[:self.npts]
+
+    def reset(self):
+        """Reset the interpolation."""
+
+        self._npts = 0
+        self._X = None
+        self._fX = None
+        self.updated = False
+
+    def transform_fx(self, fX):
+        self._fX = fX
+
+    def _realloc(self, extra=1):
+        """Expand allocation to accommodate more points (if needed)
+
+        :param extra: Number of additional points to accommodate
+        :type extra: int
+        """
+
+        maxp = self.maxpts
+        if maxp < self.npts + extra or self.npts == 0:
+            while maxp < self.npts + extra: maxp = 2 * maxp
+            self._maxpts = maxp
+            self._X = reallocate(self._X, (maxp, self.dim))
+            self._fX = reallocate(self._fX, (maxp,))
+
+    def add_points(self, xx, fx):
+        """Add a new function evaluation
+
+        :param xx: Points to add
+        :type xx: numpy.ndarray
+        :param fx: The function values of the point to add
+        :type fx: numpy.array or float
+        """
+
+        xx = np.atleast_2d(xx)
+        newpts = xx.shape[0]
+        self._realloc(extra=newpts)
+
+        self._X[self.npts:self.npts + newpts, :] = xx
+        self._fX[self.npts:self.npts + newpts] = fx
+        self._npts += newpts
+        self.updated = False
+
+    def eval(self, x):
+        """Evaluate the SVR interpolant at the points x
+
+        :param x: Points where to evaluate, of size npts x dim
+        :type x: numpy.array
+        :param ds: Not used
+        :type ds: None
+        :return: Values of the MARS interpolant at x, of length npts
+        :rtype: numpy.array
+        """
+
+        x = np.atleast_2d(x)
+        if self.updated is False:
+            self.grid_search.fit(self.X, self.fX)
+            self.best_params = self.grid_search.best_params_
+            from sklearn.svm import SVR
+            self.model = SVR(C=self.best_params['C'], epsilon=self.best_params['epsilon'],
+                             kernel=self.best_params['kernel'])
+            self.model.fit(self.X, self.fX)
+        self.updated = True
+
+        fx = np.zeros(shape=(x.shape[0], 1))
+        fx[:, 0] = self.model.predict(x)
+        return fx
+
+    def deriv(self, x):
+        # FIXME, To be implemented
+        raise NotImplementedError
 
 
 # class EnsembleSurrogate(Surrogate):
@@ -1257,7 +1528,7 @@ class MARSInterpolant(Surrogate):
 #                 self.model_list[i] = self.surrogate_list[i][self.npts]
 #         self.weights = None
 #
-#     def eval(self, x, ds=None):
+#     def eval(self, x):
 #         """Evaluate the ensemble surrogate at the points xx
 #
 #         :param x: Points where to evaluate, of size npts x dim
@@ -1359,69 +1630,69 @@ class SurrogateCapped(Surrogate):
         self._npts += newpts
         self.model.add_points(xx, fx)
 
-    def eval(self, x, ds=None):
+    def eval(self, x):
         self._apply_transformation()
-        return self.model.eval(x, ds)
+        return self.model.eval(x)
 
-    def deriv(self, x, ds=None):
+    def deriv(self, x):
         self._apply_transformation()
-        return self.model.deriv(x, ds)
+        return self.model.deriv(x)
 
     def _apply_transformation(self):
         fvalues = np.copy(self._fX[0:self.npts])
         self.model.transform_fx(self.transformation(fvalues))
 
 
-class RSPenalty(Surrogate):
-    """Penalty adapter for response surfaces.
+# class RSPenalty(Surrogate):
+#     """Penalty adapter for response surfaces.
+# 
+#     This adapter can be used for approximating an objective function plus
+#     a penalty function. The response surface is fitted only to the objective
+#     function and the penalty is added on after.
+#     """
+# 
+#     def __init__(self, model, evals, derivs):
+#         self.model = model
+#         self.eval_method = evals
+#         self.deriv_method = derivs
+# 
+#     @property
+#     def dim(self):
+#         return self.model.dim
+# 
+#     @property
+#     def npts(self):
+#         return self.model.npts
+# 
+#     @property
+#     def maxpts(self):
+#         return self.model.maxpts
+# 
+#     @property
+#     def X(self):
+#         return self.model.X
+# 
+#     @property
+#     def fX(self):
+#         return self.model.fX
+# 
+#     def reset(self):
+#         self.model.reset()
+# 
+#     def transform_fx(self, fX):
+#         self.model.transform_fx(fX)
+# 
+#     def add_points(self, xx, fx):
+#         self.model.add_points(xx, fx)
+# 
+#     def eval(self, x):
+#         return self.eval_method(self.model, x)
+# 
+#     def deriv(self, x):
+#         return self.deriv_method(self.model, x)
 
-    This adapter can be used for approximating an objective function plus
-    a penalty function. The response surface is fitted only to the objective
-    function and the penalty is added on after.
-    """
 
-    def __init__(self, model, evals, derivs):
-        self.model = model
-        self.eval_method = evals
-        self.deriv_method = derivs
-
-    @property
-    def dim(self):
-        return self.model.dim
-
-    @property
-    def npts(self):
-        return self.model.npts
-
-    @property
-    def maxpts(self):
-        return self.model.maxpts
-
-    @property
-    def X(self):
-        return self.model.X
-
-    @property
-    def fX(self):
-        return self.model.fX
-
-    def reset(self):
-        self.model.reset()
-
-    def transform_fx(self, fX):
-        self.model.transform_fx(fX)
-
-    def add_points(self, xx, fx):
-        self.model.add_points(xx, fx)
-
-    def eval(self, x, ds=None):
-        return self.eval_method(self.model, x)
-
-    def deriv(self, x, ds=None):
-        return self.deriv_method(self.model, x)
-
-
-class SurrogateCapped(Surrogate):
+class SurrogateUnitBox(Surrogate):
     """Unit box adapter for response surfaces
 
     This adapter takes an existing response surface and replaces it
@@ -1470,8 +1741,8 @@ class SurrogateCapped(Surrogate):
     def add_points(self, xx, fx):
         self.model.add_points(to_unit_box(xx, self.lb, self.ub), fx)
 
-    def eval(self, x, ds=None):
-        return self.model.eval(to_unit_box(x, self.lb, self.ub), ds)
+    def eval(self, x):
+        return self.model.eval(to_unit_box(x, self.lb, self.ub))
 
-    def deriv(self, x, ds=None):
-        return self.model.deriv(to_unit_box(x, self.lb, self.ub), ds)
+    def deriv(self, x):
+        return self.model.deriv(to_unit_box(x, self.lb, self.ub))

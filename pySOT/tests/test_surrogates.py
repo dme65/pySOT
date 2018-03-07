@@ -149,42 +149,65 @@ def test_rbf():
     assert (la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
 
 
-#
-# def test_gp():
-#     gp = GPRegression(500)
-#     assert(isinstance(gp, Surrogate))
-#     xx = np.random.rand(120, 2)
-#     fx = f(xx)
-#     gp.add_points(xx[:100, :], fx[:100])
-#     gp.eval(xx)  # Trigger initial fit
-#     gp.add_points(xx[100:, :], fx[100:])
-#
-#     xs = np.random.rand(20, 2)
-#     fhx = gp.eval(xs)
-#     fx = f(xs)
-#     dfx = df(xs)
-#     for i in range(20):
-#         dfhx = gp.deriv(xs[i, :])
-#         print("Err (interp): %e : %e" % (abs(fx[i] - fhx[i]) / abs(fx[i]),
-#                                          la.norm(dfx[i, :] - dfhx) / la.norm(dfx[i, :])))
+def test_gp():
+    X = make_grid(30)  # Make uniform grid with 30 x 30 points
+    gp = GPRegression(2, 500)
+    assert (isinstance(gp, Surrogate))
+    fX = f(X)
+    gp.add_points(X, fX)
+
+    # Derivative at random points
+    Xs = np.random.rand(10, 2)
+    fhx = gp.eval(Xs)
+    fx = f(Xs)
+    for i in range(Xs.shape[0]):
+        assert (abs(fx[i] - fhx[i]) < 1e-4)
+
+    # Derivative at previous points
+    # Reset the surrogate
+    gp.reset()
+    gp._maxpts = 500
+    assert (gp.npts == 0)
+    assert (gp.dim == 2)
 
 
-# def test_rbf():
-#     kernel = CubicKernel()
-#     tail = LinearTail(2)
-#     rbf = RBFInterpolant(2, kernel, tail, 500)
-#
-#     xx = np.random.rand(120, 2)
-#     fx = f(xx)
-#     rbf.add_points(xx[:100, :], fx[:100])
-#     rbf.eval(xx)  # Trigger initial fit
-#     rbf.add_points(xx[100:, :], fx[100:])
-#
-#     xs = np.random.rand(20, 2)
-#     fhx = rbf.eval(xs)
-#     fx = f(xs)
-#     dfx = df(xs)
-#     for i in range(20):
-#         dfhx = rbf.deriv(xs[i, :])
-#         print("Err (interp): %e : %e" % (abs(fx[i] - fhx[i]) / abs(fx[i]),
-#                                          la.norm(dfx[i, :] - dfhx) / la.norm(dfx[i, :])))
+def test_poly():
+    X = make_grid(30)  # Make uniform grid with 30 x 30 points
+    poly = PolyRegression(2, 500)
+    assert (isinstance(poly, Surrogate))
+    fX = f(X)
+    poly.add_points(X, fX)
+
+    # Derivative at random points
+    Xs = np.random.rand(10, 2)
+    fhx = poly.eval(Xs)
+    fx = f(Xs)
+    for i in range(Xs.shape[0]):
+        assert (abs(fx[i] - fhx[i]) < 1e-1)
+
+    # Reset the surrogate
+    poly.reset()
+    poly._maxpts = 500
+    assert (poly.npts == 0)
+    assert (poly.dim == 2)
+
+
+def test_svr():
+    X = make_grid(30)  # Make uniform grid with 30 x 30 points
+    svr = SupportVectorRegression(2, 500)
+    assert (isinstance(svr, Surrogate))
+    fX = f(X)
+    svr.add_points(X, fX)
+
+    # Derivative at random points
+    Xs = np.random.rand(10, 2)
+    fhx = svr.eval(Xs)
+    fx = f(Xs)
+    for i in range(Xs.shape[0]):
+        assert (abs(fx[i] - fhx[i]) < 5e-3)
+
+    # Reset the surrogate
+    svr.reset()
+    svr._maxpts = 500
+    assert (svr.npts == 0)
+    assert (svr.dim == 2)

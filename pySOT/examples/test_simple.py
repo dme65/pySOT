@@ -7,7 +7,7 @@
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, SurrogateUnitBox, SurrogateCapped
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -38,8 +38,9 @@ def test_simple():
     print(opt_prob.info)
 
     # This uses the Cubic RBF
-    surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(),
-                               tail=LinearTail(opt_prob.dim), maxpts=maxeval)
+    surrogate = SurrogateUnitBox(SurrogateCapped(RBFInterpolant(
+        opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim),
+        maxpts=maxeval)), lb=opt_prob.lb, ub=opt_prob.ub)
 
     # Create a strategy and a controller
     controller = ThreadController()

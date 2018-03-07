@@ -6,7 +6,8 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SRBFStrategy
+from pySOT.strategy import GlobalStrategy
+from pySOT.surrogate import GPRegression
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -38,20 +39,19 @@ def test_gp_regression():
     print("Surrogate: Gaussian process regression")
 
     nthreads = 4
-    maxeval = 500
+    maxeval = 50
     nsamples = nthreads
 
-    opt_prob = Ackley(dim=10)
+    opt_prob = Ackley(dim=4)
     print(opt_prob.info)
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
-                     surrogate=GPRegression(dim=opt_prob.dim, maxpts=maxeval),
-                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
-                     sampling_method=CandidateDYCORS(data=opt_prob, numcand=100 * opt_prob.dim),
-                     batch_size=nsamples, async=True)
+        GlobalStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                       surrogate=GPRegression(dim=opt_prob.dim, maxpts=maxeval),
+                       sampling_method=CandidateDYCORS(data=opt_prob),
+                       batch_size=nsamples, async=True)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

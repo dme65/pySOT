@@ -19,6 +19,7 @@ import scipy.stats as stats
 from pySOT.utils import GeneticAlgorithm as GA
 from pySOT.utils import unit_rescale
 from scipy.optimize import minimize
+from scipy.stats import norm
 
 
 def __fix_docs(cls):
@@ -1284,3 +1285,51 @@ class MultiStartGradient(object):
             self.proposed_points = np.vstack((self.proposed_points, x_new))
 
         return new_points
+
+
+class ExpectedImprovement(object):
+    def __init__(self, data, numcand=None):
+        self.data = data
+        self.fhat = None
+        self.xrange = self.data.ub - self.data.lb
+        self.dtol = 1e-3 * math.sqrt(data.dim)
+        self.proposed_points = None
+        self.xcand = None
+        self.fhvals = None
+        self.next_weight = 0
+        self.numcand = numcand
+        if self.numcand is None:
+            self.numcand = min([5000, 100*data.dim])
+        self.budget = None
+
+    def init(self, start_sample, fhat, budget):
+        self.proposed_points = start_sample
+        self.budget = budget
+        self.fhat = fhat
+
+    def remove_point(self, x):
+        """Remove x from proposed_points
+
+        This removes x from the list of proposed points in the case where the optimization
+        strategy decides to not evaluate x.
+
+        :param x: Point to be removed
+        :type x: numpy.array
+        :return: True if points was removed, False otherwise
+        :type: bool
+        """
+
+        idx = np.sum(np.abs(self.proposed_points - x), axis=1).argmin()
+        if np.sum(np.abs(self.proposed_points[idx, :] - x)) < 1e-10:
+            self.proposed_points = np.delete(self.proposed_points, idx, axis=0)
+            return True
+        return False
+
+    def make_points(self, npts, xbest, fbest, sigma, subset=None, proj_fun=None,
+                    merit=candidate_merit_weighted_distance):
+        fstar = np.max(y)
+        yEI = np.zeros((1000, 1))
+        for i in range(1000):
+            Delta = y_pred[i] - fstar
+            yEI[i] = max([Delta, 0]) + sigma[i] * norm.pdf(Delta / sigma[i]) - np.abs(Delta) * norm.cdf(
+                -np.abs(Delta) / sigma[i])
