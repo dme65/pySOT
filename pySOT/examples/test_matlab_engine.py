@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import LatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
@@ -56,19 +56,20 @@ def test_matlab_engine():
     maxeval = 500
     matlab_root = "/Applications/MATLAB_R2017b.app"
 
-    data = Ackley(dim=10)
-    print(data.info)
+    opt_prob = Ackley(dim=10)
+    print(opt_prob.info)
+
+    surrogate = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(),
+                               tail=LinearTail(opt_prob.dim), maxpts=maxeval)
 
     # Use the serial controller (uses only one thread)
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nthreads,
-            exp_design=LatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
-                                            maxpts=maxeval),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
+        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                     exp_design=LatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1)),
+                     surrogate=surrogate,
+                     sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
+                     batch_size=nthreads, async=False)
 
     print("\nNOTE: You may need to specify the matlab_root keyword in "
           "order \n      to start a MATLAB  session using the matlab_wrapper "

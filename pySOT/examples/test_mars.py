@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -41,22 +41,22 @@ def test_mars():
     maxeval = 200
     nsamples = nthreads
 
-    data = Ackley(dim=5)
-    print(data.info)
+    opt_prob = Ackley(dim=5)
+    print(opt_prob.info)
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=MARSInterpolant(data.dim, maxpts=maxeval),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
+    controller.strategy = \
+        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
+                     surrogate=MARSInterpolant(opt_prob.dim, maxpts=maxeval),
+                     sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
+                     batch_size=nsamples, async=True)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.eval)
+        worker = BasicWorkerThread(controller, opt_prob.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy

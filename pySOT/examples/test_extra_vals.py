@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
@@ -34,27 +34,26 @@ def test_extra_vals():
     maxeval = 500
     nsamples = nthreads
 
-    data = Ackley(dim=10)
-    print(data.info)
+    opt_prob = Ackley(dim=10)
+    print(opt_prob.info)
 
     nextra = 10
-    extra = np.random.uniform(data.lb, data.ub, (nextra, data.dim))
+    extra = np.random.uniform(opt_prob.lb, opt_prob.ub, (nextra, opt_prob.dim))
     extra_vals = np.nan * np.ones((nextra, 1))
     for i in range(nextra):  # Evaluate every second point
         if i % 2 == 0:
-            extra_vals[i] = data.eval(extra[i, :])
+            extra_vals[i] = opt_prob.eval(extra[i, :])
+
+    surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(),
+                               tail=LinearTail(opt_prob.dim), maxpts=maxeval + nextra)
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim),
-                                            maxpts=maxeval + nextra),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            extra=extra, extra_vals=extra_vals)
+        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
+                     surrogate=surrogate, sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
+                     batch_size=nsamples, async=True, extra=extra, extra_vals=extra_vals)
 
     # Append the known function values to the POAP database since POAP won't evaluate these points
     for i in range(len(extra_vals)):
@@ -66,7 +65,7 @@ def test_extra_vals():
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, data.eval)
+        worker = BasicWorkerThread(controller, opt_prob.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy

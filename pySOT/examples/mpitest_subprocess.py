@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Sphere
 
@@ -81,13 +81,12 @@ def main_master(nworkers):
 
     # Create a strategy and a controller
     strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nworkers,
+        SRBFStrategy(
+            worker_id=0, opt_prob=data, maxeval=maxeval, batch_size=nworkers,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxpts=maxeval))
+            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                     tail=LinearTail(data.dim), maxpts=maxeval))
 
     controller = MPIController(strategy)
 

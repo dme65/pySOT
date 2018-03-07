@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
@@ -41,12 +41,11 @@ def test_simple_time():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
+        SRBFStrategy(
+            worker_id=0, opt_prob=data, maxeval=maxeval, batch_size=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxpts=1000),
+            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                     tail=LinearTail(data.dim), maxpts=1000),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
 
     # Launch the threads and give them access to the objective function

@@ -72,7 +72,8 @@ class SRBFStrategy(SurrogateStrategy):
     """
 
     def __init__(self, worker_id, maxeval, opt_prob, stopping_criterion=None, surrogate=None,
-                 exp_design=None, sampling_method=None, extra=None, async=True, batch_size=None):
+                 exp_design=None, sampling_method=None, extra=None, extra_vals=None,
+                 async=True, batch_size=None):
         """Initialize the asynchronous SRBF optimization.
 
         Args:
@@ -83,6 +84,15 @@ class SRBFStrategy(SurrogateStrategy):
             design: Experimental design
 
         """
+
+        # Check stopping criterion
+        self.start_time = time.time()
+        if maxeval < 0:  # Time budget
+            self.maxeval = np.inf
+            self.time_budget = np.abs(maxeval)
+        else:
+            self.maxeval = maxeval
+            self.time_budget = np.inf
 
         self.stopping_criterion = stopping_criterion
         self.proposal_counter = 0
@@ -96,8 +106,8 @@ class SRBFStrategy(SurrogateStrategy):
         if self.surrogate is None:
             self.surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim), maxpts=maxeval)
 
-        self.maxeval = maxeval
         self.extra = extra
+        self.extra_vals = extra_vals
 
         # Default to generate sampling points using Symmetric Latin Hypercube
         self.design = exp_design
@@ -124,7 +134,7 @@ class SRBFStrategy(SurrogateStrategy):
 
         # Budgeting state
         self.numeval = 0             # Number of completed fevals
-        self.feval_budget = maxeval  # Remaining feval budget
+        self.feval_budget = np.abs(maxeval)  # Remaining feval budget
         self.feval_pending = 0       # Number of outstanding fevals
 
         # Event indices
@@ -244,8 +254,19 @@ class SRBFStrategy(SurrogateStrategy):
         assert start_sample.shape[1] == self.opt_prob.dim, \
             "Dimension mismatch between problem and experimental design"
         start_sample = from_unit_box(start_sample, self.opt_prob.lb, self.opt_prob.ub)
-        if self.extra is not None:
-            start_sample = np.vstack((start_sample, self.extra))
+
+        # Only use the extra points if we haven't already restarted
+        if self.extra is not None and self.numeval == 0:
+            # Check if we know the values of the points
+            if self.extra_vals is None:
+                self.extra_vals = np.nan * np.ones((self.extra.shape[0], 1))
+
+            for i in range(len(self.extra_vals)):
+                xx = self.proj_fun(np.copy(self.extra[i, :]))
+                if np.isnan(self.extra_vals[i]) or np.isinf(self.extra_vals[i]):  # We don't know this value
+                    self.batch_queue.append(np.ravel(xx))
+                else:  # We know this value
+                    self.surrogate.add_points(np.ravel(xx), self.extra_vals[i])
 
         self.init_pending = 0
         for j in range(start_sample.shape[0]):
@@ -261,10 +282,12 @@ class SRBFStrategy(SurrogateStrategy):
         This implies that we need
         enough points in the experimental design for us to construct a surrogate.
         """
-        if self.feval_budget == 0 or self.terminate:
+
+        current_time = time.time()
+        if self.numeval >= self.maxeval or (current_time - self.start_time) >= self.time_budget \
+                or self.terminate:
             if self.feval_pending == 0:
                 return Proposal('terminate')
-            return None
         elif self.async:  # In asynchronous mode
             if self.batch_queue:
                 return self.init_proposal()
@@ -359,7 +382,7 @@ class SRBFStrategy(SurrogateStrategy):
         self.feval_budget += 1
         self.feval_pending -= 1
         self.init_pending -= 1
-        self.batch_queue.append(record.params)
+        self.batch_queue.append(record.params[0])
 
     # == Processing in adaptive phase ==
 
@@ -367,9 +390,9 @@ class SRBFStrategy(SurrogateStrategy):
         """Generate the next adaptive sample point."""
 
         self.proposal_counter += 1
-        new_point = self.search.make_points(npts=1, xbest=self.xbest, sigma=self.sigma,
-                                            proj_fun=self.proj_fun)
-        x = np.ravel(np.asarray(new_point))
+        x = self.search.make_points(npts=1, xbest=self.xbest, sigma=self.sigma,
+                                    proj_fun=self.proj_fun)
+        x = np.ravel(np.asarray(x))
         proposal = self.make_proposal(x)
         proposal.sigma = self.sigma
         proposal.pred_val = self.surrogate.eval(x)

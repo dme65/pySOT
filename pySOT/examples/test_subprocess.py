@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Sphere
 
@@ -28,7 +28,7 @@ else:
 
 
 def array2str(x):
-    return ",".join(np.char.mod('%f', x))
+    return ",".join(np.char.mod('%f', x.ravel()))
 
 
 # Find path of the executable
@@ -63,7 +63,7 @@ def test_subprocess():
 
     assert os.path.isfile(path), "You need to build sphere_ext"
 
-    nthreads = 4
+    nthreads = 1
     maxeval = 200
     nsamples = nthreads
 
@@ -73,13 +73,13 @@ def test_subprocess():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
+        SRBFStrategy(
+            worker_id=0, opt_prob=data, async=True,
+            maxeval=maxeval, batch_size=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            response_surface=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(data.dim), maxpts=maxeval))
+            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
+                                     tail=LinearTail(data.dim), maxpts=maxeval))
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

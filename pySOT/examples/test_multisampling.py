@@ -6,7 +6,7 @@
 
 from pySOT.optimization_problems import Ackley
 from pySOT.adaptive_sampling import CandidateDYCORS, GeneticAlgorithm, MultiStartGradient, MultiSampling
-from pySOT.strategy import SyncStrategyNoConstraints
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.experimental_design import SymmetricLatinHypercube
 from poap.controller import SerialController
@@ -41,11 +41,10 @@ def test_multisampling():
                        GeneticAlgorithm(data=data), MultiStartGradient(data=data)]
     controller = SerialController(data.eval)
     controller.strategy = \
-        SyncStrategyNoConstraints(
-            worker_id=0, data=data,
-            maxeval=maxeval, nsamples=nsamples,
-            response_surface=RBFInterpolant(data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim), maxpts=maxeval),
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim + 1)),
+        SRBFStrategy(
+            worker_id=0, opt_prob=data, maxeval=maxeval, batch_size=nsamples,
+            surrogate=RBFInterpolant(data.dim, kernel=CubicKernel(), tail=LinearTail(data.dim), maxpts=maxeval),
+            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=MultiSampling(sampling_method, [0, 1, 0, 2]))
 
     result = controller.run()

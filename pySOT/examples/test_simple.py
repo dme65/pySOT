@@ -37,7 +37,7 @@ def test_simple():
     opt_prob = Ackley(dim=10)
     print(opt_prob.info)
 
-    # This uses a surrogate with median capping and the domain scaled to the unit hypercube
+    # This uses the Cubic RBF
     surrogate = RBFInterpolant(opt_prob.dim, kernel=CubicKernel(),
                                tail=LinearTail(opt_prob.dim), maxpts=maxeval)
 
@@ -45,6 +45,7 @@ def test_simple():
     controller = ThreadController()
     controller.strategy = \
         SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
                      surrogate=surrogate, sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
                      batch_size=nsamples, async=True)
 
