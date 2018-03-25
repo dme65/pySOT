@@ -12,9 +12,6 @@
 from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
-from poap.strategy import InputStrategy
-import dill
-import copy
 
 
 def to_unit_box(x, lb, ub):
