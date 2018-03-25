@@ -18,6 +18,8 @@ import math
 import time
 import abc
 import six
+import dill
+import os
 
 from poap.strategy import BaseStrategy, Proposal
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
@@ -490,17 +492,19 @@ class SRBFStrategy(SurrogateStrategy):
         self.phase = 1          # 1 for initial, 2 for adaptive
 
         # Sampler state
-        self.sigma = 0         # Sampling radius
-        self.status = 0        # Status counter
-        self.failcount = 0     # Failure counter
-        self.xbest = None      # Current best x
-        self.fbest = np.inf    # Current best f
-        self.fbest_new = None  # Best f that hasn't been processed
+        self.sigma = 0           # Sampling radius
+        self.status = 0          # Status counter
+        self.failcount = 0       # Failure counter
+        self.xbest = None        # Current best x
+        self.fbest = np.inf      # Current best f
+        self.fbest_new = None    # Best f that hasn't been processed
         self.xbest_new = np.inf  # Best x that hasn't been processed
-        self.avoid = {}        # Points to avoid
-
+        self.avoid = {}          # Points to avoid
         self.rejected_count = 0
         self.accepted_count = 0
+
+        # Checkpointing temps
+        self.fevals = []  # Save a list of completed records
 
         # Set up sampling_method and initialize
         self.sampling_method = sampling_method
@@ -514,6 +518,25 @@ class SRBFStrategy(SurrogateStrategy):
 
     def check_input(self):
         pass
+
+    def save(self, fname):
+        """Save the state in a 3-step procedure
+            1) Save to temp file
+            2) Move temp file to save file
+            3) Remove temp file
+        """
+        temp_fname = fname + "_temp"
+        with open(temp_fname, 'wb') as output:
+            dill.dump(self, output, dill.HIGHEST_PROTOCOL)
+
+        os.rename(temp_fname, fname)
+
+    def resume(self):
+        # ToDo: Remove pending evals
+        #for x in self.avoid:
+        #    self.sampling_method.remove_point(x)
+        #self.avoid = []
+        self.feval_pending = 0
 
     def proj_fun(self, x):
         return round_vars(x, self.opt_prob.int_var, self.opt_prob.lb, self.opt_prob.ub)
@@ -719,6 +742,8 @@ class SRBFStrategy(SurrogateStrategy):
             self.fbest = record.value
         self.log_completion(record)
 
+        self.fevals.append(record)
+
     def on_initial_aborted(self, record):
         """Handle aborted feval from initial design."""
         self.feval_budget += 1
@@ -733,7 +758,7 @@ class SRBFStrategy(SurrogateStrategy):
 
         self.proposal_counter += 1
         x = self.sampling_method.make_points(npts=1, xbest=self.xbest, sigma=self.sigma,
-                                    proj_fun=self.proj_fun)
+                                             proj_fun=self.proj_fun)
         x = np.ravel(np.asarray(x))
         proposal = self.make_proposal(x)
         proposal.sigma = self.sigma
@@ -813,6 +838,8 @@ class SRBFStrategy(SurrogateStrategy):
         if self.async:  # Adjust the radius immediately if in async mode
             if record.ev_id >= self.ev_adjust:
                 self.adjust_step()
+
+        self.fevals.append(record)
 
     def on_adapt_aborted(self, record):
         """Handle aborted feval from sampling phase."""

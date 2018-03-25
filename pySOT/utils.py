@@ -12,6 +12,9 @@
 from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
+from poap.strategy import InputStrategy
+import dill
+import copy
 
 
 def to_unit_box(x, lb, ub):
@@ -366,3 +369,77 @@ class GeneticAlgorithm:
                 population = new_population
 
         return best_individual, best_value
+
+
+class CheckpointController(InputStrategy):
+    """Checkpoint controller"""
+
+    def __init__(self, controller, fname="checkpoint.pysot"):
+        """controller"""
+
+        # ToDo: Make sure file doesn't exist already
+        #
+
+        strategy = controller.strategy
+        InputStrategy.__init__(self, controller, strategy)
+        controller.add_feval_callback(self._add_on_update)
+        controller.add_feval_callback(self.on_new_feval)
+        controller.add_term_callback(self.on_terminate)
+        self.fname = fname
+
+    def _add_on_update(self, record):
+        """Internal handler -- add on_update callback to all new fevals."""
+        record.add_callback(self.on_update)
+
+    def on_new_feval(self, record):
+        """Handle new function evaluation request."""
+        pass
+
+    def _save(self):
+        self.controller.strategy.save(self.fname)  # Checkpoint the state of the strategy
+
+    def resume(self, merit=None, filter=None):
+        """Resume an optimization run
+
+        The strategy can assumed that all pending evaluations are cancelled
+        """
+
+        with open(self.fname, 'rb') as input:
+            self.controller.strategy = dill.load(input)
+        fevals = copy.copy(self.controller.strategy.fevals)
+        self.controller.fevals = fevals
+        self.controller.strategy.resume()
+        return self.controller.run(merit=merit, filter=filter)
+
+    def on_update(self, record):
+        """Handle feval update."""
+        if record.is_completed:
+            self.on_complete(record)
+        elif record.is_killed:
+            self.on_kill(record)
+        elif record.is_cancelled:
+            self.on_cancel(record)
+
+    def on_complete(self, record):
+        """Handle feval completion"""
+        print("Completed!")
+        self._save()
+
+    def on_kill(self, record):
+        """"Handle record killed"""
+        print("Killed!")
+        self._save()
+
+    def on_cancel(self, record):
+        """"Handle record cancelled"""
+        print("Cancelled!")
+        self._save()
+
+    def on_terminate(self):
+        """"Handle termination."""
+        print("Terminated!")
+        self._save()
+
+    def run(self, merit=None, filter=None):
+        """Start the optimization run"""
+        return self.controller.run(merit=merit, filter=filter)
