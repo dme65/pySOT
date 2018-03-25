@@ -7,35 +7,34 @@
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, SurrogateUnitBox, SurrogateCapped
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
-from pySOT.utils import CheckpointController
+from pySOT.controller import CheckpointController
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
-import os.path
-import logging
 import multiprocessing
 import time
 
-# Globals
-
 nthreads = 4
-maxeval = 100
+maxeval = 200
 nsamples = nthreads
 
 opt_prob = Ackley(dim=10)
 print(opt_prob.info)
+fname = "checkpoint.pysot"
 
 
 def test_checkpoint_serial():
+    # Run for 3 seconds and kill the controller
     p = multiprocessing.Process(target=init, args=())
     p.start()
     time.sleep(3)
     p.terminate()
     p.join()
-    print("Die controller, die!")
+    print("\nDie controller, die!\n")
 
+    # Resume the run
     resume()
 
 
@@ -60,7 +59,6 @@ def init():
         controller.launch_worker(worker)
 
     # Wrap controller in checkpoint object
-    fname = "checkpoint.pysot"
     controller = CheckpointController(controller, fname=fname)
     result = controller.run()
     print('Best value found: {0}'.format(result.value))
@@ -70,17 +68,15 @@ def init():
 
 
 def resume():
-    nthreads = 4
-    opt_prob = Ackley(dim=10)
+
+    controller = ThreadController()
 
     # Launch the threads and give them access to the objective function
-    controller = ThreadController()
     for _ in range(nthreads):
         worker = BasicWorkerThread(controller, opt_prob.eval)
         controller.launch_worker(worker)
 
     # Wrap controller in checkpoint object
-    fname = "checkpoint.pysot"
     controller = CheckpointController(controller, fname=fname)
     result = controller.resume()
     print('Best value found: {0}'.format(result.value))
