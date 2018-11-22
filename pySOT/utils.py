@@ -107,19 +107,6 @@ def check_opt_prob(obj):  # pragma: no cover
     if not(all(obj.lb[i] < obj.ub[i] for i in range(obj.dim))):
         raise AttributeError("Lower bounds must be smaller than upper bounds.")
 
-    if not isinstance(obj.nexp, int) and obj.nexp >= 0:
-        raise ValueError("nexp must be a non-negative integer")
-    if not isinstance(obj.ncheap, int) and obj.ncheap >= 0:
-        raise ValueError("ncheap must be a non-negative integer")
-
-    if obj.ncheap > 0:
-        npts = 10
-        X = np.random.uniform(obj.lb, obj.ub, (npts, obj.dim))
-        Y = obj.eval_cheap(X)
-        if not(all(Y.shape == np.array([npts, obj.ncheap]))):
-            raise ValueError("eval_cheap_constraints returned an object of the wrong size")
-        # Todo Test deval_cheap
-
     contvar = obj.cont_var
     intvar = obj.int_var
     if len(contvar) > 0:

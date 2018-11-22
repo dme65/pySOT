@@ -14,55 +14,18 @@
 
 import numpy as np
 import abc
-import six
 
-
-@six.add_metaclass(abc.ABCMeta)
 class OptimizationProblem(object):
-    __metaclass__ = abc.ABCMeta
+    def __init__(self):
+        self.dim = None
+        self.lb = None
+        self.ub = None
+        self.int_var = None
+        self.cont_var = None
 
-    @property
-    @abc.abstractmethod
-    def dim(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def lb(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def ub(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def nexp(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def ncheap(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def int_var(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def cont_var(self):  # pragma: no cover
-        pass
-
-    @abc.abstractmethod
-    def eval_cheap(self, X):  # pragma: no cover
-        pass
-
-    @abc.abstractmethod
-    def deval_cheap(self, X):  # pragma: no cover
-        pass
+    def __check_input__(self, x):
+        if len(x) != self.dim:
+            raise ValueError('Dimension mismatch')
 
     @abc.abstractmethod
     def eval(self, record):  # pragma: no cover
@@ -76,47 +39,17 @@ class GoldsteinPrice(OptimizationProblem):
         self.info = "2-dimensional Goldstein-Price function"
         self.min = 3.0
         self.minimum = np.array([0, -1])
+        self.dim = 2
+        self.lb = -2.0 * np.ones(2)
+        self.ub = 2.0 * np.ones(2)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, 2)
 
-    @property
-    def dim(self):
-        return 2
+    def eval(self, x):
+        self.__check_input__(x)
 
-    @property
-    def lb(self):
-        return -2.0 * np.ones(2)
-
-    @property
-    def ub(self):
-        return 2.0 * np.ones(2)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, 2)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def eval(self, xx):
-        if len(xx) != 2:
-            raise ValueError('Dimension mismatch')
-
-        x1 = xx[0]
-        x2 = xx[1]
+        x1 = x[0]
+        x2 = x[1]
 
         fact1a = (x1 + x2 + 1) ** 2
         fact1b = 19 - 14 * x1 + 3 * x1 ** 2 - 14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2
@@ -131,95 +64,53 @@ class GoldsteinPrice(OptimizationProblem):
 
 class SixHumpCamel(OptimizationProblem):
     def __init__(self):
-        self.info = "2-dimensional Six-hump camel function"
         self.min = -1.0316
         self.minimum = np.array([0.0898, -0.7126])
-
-    @property
-    def dim(self):
-        return 2
-
-    @property
-    def lb(self):
-        return -3.0 * np.ones(2)
-
-    @property
-    def ub(self):
-        return 3.0 *np.ones(2)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, 2)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.dim = 2
+        self.lb = -3.0 * np.ones(2)
+        self.ub = 3.0 * np.ones(2)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, 2)
+        self.info = "2-dimensional Six-hump function \nGlobal optimum: " +\
+                    "f(0.0898, -0.7126) = -1.0316"
 
     def eval(self, x):
-        if len(x) != 2:
-            raise ValueError('Dimension mismatch')
-        return (4.0 - 2.1*x[0]**2 + (x[0]**4)/3.0)*x[0]**2 + x[0]*x[1] + (-4 + 4*x[1]**2) * x[1]**2
+        """Evaluate the Six Hump Camel function at x
+
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
+        return (4.0 - 2.1*x[0]**2 + (x[0]**4)/3.0)*x[0]**2 + \
+            x[0]*x[1] + (-4 + 4*x[1]**2) * x[1]**2
 
 
 class Branin(OptimizationProblem):
     def __init__(self):
-        self.info = "2-dimensional Branin function"
         self.min = 0.397887
         self.minimum = np.array([-np.pi, 12.275])
+        self.dim = 2
+        self.lb = -3.0 * np.ones(2)
+        self.ub = 3.0 * np.ones(2)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, 2)
+        self.info = "2-dimensional Branin function \nGlobal optimum: " +\
+                    "f(-pi, 12.275) = 0.397887"
 
-    @property
-    def dim(self):
-        return 2
 
-    @property
-    def lb(self):
-        return -3.0 * np.ones(2)
+    def eval(self, x):
+        """Evaluate the Branin function at x
 
-    @property
-    def ub(self):
-        return 3.0 *np.ones(2)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, 2)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def eval(self, xx):
-        if len(xx) != 2:
-            raise ValueError('Dimension mismatch')
-        x1 = xx[0]
-        x2 = xx[1]
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
+        x1 = x[0]
+        x2 = x[1]
 
         t = 1 / (8 * np.pi)
         s = 10
@@ -245,53 +136,25 @@ class Hartman3(OptimizationProblem):
     """
 
     def __init__(self):
-        self.info = "3-dimensional Hartman function \nGlobal optimum: " +\
-                    "f(0.114614,0.555649,0.852547) = -3.86278"
         self.min = -3.86278
         self.minimum = np.array([0.114614, 0.555649, 0.852547])
-
-    @property
-    def dim(self):
-        return 3
-
-    @property
-    def lb(self):
-        return np.zeros(3)
-
-    @property
-    def ub(self):
-        return np.ones(3)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, 3)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.dim = 3
+        self.lb = np.zeros(3)
+        self.ub = np.ones(3)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, 3)
+        self.info = "3-dimensional Hartman function \nGlobal optimum: " +\
+                    "f(0.114614,0.555649,0.852547) = -3.86278"
 
     def eval(self, x):
-        """Evaluate the Hartman 3 function  at x
+        """Evaluate the Hartman 3 function at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
-        if len(x) != 3:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         alpha = np.array([1, 1.2, 3, 3.2])
         A = np.array([[3.0, 10.0, 30.0], [0.1, 10.0, 35.0],
                        [3.0, 10.0, 30.0], [0.1, 10.0, 35.0]])
@@ -309,7 +172,7 @@ class Hartman3(OptimizationProblem):
                 inner += Aij * ((xj-Pij) ** 2)
             outer += alpha[ii] * np.exp(-inner)
         return -outer
-
+        
 
 # =========================6-dimensional =======================
 
@@ -323,54 +186,25 @@ class Hartman6(OptimizationProblem):
     """
 
     def __init__(self):
-        self.info = "6-dimensional Hartman function \nGlobal optimum: " + \
-                    "f(0.20169,0.150011,0.476874,0.275332,0.311652,0.6573) = -3.32237"
         self.min = -3.32237
         self.minimum = np.array([0.20169, 0.150011, 0.476874, 0.275332, 0.311652, 0.6573])
-
-    @property
-    def dim(self):
-        return 6
-
-    @property
-    def lb(self):
-        return np.zeros(6)
-
-    @property
-    def ub(self):
-        return np.ones(6)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, 6)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.dim = 6
+        self.lb = np.zeros(6)
+        self.ub = np.ones(6)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, 6)
+        self.info = "6-dimensional Hartman function \nGlobal optimum: " + \
+                    "f(0.20169,0.150011,0.476874,0.275332,0.311652,0.6573) = -3.32237"
 
     def eval(self, x):
-        """Evaluate the Hartman 3 function  at x
+        """Evaluate the Hartman 6 function at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
-
-        if len(x) != 6:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         alpha = np.array([1.0, 1.2, 3.0, 3.2])
         A = np.array([[10.0, 3.0,  17.0, 3.5,  1.7,  8.0 ],
                        [0.05, 10.0, 17.0, 0.1,  8.0,  14.0],
@@ -409,45 +243,15 @@ class Rastrigin(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Rastrigin function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
+        self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5.12 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5.12 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -5.12 * np.ones(dim)
+        self.ub =  5.12 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Rastrigin function \n" +\
+                               "Global optimum: f(0,0,...,0) = 0"
 
     def eval(self, x):
         """Evaluate the Rastrigin function  at x
@@ -457,9 +261,7 @@ class Rastrigin(OptimizationProblem):
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         return 10 * self.dim + sum(x**2 - 10 * np.cos(2 * np.pi * x))
 
 
@@ -480,45 +282,15 @@ class Ackley(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Ackley function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
+        self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -15 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 20 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -15 * np.ones(dim)
+        self.ub =  20 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Ackley function \n" +\
+                               "Global optimum: f(0,0,...,0) = 0"
 
     def eval(self, x):
         """Evaluate the Ackley function  at x
@@ -528,12 +300,10 @@ class Ackley(OptimizationProblem):
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
-        n = float(self.dim)
-        return -20.0 * np.exp(-0.2*np.sqrt(np.sum(x**2)/n)) - \
-            np.exp(np.sum(np.cos(2.0*np.pi*x))/n) + 20 + np.exp(1)
+        self.__check_input__(x)
+        d = float(self.dim)
+        return -20.0 * np.exp(-0.2*np.sqrt(np.sum(x**2) / d)) - \
+            np.exp(np.sum(np.cos(2.0*np.pi*x)) / d) + 20 + np.exp(1)
 
 
 class Michalewicz(OptimizationProblem):
@@ -549,43 +319,13 @@ class Michalewicz(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Michalewicz function \n" +\
-                             "Global optimum: ??"
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return np.zeros(self.dim)
-
-    @property
-    def ub(self):
-        return np.pi * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.dim = dim
+        self.lb = np.zeros(dim)
+        self.ub = np.pi * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Michalewicz function \n" +\
+                               "Global optimum: ??"
 
     def eval(self, x):
         """Evaluate the Michalewicz function  at x
@@ -595,9 +335,7 @@ class Michalewicz(OptimizationProblem):
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         return -np.sum(np.sin(x) * (np.sin(((1+np.arange(self.dim))
                                             * x**2)/np.pi)) ** 20)
 
@@ -611,57 +349,29 @@ class Levy(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Levy function \n" +\
-                             "Global optimum: f(1,1,...,1) = 0"
+        self.dim = dim
         self.min = 0.0
         self.minimum = np.ones(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -5 * np.ones(dim)
+        self.ub = 5 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Levy function \n" +\
+                               "Global optimum: f(1,1,...,1) = 0"
 
     def eval(self, x):
-        """Evaluate the Levy function  at x
+        """Evaluate the Levy function at x
 
         :param x: Data point
+        :type x: numpy.array
         :return: Value at x
+        :rtype: float
         """
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         w = 1 + (x - 1.0) / 4.0
         d = self.dim
-        return np.sin(np.pi*w[0])**2 + np.sum((w[1:d-1] - 1)**2 * (1 + 10*np.sin(np.pi*w[1:d-1] + 1)**2)) + \
+        return np.sin(np.pi*w[0])**2 + np.sum((w[1:d-1] - 1)**2 * \
+            (1 + 10*np.sin(np.pi*w[1:d-1] + 1)**2)) + \
             (w[d-1] - 1)**2 * (1 + np.sin(2*np.pi*w[d-1])**2)
 
 
@@ -681,60 +391,29 @@ class Griewank(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Griewank function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
+        self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
+        self.lb = -512 * np.ones(dim)
+        self.ub =  512 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Griewank function \n" +\
+                               "Global optimum: f(0,0,...,0) = 0"
 
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -512 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 512 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
 
     def eval(self, x):
-        """Evaluate the Griewank function  at x
+        """Evaluate the Griewank function at x
 
         :param x: Data point
         :type x: numpy.array
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         total = 1
         for i, y in enumerate(x):
-            total *= np.cos(y / np.sqrt(i+1))
+            total *= np.cos(y / np.sqrt(i + 1))
         return 1.0 / 4000.0 * sum([y**2 for y in x]) - total + 1
 
 
@@ -754,57 +433,25 @@ class Rosenbrock(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Rosenbrock function \n" +\
-                             "Global optimum: f(1,1,...,1) = 0"
+        self.dim = dim
         self.min = 0
         self.minimum = np.ones(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -2.048 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 2.048 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -2.048 * np.ones(dim)
+        self.ub =  2.048 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Rosenbrock function \n" +\
+                               "Global optimum: f(1,1,...,1) = 0"
 
     def eval(self, x):
-        """Evaluate the Rosenbrock function  at x
+        """Evaluate the Rosenbrock function at x
 
         :param x: Data point
         :type x: numpy.array
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         total = 0
         for i in range(len(x) - 1):
             total += 100 * (x[i] ** 2 - x[i+1]) ** 2 + (x[i] - 1) ** 2
@@ -827,57 +474,25 @@ class Schwefel(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Schwefel function \n" +\
-                             "Global optimum: f(420.968746,...,420.968746) = 0"
+        self.dim = dim
         self.min = 0
         self.minimum = 420.968746 * np.ones(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -512 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 512 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -512 * np.ones(dim)
+        self.ub =  512 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Schwefel function \n" +\
+                               "Global optimum: f(420.968746,...,420.968746) = 0"
 
     def eval(self, x):
-        """Evaluate the Schwefel function  at x
+        """Evaluate the Schwefel function at x
 
         :param x: Data point
         :type x: numpy.array
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         return 418.9829 * self.dim - \
             sum([y * np.sin(np.sqrt(abs(y))) for y in x])
 
@@ -897,57 +512,25 @@ class Sphere(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Sphere function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
+        self.dim = dim
         self.min = 0
-        self.minimum = np.zeros(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5.12 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5.12 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.minimum = np.zeros(dim)        
+        self.lb = -5.12 * np.ones(dim)
+        self.ub =  5.12 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Sphere function \n" +\
+                               "Global optimum: f(0,0,...,0) = 0"
 
     def eval(self, x):
-        """Evaluate the Sphere function  at x
+        """Evaluate the Sphere function at x
 
         :param x: Data point
         :type x: numpy.array
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         return np.sum(x ** 2)
 
 
@@ -966,45 +549,15 @@ class Exponential(OptimizationProblem):
     """
 
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Exponential function \n" +\
-                             "Global optimum: f(-5.12,-5.12,...,-5.12) = 0"
+        self.dim = dim
         self.min = 0
-        self.minimum = -5.12 * np.ones(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5.12 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5.12 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.minimum = -5.12 * np.ones(dim)        
+        self.lb = -5.12 * np.ones(dim)
+        self.ub =  5.12 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Exponential function \n" +\
+                               "Global optimum: f(-5.12,-5.12,...,-5.12) = 0"
 
     def eval(self, x):
         """Evaluate the Exponential function  at x
@@ -1014,9 +567,7 @@ class Exponential(OptimizationProblem):
         :return: Value at x
         :rtype: float
         """
-
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        self.__check_input__(x)
         total = 0
         for i in range(len(x)):
             total += np.exp((i+1)*x[i-1]) - np.exp(-5.12*(i+1))
@@ -1025,195 +576,98 @@ class Exponential(OptimizationProblem):
 
 class Himmelblau(OptimizationProblem):
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim) + "-dimensional Himmelblau function \n" + \
-                               "Global optimum: f(-2.903524,-2.903524,...,-2.903524) = -39.166165"
+        self.dim = dim
         self.min = -39.166165703771412
         self.minimum = -2.903534027771178 * np.ones(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -5.12 * np.ones(dim)
+        self.ub =  5.12 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Himmelblau function \n" + \
+                               "Global optimum: f(-2.903524,-2.903524,...,-2.903524) = -39.166165"
 
     def eval(self, x):
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
-        return 0.5 * np.sum(x**4 - 16*x**2 + 5*x)/float(self.dim)
+        """Evaluate the Himmelblau function at x
+
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
+        return 0.5 * np.sum(x**4 - 16*x**2 + 5*x) / float(self.dim)
 
 
 class Zakharov(OptimizationProblem):
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim) + "-dimensional Zakharov function \n" + \
-                               "Global optimum: f(0,0,...,0)=1"
+        self.dim = dim
         self.min = 0.0
         self.minimum = np.zeros(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 10 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -5 * np.ones(dim)
+        self.ub = 10 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Zakharov function \n" + \
+                               "Global optimum: f(0,0,...,0)=1"
 
     def eval(self, x):
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
-        return np.sum(x**2) + np.sum(0.5*(1+np.arange(self.dim))*x)**2 + \
-            np.sum(0.5*(1+np.arange(self.dim))*x)**4
+        """Evaluate the Zakharov function at x
+
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
+        return np.sum(x**2) + np.sum(0.5*(1 + np.arange(self.dim))*x)**2 + \
+            np.sum(0.5*(1 + np.arange(self.dim))*x)**4
 
 
 class SumOfSquares(OptimizationProblem):
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim) + "-dimensional SumOfSquares function \n" + \
-                               "Global optimum: f(0,0,...,0)=0"
+        self.dim = dim
         self.min = 0.0
         self.minimum = np.zeros(dim)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
+        self.lb = -5 * np.ones(dim)
+        self.ub =  5 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional SumOfSquares function \n" + \
+                               "Global optimum: f(0,0,...,0)=0"
 
     def eval(self, x):
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
-        return np.sum((1+np.arange(self.dim)) * x**2)
+        """Evaluate the Sum of squares function at x
+
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
+        return np.sum((1 + np.arange(self.dim)) * x**2)
 
 
 class Perm(OptimizationProblem):
     def __init__(self, dim=10):
-        self._dim = dim
+        self.dim = dim
+        self.min = 0.0
+        self.minimum = np.ones(dim) / np.arange(1, dim + 1)
+        self.lb = -5 * np.ones(dim)
+        self.ub =  5 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Perm function \n" + \
                                "Global optimum: f(1,1/2,1/3...,1/d)=0"
-        self.min = 0.0
-        self.minimum = np.ones(dim) / np.arange(1, dim+1)
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
 
     def eval(self, x):
-        if len(x) != self.dim:
-            raise ValueError('Dimension mismatch')
+        """Evaluate the Perm function at x
 
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
         beta = 10.0
         d = len(x)
         outer = 0.0
@@ -1228,234 +682,28 @@ class Perm(OptimizationProblem):
 
 class Weierstrass(OptimizationProblem):
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim) + "-dimensional Weierstrass function"
+        self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
+        self.lb = -5 * np.ones(dim)
+        self.ub =  5 * np.ones(dim)
+        self.int_var = np.array([])
+        self.cont_var = np.arange(0, dim)
+        self.info = str(dim) + "-dimensional Weierstrass function"
 
-    @property
-    def dim(self):
-        return self._dim
+    def eval(self, x):
+        """Evaluate the Weierstrass function at x
 
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def eval(self, xx):
-        if len(xx) != self.dim:
-            raise ValueError('Dimension mismatch')
-        d = len(xx)
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
+        self.__check_input__(x)
+        d = len(x)
         f0, val = 0.0, 0.0
         for k in range(12):
             f0 += 1.0 / (2 ** k) * np.cos(np.pi * (3 ** k))
             for i in range(d):
-                val += 1.0 / (2 ** k) * np.cos(2 * np.pi * (3 ** k) * (xx[i] + 0.5))
+                val += 1.0 / (2 ** k) * np.cos(2 * np.pi * (3 ** k) * (x[i] + 0.5))
         return 10 * ((1.0 / float(d) * val - f0) ** 3)
-
-
-# ============================== Constraints ==============================
-
-
-class Keane(OptimizationProblem):
-    """Keane's "bump" function
-
-    .. math::
-        f(x_1,\\ldots,x_n) = -\\left| \\frac{\\sum_{j=1}^n \\cos^4(x_j) - \
-        2 \\prod_{j=1}^n \\cos^2(x_j)}{\\sqrt{\\sum_{j=1}^n jx_j^2}} \\right|
-
-    subject to
-
-    .. math::
-        0 \\leq x_i \\leq 5
-
-    .. math::
-        0.75 - \\prod_{j=1}^n x_j < 0
-
-    .. math::
-        \\sum_{j=1}^n x_j - 7.5n < 0
-
-
-    Global optimum: -0.835 for large n
-    """
-
-    def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Keane bump function \n" +\
-                             "Global optimum: -0.835 for large n"
-        self.min = -0.835
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return np.zeros(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 2
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        """Evaluate the Keane inequality constraints at x
-
-        :param x: Data points, of size npts x dim
-        :type x: numpy.array
-        :return: Value at the constraints, of size npts x nconstraints
-        :rtype: float
-        """
-
-        vec = np.zeros((X.shape[0], 2))
-        vec[:, 0] = 0.75 - np.prod(X)
-        vec[:, 1] = np.sum(X) - 7.5 * self.dim
-        return vec
-
-    def deval_cheap(self, X):
-        """Evaluate the derivative of the Keane inequality constraints at x
-
-        :param x: Data points, of size npts x dim
-        :type x: numpy.array
-        :return: Derivative at the constraints, of size npts x nconstraints x ndims
-        :rtype: float
-        """
-
-        vec = np.zeros((X.shape[0], 2, X.shape[1]))
-        for i in range(X.shape[0]):
-            xx = X[i, :]
-            for j in range(X.shape[1]):
-                vec[i, 0, j] = -np.prod(np.hstack((xx[:j], xx[j + 1:])))
-                vec[i, 1, j] = 1.0
-        return vec
-
-    def eval(self, x):
-        """Evaluate the Keane function at a point x
-
-        :param x: Data point
-        :type x: numpy.array
-        :return: Value at x
-        :rtype: float
-        """
-
-        if len(x) != self.dim:
-                raise ValueError('Dimension mismatch')
-        n = len(x)
-        return -abs((sum(np.cos(x)**4)-2 * np.prod(np.cos(x)**2)) /
-                    max([1E-10, np.sqrt(np.dot(1+np.arange(n), x**2))]))
-
-
-class LinearMI(OptimizationProblem):
-    """This is a linear mixed integer problem with non-bound constraints
-
-    There are 5 variables, the first 3 are discrete and the last 2
-    are continuous.
-
-    Global optimum: :math:`f(1,0,0,0,0) = -1`
-    """
-
-    def __init__(self):
-        self.info = str(self.dim)+"-dimensional Linear MI \n" +\
-                                  "Global optimum: f(1,0,0,0,0) = -1\n" +\
-                                  "3 integer variables"
-        self.min = -1
-        self.minimum = np.array([1, 0, 0, 0, 0])
-
-    @property
-    def dim(self):
-        return 5
-
-    @property
-    def lb(self):
-        return np.zeros(5)
-
-    @property
-    def ub(self):
-        return np.array([10, 10, 10, 1, 1])
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 3
-
-    @property
-    def int_var(self):
-        return np.arange(0, 3)
-
-    @property
-    def cont_var(self):
-        return np.arange(3, 5)
-
-    def eval_cheap(self, X):
-        """Evaluate the inequality constraints at X
-
-        :param X: Data points, of size npts x dim
-        :type X: numpy.array
-        :return: Value at the constraints, of size npts x nconstraints
-        :rtype: float
-        """
-
-        vec = np.zeros((X.shape[0], 3))
-        vec[:, 0] = X[:, 0] + X[:, 2] - 1.6
-        vec[:, 1] = 1.333 * X[:, 1] + X[:, 3] - 3
-        vec[:, 2] = - X[:, 2] - X[:, 3] + X[:, 4]
-        return vec
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("Not implemented yet")
-
-    def eval(self, x):
-        """Evaluate the LinearMI function  at x
-
-        :param x: Data point
-        :type x: numpy.array
-        :return: Value at x
-        :rtype: float
-        """
-
-        if len(x) != 5:
-            raise ValueError('Dimension mismatch')
-        return - x[0] + 3 * x[1] + 1.5 * x[2] + 2 * x[3] - 0.5 * x[4]
