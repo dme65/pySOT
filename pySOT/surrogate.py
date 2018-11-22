@@ -1202,55 +1202,6 @@ class SurrogateCapped(Surrogate):
         self.model.transform_fx(self.transformation(fvalues))
 
 
-# class RSPenalty(Surrogate):
-#     """Penalty adapter for response surfaces.
-# 
-#     This adapter can be used for approximating an objective function plus
-#     a penalty function. The response surface is fitted only to the objective
-#     function and the penalty is added on after.
-#     """
-# 
-#     def __init__(self, model, evals, derivs):
-#         self.model = model
-#         self.eval_method = evals
-#         self.deriv_method = derivs
-# 
-#     @property
-#     def dim(self):
-#         return self.model.dim
-# 
-#     @property
-#     def npts(self):
-#         return self.model.npts
-# 
-#     @property
-#     def maxpts(self):
-#         return self.model.maxpts
-# 
-#     @property
-#     def X(self):
-#         return self.model.X
-# 
-#     @property
-#     def fX(self):
-#         return self.model.fX
-# 
-#     def reset(self):
-#         self.model.reset()
-# 
-#     def transform_fx(self, fX):
-#         self.model.transform_fx(fX)
-# 
-#     def add_points(self, xx, fx):
-#         self.model.add_points(xx, fx)
-# 
-#     def eval(self, x):
-#         return self.eval_method(self.model, x)
-# 
-#     def deriv(self, x):
-#         return self.deriv_method(self.model, x)
-
-
 class SurrogateUnitBox(Surrogate):
     """Unit box adapter for response surfaces
 
