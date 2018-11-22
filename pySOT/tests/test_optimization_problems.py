@@ -25,3 +25,7 @@ def test_all():
 
             # Sanity check all methods
             check_opt_prob(opt)
+
+
+if __name__ == '__main__':
+    test_all()

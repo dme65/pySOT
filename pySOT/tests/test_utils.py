@@ -67,3 +67,9 @@ def test_ga():
                           popsize=100, ngen=100, start="SLHD")
     x_best, f_best = ga.optimize()
     np.testing.assert_almost_equal(x_best[0], np.round(x_best[0]))
+
+if __name__ == '__main__':
+    test_ga()
+    test_round_vars()
+    test_unit_box_map()
+    test_unit_rescale()

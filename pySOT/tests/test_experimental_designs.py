@@ -1,4 +1,6 @@
-from pySOT.experimental_design import *
+from pySOT.experimental_design import ExperimentalDesign, \
+        SymmetricLatinHypercube, LatinHypercube, TwoFactorial
+import numpy as np
 import inspect
 import sys
 import pytest
@@ -37,3 +39,8 @@ def test_full_factorial():
 
     with pytest.raises(ValueError):  # This should raise an exception
         TwoFactorial(20)
+
+if __name__ == '__main__':
+    test_full_factorial()
+    test_lhd()
+    test_slhd()

@@ -687,7 +687,7 @@ class RBFInterpolant(Surrogate):
         return dfxx
 
 
-class GPRegression(Surrogate):
+class GPRegressor(Surrogate):
     """Compute and evaluate a GP
 
     Gaussian Process Regression object.
@@ -826,7 +826,6 @@ class GPRegression(Surrogate):
         :rtype: numpy.array
         """
 
-        # FIXME, To be implemented
         raise NotImplementedError
 
 
@@ -991,7 +990,7 @@ class MARSInterpolant(Surrogate):
         return dfx[0]
 
 
-class PolyRegression(Surrogate):
+class PolyRegressor(Surrogate):
     """Computes a polynomial regression model
 
     :param maxp: Initial capacity
@@ -1113,148 +1112,6 @@ class PolyRegression(Surrogate):
 
         x = np.atleast_2d(x)
         if self.updated is False:
-            self.model.fit(self.X, self.fX)
-        self.updated = True
-
-        fx = np.zeros(shape=(x.shape[0], 1))
-        fx[:, 0] = self.model.predict(x)
-        return fx
-
-    def deriv(self, x):
-
-        # FIXME, To be implemented
-        raise NotImplementedError
-
-
-class SupportVectorRegression(Surrogate):
-    """Compute and evaluate a Support vector regression
-
-    :param maxp: Initial capacity
-    :type maxp: int
-
-    :ivar npts: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar x: Interpolation points
-    :ivar fx: Function evaluations of interpolation points
-    :ivar dim: Number of dimensions
-    :ivar model: MARS interpolation model
-    """
-
-    def __init__(self, dim, maxpts=100):
-
-        try:
-            from sklearn.svm import SVR
-            from sklearn.model_selection import GridSearchCV
-        except ImportError as err:
-            print("Failed to import sklearn.svm")
-            raise err
-
-        self._npts = 0
-        self._maxpts = maxpts
-        self._X = None
-        self._fX = None
-        self._dim = dim
-        parameters = {'kernel': ('linear', 'rbf'),
-                      'C': [0.01, 0.1, 1, 10, 100],
-                      'epsilon': [0.001, 0.01, 0.1, 1, 10]}
-        self.grid_search = GridSearchCV(SVR(), parameters)
-        self.best_params = None
-        self.model = None
-        self.updated = False
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
-
-    @property
-    def maxpts(self):
-        return self._maxpts
-
-    @property
-    def X(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self._X[:self.npts, :]
-
-    @property
-    def fX(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self._fX[:self.npts]
-
-    def reset(self):
-        """Reset the interpolation."""
-
-        self._npts = 0
-        self._X = None
-        self._fX = None
-        self.updated = False
-
-    def transform_fx(self, fX):
-        self._fX = fX
-
-    def _realloc(self, extra=1):
-        """Expand allocation to accommodate more points (if needed)
-
-        :param extra: Number of additional points to accommodate
-        :type extra: int
-        """
-
-        maxp = self.maxpts
-        if maxp < self.npts + extra or self.npts == 0:
-            while maxp < self.npts + extra: maxp = 2 * maxp
-            self._maxpts = maxp
-            self._X = reallocate(self._X, (maxp, self.dim))
-            self._fX = reallocate(self._fX, (maxp,))
-
-    def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Points to add
-        :type xx: numpy.ndarray
-        :param fx: The function values of the point to add
-        :type fx: numpy.array or float
-        """
-
-        xx = np.atleast_2d(xx)
-        newpts = xx.shape[0]
-        self._realloc(extra=newpts)
-
-        self._X[self.npts:self.npts + newpts, :] = xx
-        self._fX[self.npts:self.npts + newpts] = fx
-        self._npts += newpts
-        self.updated = False
-
-    def eval(self, x):
-        """Evaluate the SVR interpolant at the points x
-
-        :param x: Points where to evaluate, of size npts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the MARS interpolant at x, of length npts
-        :rtype: numpy.array
-        """
-
-        x = np.atleast_2d(x)
-        if self.updated is False:
-            self.grid_search.fit(self.X, self.fX)
-            self.best_params = self.grid_search.best_params_
-            from sklearn.svm import SVR
-            self.model = SVR(C=self.best_params['C'], epsilon=self.best_params['epsilon'],
-                             kernel=self.best_params['kernel'])
             self.model.fit(self.X, self.fX)
         self.updated = True
 

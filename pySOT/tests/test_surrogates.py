@@ -1,7 +1,11 @@
-from pySOT.surrogate import *
+from pySOT.surrogate import Surrogate, Tail, ConstantTail, LinearTail, \
+    Kernel, CubicKernel, TPSKernel, LinearKernel, \
+    RBFInterpolant, GPRegressor, PolyRegressor
+
 import inspect
 import sys
 import numpy.linalg as la
+import numpy as np
 
 
 def f(x):
@@ -176,7 +180,7 @@ def test_gp():
 
 def test_poly():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    poly = PolyRegression(2, 500)
+    poly = PolyRegressor(2, 500)
     assert (isinstance(poly, Surrogate))
     fX = f(X)
     poly.add_points(X, fX)
@@ -196,23 +200,12 @@ def test_poly():
     assert (poly.dim == 2)
 
 
-def test_svr():
-    X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    svr = SupportVectorRegression(2, 500)
-    assert (isinstance(svr, Surrogate))
-    fX = f(X)
-    svr.add_points(X, fX)
-
-    # Derivative at random points
-    np.random.seed(0)
-    Xs = np.random.rand(10, 2)
-    fhx = svr.eval(Xs)
-    fx = f(Xs)
-    for i in range(Xs.shape[0]):
-        assert (abs(fx[i] - fhx[i]) < 5e-3)
-
-    # Reset the surrogate
-    svr.reset()
-    svr._maxpts = 500
-    assert (svr.npts == 0)
-    assert (svr.dim == 2)
+if __name__ == '__main__':
+    test_cubic_kernel()
+    test_tps_kernel()
+    test_linear_kernel()
+    test_linear_tail()
+    test_constant_tail()
+    test_rbf()
+    test_gp()
+    test_poly()
