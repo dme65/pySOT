@@ -1,6 +1,6 @@
 from pySOT.surrogate import Surrogate, Tail, ConstantTail, LinearTail, \
     Kernel, CubicKernel, TPSKernel, LinearKernel, \
-    RBFInterpolant, GPRegressor, PolyRegressor
+    GPRegressor, MARSInterpolant, PolyRegressor, RBFInterpolant
 
 import inspect
 import sys
@@ -157,7 +157,7 @@ def test_rbf():
 
 def test_gp():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    gp = GPRegression(2, 200)
+    gp = GPRegressor(2, 200)
     assert (isinstance(gp, Surrogate))
     fX = f(X)
     gp.add_points(X, fX)
@@ -200,12 +200,35 @@ def test_poly():
     assert (poly.dim == 2)
 
 
+def test_mars():
+    X = make_grid(30)  # Make uniform grid with 30 x 30 points
+    mars = MARSInterpolant(2, 500)
+    assert (isinstance(mars, Surrogate))
+    fX = f(X)
+    mars.add_points(X, fX)
+
+    # Derivative at random points
+    np.random.seed(0)
+    Xs = np.random.rand(10, 2)
+    fhx = mars.eval(Xs)
+    fx = f(Xs)
+    for i in range(Xs.shape[0]):
+        assert (abs(fx[i] - fhx[i]) < 1e-2)
+
+    # Reset the surrogate
+    mars.reset()
+    mars._maxpts = 500
+    assert (mars.npts == 0)
+    assert (mars.dim == 2)
+
+
 if __name__ == '__main__':
     test_cubic_kernel()
     test_tps_kernel()
     test_linear_kernel()
     test_linear_tail()
     test_constant_tail()
-    test_rbf()
     test_gp()
+    test_mars()
+    test_rbf()
     test_poly()

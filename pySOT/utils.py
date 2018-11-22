@@ -333,7 +333,8 @@ class GeneticAlgorithm:
             new_population = []
             if len(self.integer_variables) > 0:
                 new_population = np.copy(population)
-                population = round_vars(population, self.integer_variables, self.lower_boundary, self.upper_boundary)
+                population = round_vars(population, self.integer_variables, \
+                self.lower_boundary, self.upper_boundary)
 
             # Keep the best individual
             population[0, :] = best_individual

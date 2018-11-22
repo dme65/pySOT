@@ -11,21 +11,19 @@
 
 """
 
+import abc
 import math
-import types
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.stats as stats
+import types
+
 from pySOT.utils import GeneticAlgorithm as GA
 from pySOT.utils import unit_rescale
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-import abc
-import six
 
-
-@six.add_metaclass(abc.ABCMeta)
 class AuxiliaryProblem(object):
     __metaclass__ = abc.ABCMeta
 

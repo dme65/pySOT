@@ -9,11 +9,10 @@
 
 """
 
+import abc
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
-import abc
-import six
 from pySOT.utils import to_unit_box, from_unit_box
 
 
@@ -33,7 +32,6 @@ def reallocate(A, dims, **kwargs):
     return AA
 
 
-@six.add_metaclass(abc.ABCMeta)
 class Surrogate(object):
     __metaclass__ = abc.ABCMeta
 
@@ -96,7 +94,6 @@ class Surrogate(object):
         return
 
 
-@six.add_metaclass(abc.ABCMeta)
 class Kernel(object):
     __metaclass__ = abc.ABCMeta
 
@@ -117,7 +114,6 @@ class Kernel(object):
         pass
 
 
-@six.add_metaclass(abc.ABCMeta)
 class Tail(object):
     __metaclass__ = abc.ABCMeta
 

@@ -6,7 +6,7 @@
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import GlobalStrategy
+from pySOT.strategy import GlobalStrategy, SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, SurrogateUnitBox
 from pySOT.optimization_problems import Ackley
 
@@ -46,9 +46,9 @@ def test_simple():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-            GlobalStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=False,
-                           exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                           batch_size=nthreads)
+            SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
+                         exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
+                         batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
