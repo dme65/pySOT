@@ -53,7 +53,7 @@ def test_extra_vals():
         SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
                      exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
                      surrogate=surrogate, sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
-                     batch_size=nsamples, async=True, extra=extra, extra_vals=extra_vals)
+                     batch_size=nsamples, asynchronous=True, extra=extra, extra_vals=extra_vals)
 
     # Append the known function values to the POAP database since POAP won't evaluate these points
     for i in range(len(extra_vals)):

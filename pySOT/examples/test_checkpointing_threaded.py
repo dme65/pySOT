@@ -1,30 +1,32 @@
 """
-.. module:: test_checkpointing_serial
-  :synopsis: Test Checkpointing Serial
+.. module:: test_checkpointing_threaded
+  :synopsis: Test Checkpointing Threaded
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateSRBF
+from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import GlobalStrategy
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 from pySOT.controller import CheckpointController
 
-from poap.controller import SerialController
+from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import multiprocessing
 import time
 import os
 
+nthreads = 4
 maxeval = 200
+nsamples = nthreads
 
 opt_prob = Ackley(dim=10)
 print(opt_prob.info)
 fname = "checkpoint.pysot"
 
 
-def test_checkpoint_serial():
+def test_checkpoint_threaded():
     if os.path.isfile(fname):
         os.remove(fname)
 
@@ -47,14 +49,20 @@ def init():
         opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim))
 
     # Create a strategy and a controller
-    controller = SerialController(opt_prob.eval)
+    controller = ThreadController()
     controller.strategy = \
-        GlobalStrategy(max_evals=maxeval, opt_prob=opt_prob,
-                       exp_design=SymmetricLatinHypercube(dim=opt_prob.dim,
-                                                          npts=2 * (opt_prob.dim + 1)),
-                       surrogate=surrogate,
-                       adapt_sampling=CandidateSRBF(data=opt_prob, numcand=100*opt_prob.dim),
-                       asynchronous=True, batch_size=1, stopping_criterion=None, extra=None)
+        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
+                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim,
+                                                        npts=2 * (opt_prob.dim + 1)),
+                     surrogate=surrogate,
+                     sampling_method=CandidateDYCORS(data=opt_prob,
+                                                     numcand=100*opt_prob.dim),
+                     batch_size=nsamples, asynchronous=True)
+
+    # Launch the threads and give them access to the objective function
+    for _ in range(nthreads):
+        worker = BasicWorkerThread(controller, opt_prob.eval)
+        controller.launch_worker(worker)
 
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)
@@ -67,7 +75,12 @@ def init():
 
 def resume():
     print("Resuming run...\n")
-    controller = SerialController(opt_prob.eval)
+    controller = ThreadController()
+
+    # Launch the threads and give them access to the objective function
+    for _ in range(nthreads):
+        worker = BasicWorkerThread(controller, opt_prob.eval)
+        controller.launch_worker(worker)
 
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)
@@ -79,4 +92,4 @@ def resume():
 
 
 if __name__ == '__main__':
-    test_checkpoint_serial()
+    test_checkpoint_threaded()

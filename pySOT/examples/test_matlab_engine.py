@@ -69,7 +69,7 @@ def test_matlab_engine():
                      exp_design=LatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1)),
                      surrogate=surrogate,
                      sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
-                     batch_size=nthreads, async=False)
+                     batch_size=nthreads, asynchronous=False)
 
     print("\nNOTE: You may need to specify the matlab_root keyword in "
           "order \n      to start a MATLAB  session using the matlab_wrapper "

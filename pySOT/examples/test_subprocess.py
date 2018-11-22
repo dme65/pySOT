@@ -74,7 +74,7 @@ def test_subprocess():
     controller = ThreadController()
     controller.strategy = \
         SRBFStrategy(
-            worker_id=0, opt_prob=data, async=True,
+            worker_id=0, opt_prob=data, asynchronous=True,
             maxeval=maxeval, batch_size=nsamples,
             exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
             sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),

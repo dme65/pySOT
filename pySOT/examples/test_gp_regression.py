@@ -51,7 +51,7 @@ def test_gp_regression():
         GlobalStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
                        surrogate=GPRegression(dim=opt_prob.dim, maxpts=maxeval),
                        sampling_method=CandidateDYCORS(data=opt_prob),
-                       batch_size=nsamples, async=True)
+                       batch_size=nsamples, asynchronous=True)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

@@ -110,6 +110,7 @@ def test_rbf():
     rbf.add_points(X, fX)
 
     # Derivative at random points
+    np.random.seed(0)
     Xs = np.random.rand(10, 2)
     fhx = rbf.eval(Xs)
     dfhx = rbf.deriv(Xs)
@@ -135,6 +136,7 @@ def test_rbf():
         rbf.eval(Xs)  # Force fit
 
     # Derivative at random points
+    np.random.seed(0)
     Xs = np.random.rand(10, 2)
     fhx = rbf.eval(Xs)
     dfhx = rbf.deriv(Xs)
@@ -151,22 +153,23 @@ def test_rbf():
 
 def test_gp():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    gp = GPRegression(2, 500)
+    gp = GPRegression(2, 200)
     assert (isinstance(gp, Surrogate))
     fX = f(X)
     gp.add_points(X, fX)
 
     # Derivative at random points
+    np.random.seed(0)
     Xs = np.random.rand(10, 2)
     fhx = gp.eval(Xs)
     fx = f(Xs)
     for i in range(Xs.shape[0]):
-        assert (abs(fx[i] - fhx[i]) < 1e-4)
+        assert (abs(fx[i] - fhx[i]) < 1e-2)
 
     # Derivative at previous points
     # Reset the surrogate
     gp.reset()
-    gp._maxpts = 500
+    gp._maxpts = 200
     assert (gp.npts == 0)
     assert (gp.dim == 2)
 
@@ -179,6 +182,7 @@ def test_poly():
     poly.add_points(X, fX)
 
     # Derivative at random points
+    np.random.seed(0)
     Xs = np.random.rand(10, 2)
     fhx = poly.eval(Xs)
     fx = f(Xs)
@@ -200,6 +204,7 @@ def test_svr():
     svr.add_points(X, fX)
 
     # Derivative at random points
+    np.random.seed(0)
     Xs = np.random.rand(10, 2)
     fhx = svr.eval(Xs)
     fx = f(Xs)

@@ -11,7 +11,7 @@
 """
 
 import numpy as np
-import pyDOE as pydoe
+import pyDOE2 as pydoe
 import abc
 import six
 import itertools

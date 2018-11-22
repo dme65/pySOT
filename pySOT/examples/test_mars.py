@@ -52,7 +52,7 @@ def test_mars():
                      exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
                      surrogate=MARSInterpolant(opt_prob.dim, maxpts=maxeval),
                      sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
-                     batch_size=nsamples, async=True)
+                     batch_size=nsamples, asynchronous=True)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
