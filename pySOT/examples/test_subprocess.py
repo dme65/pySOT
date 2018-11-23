@@ -15,16 +15,7 @@ import numpy as np
 import sys
 import os.path
 import logging
-if sys.version_info < (3, 0):
-    # Try to import from subprocess32
-    try:
-        from subprocess32 import Popen, PIPE
-    except Exception as err:
-        print("ERROR: You need the subprocess32 module for Python 2.7. \n"
-              "Install using: pip install subprocess32")
-        exit()
-else:
-    from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE
 
 
 def array2str(x):
@@ -55,7 +46,7 @@ def test_subprocess():
     logging.basicConfig(filename="./logfiles/test_subprocess.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
+    print("\nNumber of threads: 1")
     print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
@@ -64,22 +55,21 @@ def test_subprocess():
     assert os.path.isfile(path), "You need to build sphere_ext"
 
     nthreads = 1
-    maxeval = 200
-    nsamples = nthreads
+    max_evals = 200
 
-    data = Sphere(dim=10)
-    print(data.info)
+    sphere = Sphere(dim=10)
+    print(sphere.info)
+
+    rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(), tail=LinearTail(sphere.dim))
+    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, numcand=100*sphere.dim)
+    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2 * (sphere.dim + 1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(
-            worker_id=0, opt_prob=data, asynchronous=True,
-            maxeval=maxeval, batch_size=nsamples,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                     tail=LinearTail(data.dim), maxpts=maxeval))
+        SRBFStrategy(max_evals=max_evals, opt_prob=sphere, asynchronous=True,
+                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
+                     batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

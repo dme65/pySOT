@@ -36,7 +36,6 @@ def test_simple():
     ackley = Ackley(dim=10)
     print(ackley.info)
 
-    # This uses the Cubic RBF
     rbf = SurrogateUnitBox(
         RBFInterpolant(ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim),
         maxpts=max_evals), lb=ackley.lb, ub=ackley.ub)

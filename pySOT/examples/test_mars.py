@@ -38,25 +38,30 @@ def test_mars():
     print("Surrogate: MARS interpolant")
 
     nthreads = 4
-    maxeval = 200
-    nsamples = nthreads
+    max_evals = 200
 
-    opt_prob = Ackley(dim=5)
-    print(opt_prob.info)
+    ackley = Ackley(dim=5)
+    print(ackley.info)
+
+    try:
+        mars = MARSInterpolant(dim=ackley.dim, maxpts=max_evals)
+    except Exception as e:
+        print(str(e))
+        return
+
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-    controller.strategy = \
-        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
-                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim, npts=2 * (opt_prob.dim + 1)),
-                     surrogate=MARSInterpolant(opt_prob.dim, maxpts=maxeval),
-                     sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
-                     batch_size=nsamples, asynchronous=True)
+            SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
+                         exp_design=slhd, surrogate=mars, adapt_sampling=dycors,
+                         batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, opt_prob.eval)
+        worker = BasicWorkerThread(controller, ackley.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy

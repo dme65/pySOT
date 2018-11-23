@@ -18,13 +18,11 @@ import time
 import os
 
 nthreads = 4
-maxeval = 200
-nsamples = nthreads
+max_evals = 200
+ackley = Ackley(dim=10)
+print(ackley.info)
 
-opt_prob = Ackley(dim=10)
-print(opt_prob.info)
 fname = "checkpoint.pysot"
-
 
 def test_checkpoint_threaded():
     if os.path.isfile(fname):
@@ -45,23 +43,22 @@ def test_checkpoint_threaded():
 
 def init():
     print("\nInitializing run...")
-    surrogate = RBFInterpolant(
-        opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim))
+
+    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+                         tail=LinearTail(ackley.dim), maxpts=max_evals)
+    dycors = CandidateDYCORS(max_evals=max_evals, opt_prob=ackley, numcand=100*ackley.dim)
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
-                     exp_design=SymmetricLatinHypercube(dim=opt_prob.dim,
-                                                        npts=2 * (opt_prob.dim + 1)),
-                     surrogate=surrogate,
-                     sampling_method=CandidateDYCORS(data=opt_prob,
-                                                     numcand=100*opt_prob.dim),
-                     batch_size=nsamples, asynchronous=True)
+        SRBFStrategy(max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+                     surrogate=rbf, adapt_sampling=dycors, 
+                     asynchronous=True, batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, opt_prob.eval)
+        worker = BasicWorkerThread(controller, ackley.eval)
         controller.launch_worker(worker)
 
     # Wrap controller in checkpoint object
@@ -79,7 +76,7 @@ def resume():
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, opt_prob.eval)
+        worker = BasicWorkerThread(controller, ackley.eval)
         controller.launch_worker(worker)
 
     # Wrap controller in checkpoint object

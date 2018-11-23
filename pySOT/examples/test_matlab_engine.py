@@ -53,23 +53,23 @@ def test_matlab_engine():
     print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    maxeval = 500
-    matlab_root = "/Applications/MATLAB_R2017b.app"
+    max_evals = 500
+    matlab_root = "/Applications/MATLAB_R2018b.app"
 
-    opt_prob = Ackley(dim=10)
-    print(opt_prob.info)
+    ackley = Ackley(dim=10)
+    print(ackley.info)
 
-    surrogate = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(),
-                               tail=LinearTail(opt_prob.dim), maxpts=maxeval)
+    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+                         tail=LinearTail(ackley.dim), maxpts=max_evals)
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
+    slhd = LatinHypercube(dim=ackley.dim, npts=ackley.dim+1)
 
     # Use the serial controller (uses only one thread)
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
-                     exp_design=LatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1)),
-                     surrogate=surrogate,
-                     sampling_method=CandidateDYCORS(data=opt_prob, numcand=100*opt_prob.dim),
-                     batch_size=nthreads, asynchronous=False)
+        SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=False,
+                    exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
+                    batch_size=nthreads)
 
     print("\nNOTE: You may need to specify the matlab_root keyword in "
           "order \n      to start a MATLAB  session using the matlab_wrapper "
@@ -83,7 +83,7 @@ def test_matlab_engine():
         worker = MatlabWorker(controller)
         try:
             worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm', matlab_root=matlab_root)
-        except Exception as err:
+        except:
             print("\nERROR: Failed to initialize a MATLAB session.\n")
             return
 

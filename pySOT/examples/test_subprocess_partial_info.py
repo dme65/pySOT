@@ -15,67 +15,24 @@ import sys
 import os.path
 import logging
 from pySOT.optimization_problems import OptimizationProblem
-
-if sys.version_info < (3, 0):
-    # Try to import from subprocess32
-    try:
-        from subprocess32 import Popen, PIPE
-    except Exception as err:
-        print("ERROR: You need the subprocess32 module for Python 2.7. \n"
-              "Install using: pip install subprocess32")
-        exit()
-else:
-    from subprocess import Popen, PIPE
-
+from subprocess import Popen, PIPE
 
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
-
 # Find path of the executable
 path = os.path.dirname(os.path.abspath(__file__)) + "/sumfun_ext"
 
-
 class SumfunExt(OptimizationProblem):
     def __init__(self, dim=10):
-        self._dim = dim
-        self.info = str(dim)+"-dimensional Sumfun function \n" +\
+        self.dim = dim
+        self.lb = -5 * np.ones(self.dim)
+        self.ub =  5 * np.ones(self.dim)
+        self.cont_var = np.arange(0, self.dim)
+        self.int_var = np.array([])
+        self.info = str(dim) + "-dimensional Sumfun function \n" +\
                              "Global optimum: f(0,0,...,0) = 0"
         self.min = 0
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def lb(self):
-        return -5 * np.ones(self.dim)
-
-    @property
-    def ub(self):
-        return 5 * np.ones(self.dim)
-
-    @property
-    def nexp(self):
-        return 0
-
-    @property
-    def ncheap(self):
-        return 0
-
-    @property
-    def int_var(self):
-        return np.array([])
-
-    @property
-    def cont_var(self):
-        return np.arange(0, self.dim)
-
-    def eval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
-
-    def deval_cheap(self, X):
-        raise NotImplementedError("There are no cheap constraints")
 
     def eval(self, xx):
         pass
@@ -127,21 +84,21 @@ def test_subprocess_partial_info():
     assert os.path.isfile(path), "You need to build sumfun_ext"
 
     nthreads = 4
-    maxeval = 200
-    nsamples = nthreads
+    max_evals = 200
 
-    data = SumfunExt(dim=10)
-    print(data.info)
+    sumfun = SumfunExt(dim=10)
+    print(sumfun.info)
+
+    rbf = RBFInterpolant(dim=sumfun.dim, kernel=CubicKernel(), tail=LinearTail(sumfun.dim))
+    dycors = CandidateDYCORS(opt_prob=sumfun, max_evals=max_evals, numcand=100*sumfun.dim)
+    slhd = SymmetricLatinHypercube(dim=sumfun.dim, npts=2 * (sumfun.dim + 1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(
-            worker_id=0, opt_prob=data, maxeval=maxeval, batch_size=nsamples,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                     tail=LinearTail(data.dim), maxpts=maxeval))
+        SRBFStrategy(max_evals=max_evals, opt_prob=sumfun, asynchronous=True,
+                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
+                     batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):

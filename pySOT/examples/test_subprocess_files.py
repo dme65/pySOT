@@ -7,7 +7,7 @@
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.surrogate import RBFInterpolant, TPSKernel, LinearTail
 from pySOT.optimization_problems import Sphere
 
 from poap.controller import ThreadController, ProcessWorkerThread
@@ -15,29 +15,16 @@ import numpy as np
 import sys
 import os.path
 import logging
-
-if sys.version_info < (3, 0):
-    # Try to import from subprocess32
-    try:
-        from subprocess32 import Popen, PIPE
-    except Exception as err:
-        print("ERROR: You need the subprocess32 module for Python 2.7. \n"
-              "Install using: pip install subprocess32")
-        exit()
-else:
-    from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE
 
 
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
-
 # Find path of the executable
 path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext_files"
 
-
 class CppSim(ProcessWorkerThread):
-
     def handle_eval(self, record):
         try:
             # Print to the input file
@@ -45,7 +32,8 @@ class CppSim(ProcessWorkerThread):
             f.write(array2str(record.params[0]))
             f.close()
 
-            self.process = Popen([path, self.my_filename], stdout=PIPE, bufsize=1, universal_newlines=True)
+            self.process = Popen([path, self.my_filename], stdout=PIPE, \
+                bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
 
             self.finish_success(record, float(val))
@@ -73,21 +61,21 @@ def test_subprocess_files():
     assert os.path.isfile(path), "You need to build sphere_ext_files"
 
     nthreads = 4
-    maxeval = 200
-    nsamples = nthreads
+    max_evals = 200
 
-    data = Sphere(dim=10)
-    print(data.info)
+    sphere = Sphere(dim=10)
+    print(sphere.info)
+
+    rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(), tail=LinearTail(sphere.dim))
+    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, numcand=100*sphere.dim)
+    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2 * (sphere.dim + 1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(
-            worker_id=0, opt_prob=data, maxeval=maxeval, batch_size=nsamples,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim),
-            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                     tail=LinearTail(data.dim), maxpts=maxeval))
+        SRBFStrategy(max_evals=max_evals, opt_prob=sphere, asynchronous=True,
+                    exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
+                    batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for i in range(nthreads):

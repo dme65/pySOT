@@ -1,6 +1,6 @@
 """
 .. module:: surrogate
-   :synopsis: Surrogate surfaces
+   :synopsis: Surrogate models
 
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 
@@ -152,7 +152,7 @@ class CubicKernel(Kernel):
 
     @property
     def order(self):
-        """returns the order of the Cubic RBF kernel
+        """Returns the order of the Cubic RBF kernel
 
         :returns: 2
         :rtype: int
@@ -161,22 +161,22 @@ class CubicKernel(Kernel):
         return 2
 
     def eval(self, dists):
-        """evaluates the Cubic kernel for a distance matrix
+        """Evaluates the Cubic kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|^3`
+        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|^3`
         :rtype: numpy.array
         """
 
         return dists ** 3
 
     def deriv(self, dists):
-        """evaluates the derivative of the Cubic kernel for a distance matrix
+        """Evaluates the derivative of the Cubic kernel for a distance matrix.
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`3 \| x_i - x_j \|^2`
+        :returns: a matrix where element :math:`(i,j)` is :math:`3 \\| x_i - x_j \\|^2`
         :rtype: numpy.array
         """
 
@@ -186,13 +186,13 @@ class CubicKernel(Kernel):
 class TPSKernel(Kernel):
     """Thin-plate spline RBF kernel
 
-    This is a basic class for the TPS RBF kernel: :math:`\\varphi(r) = r^2 \log(r)` which is
+    This is a basic class for the TPS RBF kernel: :math:`\\varphi(r) = r^2 \\log(r)` which is
     conditionally positive definite of order 2.
     """
 
     @property
     def order(self):
-        """returns the order of the TPS RBF kernel
+        """Returns the order of the TPS RBF kernel
 
         :returns: 2
         :rtype: int
@@ -201,27 +201,27 @@ class TPSKernel(Kernel):
         return 2
 
     def eval(self, dists):
-        """evaluates the Cubic kernel for a distance matrix
+        """Evaluates the Cubic kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|^2 \log (\|x_i - x_j \|)`
+        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|^2 \\log (\\|x_i - x_j \\|)`
         :rtype: numpy.array
         """
 
-        dists[dists < np.finfo(float).tiny] = np.finfo(float).tiny
+        dists[dists < np.finfo(float).eps] = np.finfo(float).eps
         return (dists ** 2) * np.log(dists)
 
     def deriv(self, dists):
-        """evaluates the derivative of the Cubic kernel for a distance matrix
+        """Evaluates the derivative of the Cubic kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|(1 + 2 \log (\|x_i - x_j \|) )`
+        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|(1 + 2 \\log (\\|x_i - x_j \\|) )`
         :rtype: numpy.array
         """
 
-        dists[dists < np.finfo(float).tiny] = np.finfo(float).tiny
+        dists[dists < np.finfo(float).eps] = np.finfo(float).eps
         return dists * (1 + 2 * np.log(dists))
 
 
@@ -234,7 +234,7 @@ class LinearKernel(Kernel):
 
     @property
     def order(self):
-        """returns the order of the Linear RBF kernel
+        """Returns the order of the Linear RBF kernel
 
         :returns: 1
         :rtype: int
@@ -243,18 +243,18 @@ class LinearKernel(Kernel):
         return 1
 
     def eval(self, dists):
-        """evaluates the Linear kernel for a distance matrix
+        """Evaluates the Linear kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\|x_i - x_j \|`
+        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|`
         :rtype: numpy.array
         """
 
         return dists
 
     def deriv(self, dists):
-        """evaluates the derivative of the Linear kernel for a distance matrix
+        """Evaluates the derivative of the Linear kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
@@ -266,10 +266,10 @@ class LinearKernel(Kernel):
 
 
 class LinearTail(Tail):
-    """Linear polynomial tail
+    """Linear polynomial tail.
 
     This is a standard linear polynomial in d-dimension, built from the basis
-    :math:`\{1,x_1,x_2,\ldots,x_d\}`.
+    :math:`\\{1,x_1,x_2,\\ldots,x_d\\}`.
     """
 
     def __init__(self, dim):
@@ -278,7 +278,7 @@ class LinearTail(Tail):
 
     @property
     def degree(self):
-        """returns the degree of the linear polynomial tail
+        """Returns the degree of the linear polynomial tail
 
         :returns: 1
         :rtype: int
@@ -288,7 +288,7 @@ class LinearTail(Tail):
 
     @property
     def dim_tail(self):
-        """returns the dimensionality of the linear polynomial space for a given dimension
+        """Returns the dimensionality of the linear polynomial space for a given dimension
 
         :param dim: Number of dimensions of the Cartesian space
         :type dim: int
@@ -299,7 +299,7 @@ class LinearTail(Tail):
         return 1 + self.dim
 
     def eval(self, X):
-        """evaluates the linear polynomial tail for a set of points
+        """Evaluates the linear polynomial tail for a set of points
 
         :param X: Points to evaluate, of size npts x dim
         :type X: numpy.array
@@ -313,7 +313,7 @@ class LinearTail(Tail):
         return np.hstack((np.ones((X.shape[0], 1)), X))
 
     def deriv(self, x):
-        """evaluates the gradient of the linear polynomial tail for one point
+        """Evaluates the gradient of the linear polynomial tail for one point
 
         :param x: Point to evaluate, of length dim
         :type x: numpy.array
@@ -331,7 +331,7 @@ class ConstantTail(Tail):
     """Constant polynomial tail
 
     This is a standard linear polynomial in d-dimension, built from the basis
-    :math:`\{1\}`.
+    :math:`\\{ 1 \\}`.
     """
 
     def __init__(self, dim):
@@ -340,7 +340,7 @@ class ConstantTail(Tail):
 
     @property
     def degree(self):
-        """returns the degree of the constant polynomial tail
+        """Returns the degree of the constant polynomial tail
 
         :returns: 0
         :rtype: int
@@ -350,7 +350,7 @@ class ConstantTail(Tail):
 
     @property
     def dim_tail(self):
-        """returns the dimensionality of the constant polynomial space for a given dimension
+        """Returns the dimensionality of the constant polynomial space for a given dimension
 
         :param dim: Number of dimensions of the Cartesian space
         :type dim: int
@@ -361,7 +361,7 @@ class ConstantTail(Tail):
         return 1
 
     def eval(self, X):
-        """evaluates the constant polynomial tail for a set of points
+        """Evaluates the constant polynomial tail for a set of points
 
         :param X: Points to evaluate, of size npts x dim
         :type X: numpy.array
@@ -375,7 +375,7 @@ class ConstantTail(Tail):
         return np.ones((X.shape[0], 1))
 
     def deriv(self, x):
-        """evaluates the gradient of the linear polynomial tail for one point
+        """Evaluates the gradient of the linear polynomial tail for one point
 
         :param x: Point to evaluate, of length dim
         :type x: numpy.array
@@ -544,7 +544,6 @@ class RBFInterpolant(Surrogate):
         """
 
         if self.dirty:
-
             n = self.npts
             ntail = self.ntail
             nact = ntail + n
@@ -593,7 +592,7 @@ class RBFInterpolant(Surrogate):
                 L21 = L21.T
                 try:
                     C = scplinalg.cholesky(a=Phinew - np.dot(L21, U12), lower=True)
-                except Exception as e:  # Compute a new LU factorization if the Cholesky fails
+                except:  # Compute a new LU factorization if the Cholesky fails
                     self.c = None
                     return self.coeffs()
 
@@ -664,7 +663,7 @@ class RBFInterpolant(Surrogate):
             raise ValueError("Input has incorrect number of dimensions")
 
         ds = scpspatial.distance.cdist(self.X, xx)
-        ds[ds < np.finfo(float).tiny] = np.finfo(float).tiny  # Better safe than sorry
+        ds[ds < np.finfo(float).eps] = np.finfo(float).eps  # Better safe than sorry
 
         dfxx = np.zeros((xx.shape[0], self.dim))
         for i in range(xx.shape[0]):
@@ -832,14 +831,14 @@ class MARSInterpolant(Surrogate):
 
     .. math::
 
-        \hat{f}(x) = \sum_{i=1}^{k} c_i B_i(x).
+        \\hat{f}(x) = \\sum_{i=1}^{k} c_i B_i(x).
 
     The model is a weighted sum of basis functions :math:`B_i(x)`. Each basis
     function :math:`B_i(x)` takes one of the following three forms:
 
     1. a constant 1.
-    2. a hinge function of the form :math:`\max(0, x - const)` or \
-       :math:`\max(0, const - x)`. MARS automatically selects variables \
+    2. a hinge function of the form :math:`\\max(0, x - const)` or \
+       :math:`\\max(0, const - x)`. MARS automatically selects variables \
        and values of those variables for knots of the hinge functions.
     3. a product of two or more hinge functions. These basis functions c \
        an model interaction between two or more variables.
@@ -1134,11 +1133,11 @@ class SurrogateCapped(Surrogate):
 
         self.transformation = transformation
         if self.transformation is None:
-            def transformation(fvalues):
+            def median_transformation(fvalues):
                 medf = np.median(fvalues)
                 fvalues[fvalues > medf] = medf
                 return fvalues
-            self.transformation = transformation
+            self.transformation = median_transformation
         self.model = model
         self._maxpts = self.model.maxpts
         self._npts = 0

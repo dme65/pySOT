@@ -7,22 +7,13 @@
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import GlobalStrategy
-from pySOT.surrogate import GPRegression
+from pySOT.surrogate import GPRegressor
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 import logging
-
-# Try to import MARS
-try:
-    from pySOT.surrogate import GPRegression
-except Exception as err:
-    print("\nERROR: Failed to import GPRegression. This is likely "
-          "because scikit-learn>=0.18 is not installed. Aborting.....\n")
-    exit()
-
 
 def test_gp_regression():
     if not os.path.exists("./logfiles"):
@@ -39,23 +30,25 @@ def test_gp_regression():
     print("Surrogate: Gaussian process regression")
 
     nthreads = 4
-    maxeval = 50
-    nsamples = nthreads
+    max_evals = 50
 
-    opt_prob = Ackley(dim=4)
-    print(opt_prob.info)
+    ackley = Ackley(dim=4)
+    print(ackley.info)
+
+    gp = GPRegressor(dim=ackley.dim, maxpts=max_evals)
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        GlobalStrategy(worker_id=0, maxeval=maxeval, opt_prob=opt_prob,
-                       surrogate=GPRegression(dim=opt_prob.dim, maxpts=maxeval),
-                       sampling_method=CandidateDYCORS(data=opt_prob),
-                       batch_size=nsamples, asynchronous=True)
+        GlobalStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
+                       exp_design=slhd, surrogate=gp, adapt_sampling=dycors,
+                       batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
-        worker = BasicWorkerThread(controller, opt_prob.eval)
+        worker = BasicWorkerThread(controller, ackley.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy

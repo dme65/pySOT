@@ -17,12 +17,11 @@ import multiprocessing
 import time
 import os
 
-maxeval = 200
+max_evals = 200
+ackley = Ackley(dim=10)
+print(ackley.info)
 
-opt_prob = Ackley(dim=10)
-print(opt_prob.info)
 fname = "checkpoint.pysot"
-
 
 def test_checkpoint_serial():
     if os.path.isfile(fname):
@@ -43,18 +42,17 @@ def test_checkpoint_serial():
 
 def init():
     print("\nInitializing run...")
-    surrogate = RBFInterpolant(
-        opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+                         tail=LinearTail(ackley.dim), maxpts=max_evals)
+    srbf = CandidateSRBF(opt_prob=ackley, numcand=100*ackley.dim)
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
-    controller = SerialController(opt_prob.eval)
+    controller = SerialController(ackley.eval)
     controller.strategy = \
-        GlobalStrategy(max_evals=maxeval, opt_prob=opt_prob,
-                       exp_design=SymmetricLatinHypercube(dim=opt_prob.dim,
-                                                          npts=2 * (opt_prob.dim + 1)),
-                       surrogate=surrogate,
-                       adapt_sampling=CandidateSRBF(data=opt_prob, numcand=100*opt_prob.dim),
-                       asynchronous=True, batch_size=1, stopping_criterion=None, extra=None)
+        GlobalStrategy(max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+                       surrogate=rbf, adapt_sampling=srbf, 
+                       asynchronous=True, extra=None)
 
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)
@@ -67,7 +65,7 @@ def init():
 
 def resume():
     print("Resuming run...\n")
-    controller = SerialController(opt_prob.eval)
+    controller = SerialController(ackley.eval)
 
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)

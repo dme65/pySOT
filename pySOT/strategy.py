@@ -148,7 +148,7 @@ class GlobalStrategy(SurrogateStrategy):
             2) Move temp file to save file
             3) Remove temp file
         """
-        temp_fname = fname + "_temp"
+        temp_fname = "temp_" + fname
         with open(temp_fname, 'wb') as output:
             dill.dump(self, output, dill.HIGHEST_PROTOCOL)
         os.rename(temp_fname, fname)
@@ -345,7 +345,7 @@ class GlobalStrategy(SurrogateStrategy):
         self.rejected_count += 1
         self.feval_budget += 1
         self.feval_pending -= 1
-        xx = np.copy(proposal.params[0])
+        xx = np.copy(proposal.args[0])
         self.remove_closest_pending(xx)
 
     def on_adapt_update(self, record):

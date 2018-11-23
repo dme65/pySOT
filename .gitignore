@@ -3,3 +3,5 @@
 build/
 dist/
 pySOT.egg-info
+*.pysot
+.pytest_cache/*
