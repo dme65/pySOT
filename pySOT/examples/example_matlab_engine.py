@@ -1,6 +1,6 @@
 """
-.. module:: test_matlab_engine
-  :synopsis: Test with MATLAB objective function
+.. module:: example_matlab_engine
+  :synopsis: Example with MATLAB objective function
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -38,12 +38,12 @@ class MatlabWorker(ProcessWorkerThread):
             self.finish_cancelled(record)
 
 
-def test_matlab_engine():
+def example_matlab_engine():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_matlab_engine.log"):
-        os.remove("./logfiles/test_matlab_engine.log")
-    logging.basicConfig(filename="./logfiles/test_matlab_engine.log",
+    if os.path.exists("./logfiles/example_matlab_engine.log"):
+        os.remove("./logfiles/example_matlab_engine.log")
+    logging.basicConfig(filename="./logfiles/example_matlab_engine.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
@@ -101,4 +101,4 @@ def test_matlab_engine():
 
 
 if __name__ == '__main__':
-    test_matlab_engine()
+    example_matlab_engine()

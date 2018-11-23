@@ -1,6 +1,6 @@
 """
-.. module:: test_extra_vals
-  :synopsis: Test extra values
+.. module:: example_extra_vals
+  :synopsis: Example extra values
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -16,12 +16,12 @@ import os.path
 import logging
 
 
-def test_extra_vals():
+def example_extra_vals():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_extra_vals.log"):
-        os.remove("./logfiles/test_extra_vals.log")
-    logging.basicConfig(filename="./logfiles/test_extra_vals.log",
+    if os.path.exists("./logfiles/example_extra_vals.log"):
+        os.remove("./logfiles/example_extra_vals.log")
+    logging.basicConfig(filename="./logfiles/example_extra_vals.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
@@ -78,4 +78,4 @@ def test_extra_vals():
 
 
 if __name__ == '__main__':
-    test_extra_vals()
+    example_extra_vals()

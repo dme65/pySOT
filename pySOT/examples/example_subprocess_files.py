@@ -1,6 +1,6 @@
 """
-.. module:: test_subprocess_files
-  :synopsis: Test an external objective function with input text files
+.. module:: example_subprocess_files
+  :synopsis: Example of an external objective function with input text files
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -44,12 +44,12 @@ class CppSim(ProcessWorkerThread):
             self.finish_cancelled(record)
 
 
-def test_subprocess_files():
+def example_subprocess_files():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_subprocess_files.log"):
-        os.remove("./logfiles/test_subprocess_files.log")
-    logging.basicConfig(filename="./logfiles/test_subprocess_files.log",
+    if os.path.exists("./logfiles/example_subprocess_files.log"):
+        os.remove("./logfiles/example_subprocess_files.log")
+    logging.basicConfig(filename="./logfiles/example_subprocess_files.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
@@ -93,4 +93,4 @@ def test_subprocess_files():
 
 
 if __name__ == '__main__':
-    test_subprocess_files()
+    example_subprocess_files()

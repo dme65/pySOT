@@ -1,12 +1,13 @@
 """
-.. module:: test_mars
-  :synopsis: Test MARS
+.. module:: example_simple
+  :synopsis: Example Simple
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SRBFStrategy
+from pySOT.strategy import GlobalStrategy, SRBFStrategy
+from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, SurrogateUnitBox
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -14,49 +15,38 @@ import numpy as np
 import os.path
 import logging
 
-# Try to import MARS
-try:
-    from pySOT.surrogate import MARSInterpolant
-except Exception as err:
-    print("\nERROR: Failed to import MARS. This is likely "
-          "because py-earth is not installed. Aborting.....\n")
-    exit()
 
-
-def test_mars():
+def example_simple():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_mars.log"):
-        os.remove("./logfiles/test_mars.log")
-    logging.basicConfig(filename="./logfiles/test_mars.log",
+    if os.path.exists("./logfiles/example_simple.log"):
+        os.remove("./logfiles/example_simple.log")
+    logging.basicConfig(filename="./logfiles/example_simple.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 200")
+    print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: MARS interpolant")
+    print("Surrogate: Cubic RBF")
 
     nthreads = 4
-    max_evals = 200
+    max_evals = 500
 
-    ackley = Ackley(dim=5)
+    ackley = Ackley(dim=10)
     print(ackley.info)
 
-    try:
-        mars = MARSInterpolant(dim=ackley.dim, maxpts=max_evals)
-    except Exception as e:
-        print(str(e))
-        return
-
+    rbf = SurrogateUnitBox(
+        RBFInterpolant(ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim),
+        maxpts=max_evals), lb=ackley.lb, ub=ackley.ub)
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
-    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
             SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
-                         exp_design=slhd, surrogate=mars, adapt_sampling=dycors,
+                         exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
                          batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
@@ -72,6 +62,5 @@ def test_mars():
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 
-
 if __name__ == '__main__':
-    test_mars()
+    example_simple()

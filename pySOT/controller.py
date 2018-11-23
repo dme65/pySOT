@@ -37,7 +37,7 @@ class CheckpointController(object):
     def resume(self, merit=None, filter=None):
         """Resume an optimization run
 
-        The strategy can assumed that all pending evaluations are cancelled
+        The strategy assumes that all pending evaluations are cancelled
         """
         if not os.path.isfile(self.fname):
             raise IOError("Checkpoint file does not exist")

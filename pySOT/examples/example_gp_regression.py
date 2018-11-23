@@ -1,53 +1,50 @@
 """
-.. module:: test_simple_time
-  :synopsis: Test Simple with time budget
+.. module:: example_gp_regression
+  :synopsis: Example GP Regression
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SRBFStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
+from pySOT.strategy import GlobalStrategy
+from pySOT.surrogate import GPRegressor
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 import logging
-import time
 
-
-def test_simple_time():
+def example_gp_regression():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_simple_time.log"):
-        os.remove("./logfiles/test_simple_time.log")
-    logging.basicConfig(filename="./logfiles/test_simple_time.log",
+    if os.path.exists("./logfiles/example_gp.log"):
+        os.remove("./logfiles/example_gp.log")
+    logging.basicConfig(filename="./logfiles/example_gp.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Time budget: 10 seconds")
+    print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF")
+    print("Surrogate: Gaussian process regression")
 
     nthreads = 4
-    max_evals = -10  # This means 10 seconds
+    max_evals = 50
 
-    ackley = Ackley(dim=30)
+    ackley = Ackley(dim=4)
     print(ackley.info)
 
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim), maxpts=1000)
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=1000, numcand=100*ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, maxpts=max_evals)
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
-                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                     batch_size=nthreads)
+        GlobalStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
+                       exp_design=slhd, surrogate=gp, adapt_sampling=dycors,
+                       batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
@@ -55,12 +52,8 @@ def test_simple_time():
         controller.launch_worker(worker)
 
     # Run the optimization strategy
-    start_time = time.time()
     result = controller.run()
-    end_time = time.time()
 
-    print('Run time: {0} seconds'.format(end_time - start_time))
-    print('Number of evaluations: {0}'.format(len(controller.fevals)))
     print('Best value found: {0}'.format(result.value))
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
@@ -68,4 +61,4 @@ def test_simple_time():
 
 
 if __name__ == '__main__':
-    test_simple_time()
+    example_gp_regression()

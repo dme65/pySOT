@@ -1,13 +1,12 @@
 """
-.. module:: test_gp_regression
-  :synopsis: Test GP Regression
+.. module:: example_mars
+  :synopsis: Example MARS
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import GlobalStrategy
-from pySOT.surrogate import GPRegressor
+from pySOT.strategy import SRBFStrategy
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -15,36 +14,50 @@ import numpy as np
 import os.path
 import logging
 
-def test_gp_regression():
+# Try to import MARS
+try:
+    from pySOT.surrogate import MARSInterpolant
+except Exception as err:
+    print("\nERROR: Failed to import MARS. This is likely "
+          "because py-earth is not installed. Aborting.....\n")
+    exit()
+
+
+def example_mars():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_gp.log"):
-        os.remove("./logfiles/test_gp.log")
-    logging.basicConfig(filename="./logfiles/test_gp.log",
+    if os.path.exists("./logfiles/example_mars.log"):
+        os.remove("./logfiles/example_mars.log")
+    logging.basicConfig(filename="./logfiles/example_mars.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
+    print("Maximum number of evaluations: 200")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Gaussian process regression")
+    print("Surrogate: MARS interpolant")
 
     nthreads = 4
-    max_evals = 50
+    max_evals = 200
 
-    ackley = Ackley(dim=4)
+    ackley = Ackley(dim=5)
     print(ackley.info)
 
-    gp = GPRegressor(dim=ackley.dim, maxpts=max_evals)
+    try:
+        mars = MARSInterpolant(dim=ackley.dim, maxpts=max_evals)
+    except Exception as e:
+        print(str(e))
+        return
+
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = \
-        GlobalStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
-                       exp_design=slhd, surrogate=gp, adapt_sampling=dycors,
-                       batch_size=nthreads)
+            SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
+                         exp_design=slhd, surrogate=mars, adapt_sampling=dycors,
+                         batch_size=nthreads)
 
     # Launch the threads and give them access to the objective function
     for _ in range(nthreads):
@@ -61,4 +74,4 @@ def test_gp_regression():
 
 
 if __name__ == '__main__':
-    test_gp_regression()
+    example_mars()

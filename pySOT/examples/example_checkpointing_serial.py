@@ -1,6 +1,6 @@
 """
-.. module:: test_checkpointing_serial
-  :synopsis: Test Checkpointing Serial
+.. module:: example_checkpointing_serial
+  :synopsis: Example Checkpointing Serial
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -23,7 +23,7 @@ print(ackley.info)
 
 fname = "checkpoint.pysot"
 
-def test_checkpoint_serial():
+def example_checkpoint_serial():
     if os.path.isfile(fname):
         os.remove(fname)
 
@@ -77,4 +77,4 @@ def resume():
 
 
 if __name__ == '__main__':
-    test_checkpoint_serial()
+    example_checkpoint_serial()

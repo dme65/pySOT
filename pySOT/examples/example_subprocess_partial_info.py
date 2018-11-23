@@ -1,6 +1,6 @@
 """
-.. module:: test_subprocess_partial_info
-  :synopsis: Test an external objective function with partial info
+.. module:: example_subprocess_partial_info
+  :synopsis: Example an external objective function with partial info
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -67,12 +67,12 @@ class CppSim(ProcessWorkerThread):
             self.finish_success(record, val)
 
 
-def test_subprocess_partial_info():
+def example_subprocess_partial_info():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_subprocess_partial_info.log"):
-        os.remove("./logfiles/test_subprocess_partial_info.log")
-    logging.basicConfig(filename="./logfiles/test_subprocess_partial_info.log",
+    if os.path.exists("./logfiles/example_subprocess_partial_info.log"):
+        os.remove("./logfiles/example_subprocess_partial_info.log")
+    logging.basicConfig(filename="./logfiles/example_subprocess_partial_info.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 4")
@@ -114,4 +114,4 @@ def test_subprocess_partial_info():
 
 
 if __name__ == '__main__':
-    test_subprocess_partial_info()
+    example_subprocess_partial_info()

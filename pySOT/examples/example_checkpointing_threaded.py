@@ -1,6 +1,6 @@
 """
-.. module:: test_checkpointing_threaded
-  :synopsis: Test Checkpointing Threaded
+.. module:: example_checkpointing_threaded
+  :synopsis: Example Checkpointing Threaded
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -24,7 +24,7 @@ print(ackley.info)
 
 fname = "checkpoint.pysot"
 
-def test_checkpoint_threaded():
+def example_checkpoint_threaded():
     if os.path.isfile(fname):
         os.remove(fname)
 
@@ -89,4 +89,4 @@ def resume():
 
 
 if __name__ == '__main__':
-    test_checkpoint_threaded()
+    example_checkpoint_threaded()

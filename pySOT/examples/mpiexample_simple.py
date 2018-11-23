@@ -1,6 +1,6 @@
 """
-.. module:: test_simple_mpi
-  :synopsis: Test Simple MPI
+.. module:: mpiexample_simple_mpi
+  :synopsis: Simple MPI example
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -27,12 +27,12 @@ def main_worker(objfunction):
     MPISimpleWorker(objfunction).run()
 
 
-def main_master(data, nworkers):
+def main_master(opt_prob, nworkers):
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_simple_mpi.log"):
-        os.remove("./logfiles/test_simple_mpi.log")
-    logging.basicConfig(filename="./logfiles/test_simple_mpi.log",
+    if os.path.exists("./logfiles/mpiexample_mpi.log"):
+        os.remove("./logfiles/mpiexample_mpi.log")
+    logging.basicConfig(filename="./logfiles/mpiexample_mpi.log",
                         level=logging.INFO)
 
     print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
@@ -41,17 +41,19 @@ def main_master(data, nworkers):
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    maxeval = 500
-    print(data.info)
+    max_evals = 500
+    print(opt_prob.info)
+
+    rbf = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim), 
+                         maxpts=max_evals)
+    dycors = CandidateDYCORS(opt_prob=opt_prob, max_evals=max_evals, numcand=100*opt_prob.dim)
+    slhd = SymmetricLatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1))
 
     # Create a strategy and a controller
     strategy = \
-        SRBFStrategy(
-            worker_id=0, opt_prob=data, maxeval=maxeval, batch_size=nworkers,
-            exp_design=SymmetricLatinHypercube(dim=data.dim, npts=2*(data.dim+1)),
-            surrogate=RBFInterpolant(dim=data.dim, kernel=CubicKernel(),
-                                     tail=LinearTail(data.dim), maxpts=maxeval),
-            sampling_method=CandidateDYCORS(data=data, numcand=100*data.dim))
+        SRBFStrategy(max_evals=max_evals, opt_prob=opt_prob, asynchronous=True,
+                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
+                     batch_size=nworkers)
     controller = MPIController(strategy)
 
     result = controller.run()
@@ -61,9 +63,9 @@ def main_master(data, nworkers):
                      precision=5, suppress_small=True)))
 
 
-def test_simple_mpi():
+def mpiexample_simple():
     # Optimization problem
-    data = Ackley(dim=10)
+    ackley = Ackley(dim=10)
 
     # Extract the rank
     comm = MPI.COMM_WORLD
@@ -71,10 +73,10 @@ def test_simple_mpi():
     nprocs = comm.Get_size()
 
     if rank == 0:
-        main_master(data, nprocs)
+        main_master(ackley, nprocs)
     else:
-        main_worker(data.eval)
+        main_worker(ackley.eval)
 
 
 if __name__ == '__main__':
-    test_simple_mpi()
+    mpiexample_simple()

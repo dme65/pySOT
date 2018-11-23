@@ -1,6 +1,6 @@
 """
-.. module:: test_multisampling
-  :synopsis: Test multisampling strategy
+.. module:: example_multisampling
+  :synopsis: Example multisampling strategy
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
@@ -15,15 +15,15 @@ import os.path
 import logging
 
 
-def test_multisampling():
+def example_multisampling():
     return
 
 
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/test_multisampling.log"):
-        os.remove("./logfiles/test_multisampling.log")
-    logging.basicConfig(filename="./logfiles/test_multisampling.log",
+    if os.path.exists("./logfiles/example_multisampling.log"):
+        os.remove("./logfiles/example_multisampling.log")
+    logging.basicConfig(filename="./logfiles/example_multisampling.log",
                         level=logging.INFO)
 
     print("\nNumber of threads: 1")
@@ -60,4 +60,4 @@ def test_multisampling():
 
 
 if __name__ == '__main__':
-    test_multisampling()
+    example_multisampling()
