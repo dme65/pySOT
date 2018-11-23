@@ -157,7 +157,7 @@ def test_rbf():
 
 def test_gp():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    gp = GPRegressor(2, 200)
+    gp = GPRegressor(2, 50)
     assert (isinstance(gp, Surrogate))
     fX = f(X)
     gp.add_points(X, fX)
@@ -173,7 +173,7 @@ def test_gp():
     # Derivative at previous points
     # Reset the surrogate
     gp.reset()
-    gp._maxpts = 200
+    gp._maxpts = 50
     assert (gp.npts == 0)
     assert (gp.dim == 2)
 
@@ -218,7 +218,7 @@ def test_mars():
     fhx = mars.eval(Xs)
     fx = f(Xs)
     for i in range(Xs.shape[0]):
-        assert (abs(fx[i] - fhx[i]) < 1e-2)
+        assert (abs(fx[i] - fhx[i]) < 1e-1)
 
     # Reset the surrogate
     mars.reset()

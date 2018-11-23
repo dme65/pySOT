@@ -13,6 +13,8 @@ import abc
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
 from pySOT.utils import to_unit_box, from_unit_box
 
 
@@ -691,15 +693,7 @@ class GPRegressor(Surrogate):
         http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html
     """
 
-    def __init__(self, dim, maxpts=100, gp=None):
-
-        try:
-            from sklearn.gaussian_process import GaussianProcessRegressor
-            from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
-        except ImportError as err:
-            print("Failed to import sklearn.gaussian_process and sklearn.gaussian_process.kernels")
-            raise err
-
+    def __init__(self, dim, maxpts=100, gp=None, n_restarts_optimizer=3):
         self._npts = 0
         self._maxpts = maxpts
         self._dim = dim
@@ -707,7 +701,7 @@ class GPRegressor(Surrogate):
         self._fX = None
         if gp is None:
             kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + WhiteKernel(1e-3, (1e-6, 1e-2))
-            self.model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
+            self.model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=n_restarts_optimizer)
         else:
             self.model = gp
             if not isinstance(gp, GaussianProcessRegressor):

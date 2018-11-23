@@ -18,7 +18,6 @@ import logging
 def example_multisampling():
     return
 
-
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/example_multisampling.log"):

@@ -24,14 +24,11 @@ install:
   - conda install -n test-environment -q numpy scipy pip
   - conda install -n test-environment -q --channel mpi4py mpich mpi4py
 
-  # Install py-earth, matlab_wrapper
+  # Install py-earth and code coverage
   - pip install --upgrade pip
-  - pip install "scikit-learn >= 0.18.1"
   - pip install six http://github.com/scikit-learn-contrib/py-earth/tarball/master
-  - pip install matlab_wrapper
   - pip install codecov
   - pip install pytest-cov
-  - pip install dill
 
   # Install pySOT
   - python setup.py install
@@ -39,6 +36,8 @@ install:
 script:
   - cd ./pySOT/examples/
   - make
+  - make example
+  - make mpiexample
   - cd -
   - python -m pytest --cov-config .coveragerc --cov=pySOT
 
