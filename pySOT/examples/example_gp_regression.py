@@ -35,7 +35,7 @@ def example_gp_regression():
     ackley = Ackley(dim=4)
     print(ackley.info)
 
-    gp = GPRegressor(dim=ackley.dim, maxpts=max_evals)
+    gp = GPRegressor(dim=ackley.dim)
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 

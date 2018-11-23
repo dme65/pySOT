@@ -9,17 +9,24 @@
 
 """
 
-import abc
+from abc import ABC, abstractmethod
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.linalg as scplinalg
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import Ridge
 from pySOT.utils import to_unit_box, from_unit_box
+import warnings
 
 
 def reallocate(A, dims, **kwargs):
-    """Reallocate A with at most 2 dimensions to have size according to dims"""
+    """Reallocate A with at most 2 dimensions to have size according to dims
+    
+    TODO: Move to utils
+    """
     if A is None:
         A = np.zeros(dims, **kwargs)
         return A
@@ -34,60 +41,51 @@ def reallocate(A, dims, **kwargs):
     return AA
 
 
-class Surrogate(object):
-    __metaclass__ = abc.ABCMeta
+class Surrogate(ABC):
+    def __init__(self):
+        self.dim = None
+        self.npts = None
+        self.X = None
+        self.fX = None
+        self.updated = None
 
-    @property
-    @abc.abstractmethod
-    def dim(self):  # pragma: no cover
-        """Get dimensionality"""
-        pass
+    def reset(self):
+        """Reset the interpolation."""
+        self.npts = 0
+        self.X = np.empty([0, self.dim])
+        self.fX = np.empty([0, 1])
+        self.updated = False
 
-    @property
-    @abc.abstractmethod
-    def npts(self):  # pragma: no cover
-        """Get number of points"""
-        pass
+    def add_points(self, xx, fx):
+        """Add a new function evaluation
 
-    @property
-    @abc.abstractmethod
-    def X(self):  # pragma: no cover
-        """Return centers X of the interpolant"""
-        return
+        This method SHOULD NOT trigger a new fit, it just updates X and fX
 
-    @property
-    @abc.abstractmethod
-    def fX(self):  # pragma: no cover
-        """Return values fX of the interpolant"""
-        return
-
-    @abc.abstractmethod
-    def reset(self):  # pragma: no cover
-        """Reset the object"""
-        pass
-
-    def transform_fx(self, fX):  # pragma: no cover
-        """Replace function values used for fitting"""
-        pass
-
-    @abc.abstractmethod
-    def add_points(self, X, fX):  # pragma: no cover
-        """Add points xx with values fxx
-
-        xx must be of size npts x dim or (dim, )
-        fxx must be of size npts x 1 or (npts, )
+        :param xx: Points to add
+        :type xx: numpy.ndarray
+        :param fx: The function values of the point to add
+        :type fx: numpy.array or float
         """
-        return
 
-    @abc.abstractmethod
-    def eval(self, X):  # pragma: no cover
+        xx = np.atleast_2d(xx)
+        if fx.ndim == 0: fx = np.expand_dims(fx, axis=0)
+        if fx.ndim == 1: fx = np.expand_dims(fx, axis=1)
+        assert xx.shape[0] == fx.shape[0] and xx.shape[1] == self.dim
+        newpts = xx.shape[0]
+        self.X = np.vstack((self.X, xx))
+        self.fX = np.vstack((self.fX, fx))
+        self.npts += newpts
+        self.updated = False
+
+    @abstractmethod
+    def eval(self, xx):  # pragma: no cover
         """Evaluate interpolant at points xx
 
         xx must be of size npts x dim or (dim, )
         """
         return
 
-    @abc.abstractmethod
+    @abstractmethod
     def deriv(self, X):  # pragma: no cover
         """Evaluate derivative of interpolant at points xx
 
@@ -96,48 +94,30 @@ class Surrogate(object):
         return
 
 
-class Kernel(object):
-    __metaclass__ = abc.ABCMeta
-
+class Kernel(ABC):
     def __init__(self):  # pragma: no cover
-        pass
+        self.order = None
 
-    @property
-    @abc.abstractmethod
-    def order(self):  # pragma: no cover
-        pass
-
-    @abc.abstractmethod
+    @abstractmethod
     def eval(self, dists):  # pragma: no cover
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def deriv(self, dists):  # pragma: no cover
         pass
 
 
-class Tail(object):
-    __metaclass__ = abc.ABCMeta
+class Tail(ABC):
+    def __init__(self):  # pragma: no cover
+        self.degree = None
+        self.dim = None
+        self.dim_tail = None
 
-    @abc.abstractmethod
-    def __init__(self, dim):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def degree(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def dim_tail(self):  # pragma: no cover
-        pass
-
-    @abc.abstractmethod
+    @abstractmethod
     def eval(self, X):  # pragma: no cover
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def deriv(self, x):  # pragma: no cover
         pass
 
@@ -150,17 +130,8 @@ class CubicKernel(Kernel):
     """
 
     def __init__(self):
-        super(CubicKernel, self).__init__()
-
-    @property
-    def order(self):
-        """Returns the order of the Cubic RBF kernel
-
-        :returns: 2
-        :rtype: int
-        """
-
-        return 2
+        super().__init__()
+        self.order = 2
 
     def eval(self, dists):
         """Evaluates the Cubic kernel for a distance matrix
@@ -192,18 +163,12 @@ class TPSKernel(Kernel):
     conditionally positive definite of order 2.
     """
 
-    @property
-    def order(self):
-        """Returns the order of the TPS RBF kernel
-
-        :returns: 2
-        :rtype: int
-        """
-
-        return 2
+    def __init__(self):
+        super().__init__()
+        self.order = 2
 
     def eval(self, dists):
-        """Evaluates the Cubic kernel for a distance matrix
+        """Evaluates the TPS kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
@@ -215,7 +180,7 @@ class TPSKernel(Kernel):
         return (dists ** 2) * np.log(dists)
 
     def deriv(self, dists):
-        """Evaluates the derivative of the Cubic kernel for a distance matrix
+        """Evaluates the derivative of the TPS kernel for a distance matrix
 
         :param dists: Distance input matrix
         :type dists: numpy.array
@@ -234,15 +199,9 @@ class LinearKernel(Kernel):
      conditionally positive definite of order 1.
      """
 
-    @property
-    def order(self):
-        """Returns the order of the Linear RBF kernel
-
-        :returns: 1
-        :rtype: int
-        """
-
-        return 1
+    def __init__(self):
+        super().__init__()
+        self.order = 1
 
     def eval(self, dists):
         """Evaluates the Linear kernel for a distance matrix
@@ -275,30 +234,10 @@ class LinearTail(Tail):
     """
 
     def __init__(self, dim):
-        super(LinearTail, self).__init__(dim)
+        super().__init__()
+        self.degree = 1
         self.dim = dim
-
-    @property
-    def degree(self):
-        """Returns the degree of the linear polynomial tail
-
-        :returns: 1
-        :rtype: int
-        """
-
-        return 1
-
-    @property
-    def dim_tail(self):
-        """Returns the dimensionality of the linear polynomial space for a given dimension
-
-        :param dim: Number of dimensions of the Cartesian space
-        :type dim: int
-        :returns: 1 + dim
-        :rtype: int
-        """
-
-        return 1 + self.dim
+        self.dim_tail = 1 + dim
 
     def eval(self, X):
         """Evaluates the linear polynomial tail for a set of points
@@ -337,30 +276,10 @@ class ConstantTail(Tail):
     """
 
     def __init__(self, dim):
-        super(ConstantTail, self).__init__(dim)
+        super().__init__()
+        self.degree = 0
         self.dim = dim
-
-    @property
-    def degree(self):
-        """Returns the degree of the constant polynomial tail
-
-        :returns: 0
-        :rtype: int
-        """
-
-        return 0
-
-    @property
-    def dim_tail(self):
-        """Returns the dimensionality of the constant polynomial space for a given dimension
-
-        :param dim: Number of dimensions of the Cartesian space
-        :type dim: int
-        :returns: 1
-        :rtype: int
-        """
-
-        return 1
+        self.dim_tail = 1
 
     def eval(self, X):
         """Evaluates the constant polynomial tail for a set of points
@@ -438,6 +357,8 @@ class RBFInterpolant(Surrogate):
     :ivar dim: Number of dimensions
     :ivar ntail: Number of tail functions
     :ivar updated: True if the RBF coefficients are up to date
+
+    TODO: Update this interface to match the abstract class
     """
 
     def __init__(self, dim, maxpts=500, kernel=None, tail=None, eta=1e-6):
@@ -674,7 +595,7 @@ class RBFInterpolant(Surrogate):
             dpx = self.tail.deriv(x)
             c = self.coeffs()
             dfx = np.dot(dpx, c[:ntail]).transpose()
-            dsx = - self.X
+            dsx = -self.X
             dsx += x
             dss = np.atleast_2d(ds[:, i]).T
             dsx *= (np.multiply(self.kernel.deriv(dss), c[ntail:]) / dss)
@@ -693,12 +614,11 @@ class GPRegressor(Surrogate):
         http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html
     """
 
-    def __init__(self, dim, maxpts=100, gp=None, n_restarts_optimizer=3):
-        self._npts = 0
-        self._maxpts = maxpts
-        self._dim = dim
-        self._X = None     # pylint: disable=invalid-name
-        self._fX = None
+    def __init__(self, dim, gp=None, n_restarts_optimizer=3):
+        self.npts = 0
+        self.dim = dim
+        self.X = np.empty([0, dim])     # pylint: disable=invalid-name
+        self.fX = np.empty([0, 1])
         if gp is None:
             kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + WhiteKernel(1e-3, (1e-6, 1e-2))
             self.model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=n_restarts_optimizer)
@@ -708,81 +628,11 @@ class GPRegressor(Surrogate):
                 raise TypeError("gp is not of type GaussianProcessRegressor")
         self.updated = False
 
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
-
-    @property
-    def maxpts(self):
-        return self._maxpts
-
-    @property
-    def X(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self._X[:self.npts, :]
-
-    @property
-    def fX(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self._fX[:self.npts]
-
-    def reset(self):
-        """Reset the interpolation."""
-
-        self._npts = 0
-        self._X = None
-        self._fX = None
-        self.updated = False
-
-    def transform_fx(self, fX):
-        self._fX = fX
-
-    def _realloc(self, extra=1):
-        """Expand allocation to accommodate more points (if needed)
-
-        :param extra: Number of additional points to accommodate
-        :type extra: int
-        """
-
-        maxp = self.maxpts
-        if maxp < self.npts + extra or self.npts == 0:
-            while maxp < self.npts + extra: maxp = 2 * maxp
-            self._maxpts = maxp
-            self._X = reallocate(self._X, (maxp, self.dim))
-            self._fX = reallocate(self._fX, (maxp,))
-
-    def add_points(self, xx, fx):
-        """Add new function evaluations
-
-        :param xx: Points to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        xx = np.atleast_2d(xx)
-        newpts = xx.shape[0]
-        self._realloc(extra=newpts)
-
-        self._X[self.npts:self.npts + newpts, :] = xx
-        self._fX[self.npts:self.npts + newpts] = fx
-        self._npts += newpts
-
-        self.updated = False
+    def _fit(self):
+        """Fit the model"""
+        if not self.updated:
+            self.model.fit(self.X, self.fX)
+            self.updated = True
 
     def eval(self, x):
         """Evaluate the GP regression object at the points x
@@ -794,15 +644,9 @@ class GPRegressor(Surrogate):
         :return: Values of the GP regression object at x, of length npts
         :rtype: numpy.array
         """
-
+        self._fit()
         x = np.atleast_2d(x)
-        if self.updated is False:
-            self.model.fit(self.X, self.fX)
-        self.updated = True
-
-        fx = np.zeros(shape=(x.shape[0], 1))
-        fx[:, 0] = self.model.predict(x)
-        return fx
+        return self.model.predict(x)
 
     def deriv(self, x):
         """Evaluate the GP regression object at a point x
@@ -848,7 +692,7 @@ class MARSInterpolant(Surrogate):
     :ivar model: MARS interpolation model
     """
 
-    def __init__(self, dim, maxpts=100):
+    def __init__(self, dim):
 
         try:
             from pyearth import Earth
@@ -856,88 +700,18 @@ class MARSInterpolant(Surrogate):
             print("Failed to import pyearth")
             raise err
 
-        self._npts = 0
-        self._maxpts = maxpts
-        self._X = None
-        self._fX = None
-        self._dim = dim
+        self.npts = 0
+        self.X = np.empty([0, dim])
+        self.fX = np.empty([0, 1])
+        self.dim = dim
         self.model = Earth()
         self.updated = False
 
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
-
-    @property
-    def maxpts(self):
-        return self._maxpts
-
-    @property
-    def X(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self._X[:self.npts, :]
-
-    @property
-    def fX(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self._fX[:self.npts]
-
-    def reset(self):
-        """Reset the interpolation."""
-
-        self._npts = 0
-        self._X = None
-        self._fX = None
-        self.updated = False
-
-    def transform_fx(self, fX):
-        self._fX = fX
-
-    def _realloc(self, extra=1):
-        """Expand allocation to accommodate more points (if needed)
-
-        :param extra: Number of additional points to accommodate
-        :type extra: int
-        """
-
-        maxp = self.maxpts
-        if maxp < self.npts + extra or self.npts == 0:
-            while maxp < self.npts + extra: maxp = 2 * maxp
-            self._maxpts = maxp
-            self._X = reallocate(self._X, (maxp, self.dim))
-            self._fX = reallocate(self._fX, (maxp,))
-
-    def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Points to add
-        :type xx: numpy.ndarray
-        :param fx: The function values of the point to add
-        :type fx: numpy.array or float
-        """
-
-        xx = np.atleast_2d(xx)
-        newpts = xx.shape[0]
-        self._realloc(extra=newpts)
-
-        self._X[self.npts:self.npts + newpts, :] = xx
-        self._fX[self.npts:self.npts + newpts] = fx
-        self._npts += newpts
-        self.updated = False
+    def _fit(self):
+        warnings.simplefilter("ignore")  # Surpress deprecation warnings from py-earth
+        if self.updated is False:
+            self.model.fit(self.X, self.fX)
+            self.updated = True
 
     def eval(self, x):
         """Evaluate the MARS interpolant at the points x
@@ -950,14 +724,9 @@ class MARSInterpolant(Surrogate):
         :rtype: numpy.array
         """
 
+        self._fit()
         x = np.atleast_2d(x)
-        if self.updated is False:
-            self.model.fit(self.X, self.fX)
-        self.updated = True
-
-        fx = np.zeros(shape=(x.shape[0], 1))
-        fx[:, 0] = self.model.predict(x)
-        return fx
+        return np.expand_dims(self.model.predict(x), axis=1)
 
     def deriv(self, x):
         """Evaluate the derivative of the MARS interpolant at a point x
@@ -970,10 +739,7 @@ class MARSInterpolant(Surrogate):
         :rtype: numpy.array
         """
 
-        if self.updated is False:
-            self.model.fit(self.X, self.fX)
-        self.updated = True
-
+        self._fit()
         x = np.expand_dims(x, axis=0)
         dfx = self.model.predict_deriv(x, variables=None)
         return dfx[0]
@@ -990,103 +756,21 @@ class PolyRegressor(Surrogate):
     :ivar x: Interpolation points
     :ivar fx: Function evaluations of interpolation points
     :ivar dim: Number of dimensions
-    :ivar model: MARS interpolation model
     """
 
-    def __init__(self, dim, maxpts=100, degree=2, model=None):
-
-        try:
-            from sklearn.preprocessing import PolynomialFeatures
-            from sklearn.pipeline import make_pipeline
-            from sklearn.linear_model import Ridge
-        except ImportError as err:
-            print("Failed to import pyearth")
-            raise err
-
-        self._npts = 0
-        self._maxpts = maxpts
-        self._X = None
-        self._fX = None
-        self._dim = dim
-        self.model = model
-        if model is None:
-            self.model = make_pipeline(PolynomialFeatures(degree), Ridge())
+    def __init__(self, dim, degree=2):
+        self.npts = 0
+        self.X = np.empty([0, dim])
+        self.fX = np.empty([0, 1])
+        self.dim = dim
         self.updated = False
+        self.model = make_pipeline(PolynomialFeatures(degree), Ridge())
 
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
-
-    @property
-    def maxpts(self):
-        return self._maxpts
-
-    @property
-    def X(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self._X[:self.npts, :]
-
-    @property
-    def fX(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self._fX[:self.npts]
-
-    def reset(self):
-        """Reset the interpolation."""
-
-        self._npts = 0
-        self._X = None
-        self._fX = None
-        self.updated = False
-
-    def transform_fx(self, fX):
-        self._fX = fX
-
-    def _realloc(self, extra=1):
-        """Expand allocation to accommodate more points (if needed)
-
-        :param extra: Number of additional points to accommodate
-        :type extra: int
-        """
-
-        maxp = self.maxpts
-        if maxp < self.npts + extra or self.npts == 0:
-            while maxp < self.npts + extra: maxp = 2 * maxp
-            self._maxpts = maxp
-            self._X = reallocate(self._X, (maxp, self.dim))
-            self._fX = reallocate(self._fX, (maxp,))
-
-    def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Points to add
-        :type xx: numpy.ndarray
-        :param fx: The function values of the point to add
-        :type fx: numpy.array or float
-        """
-
-        xx = np.atleast_2d(xx)
-        newpts = xx.shape[0]
-        self._realloc(extra=newpts)
-
-        self._X[self.npts:self.npts + newpts, :] = xx
-        self._fX[self.npts:self.npts + newpts] = fx
-        self._npts += newpts
-        self.updated = False
+    def _fit(self):
+        """Fit the model"""
+        if not self.updated:
+            self.model.fit(self.X, self.fX)
+            self.updated = True
 
     def eval(self, x):
         """Evaluate the MARS interpolant at the points x
@@ -1098,18 +782,12 @@ class PolyRegressor(Surrogate):
         :return: Values of the MARS interpolant at x, of length npts
         :rtype: numpy.array
         """
-
+        self._fit()
         x = np.atleast_2d(x)
-        if self.updated is False:
-            self.model.fit(self.X, self.fX)
-        self.updated = True
-
-        fx = np.zeros(shape=(x.shape[0], 1))
-        fx[:, 0] = self.model.predict(x)
-        return fx
+        return self.model.predict(x)
 
     def deriv(self, x):
-        # FIXME, To be implemented
+        """TODO: Not implemented"""
         raise NotImplementedError
 
 
@@ -1124,6 +802,11 @@ class SurrogateCapped(Surrogate):
     """
 
     def __init__(self, model, transformation=None):
+        self.npts = 0
+        self.X = np.empty([0, model.dim])
+        self.fX = np.empty([0, 1])
+        self.dim = model.dim
+        self.updated = False
 
         self.transformation = transformation
         if self.transformation is None:
@@ -1132,63 +815,24 @@ class SurrogateCapped(Surrogate):
                 fvalues[fvalues > medf] = medf
                 return fvalues
             self.transformation = median_transformation
+
+        assert(isinstance(model, Surrogate))
         self.model = model
-        self._maxpts = self.model.maxpts
-        self._npts = 0
-        self._fX = None
-
-    @property
-    def dim(self):
-        return self.model.dim
-
-    @property
-    def npts(self):
-        return self.model.npts
-
-    @property
-    def maxpts(self):
-        return self.model.maxpts
-
-    @property
-    def X(self):
-        return self.model.X
-
-    @property
-    def fX(self):
-        return self._fX
 
     def reset(self):
+        super().reset()
         self.model.reset()
-        self._fX = None
-        self._npts = 0
-
-    def _realloc(self, extra=1):
-        maxp = self.maxpts
-        if maxp < self.npts + extra or self.npts == 0:
-            while maxp < self.npts + extra: maxp = 2 * maxp
-            self._maxpts = maxp
-            self._fX = reallocate(self._fX, (maxp,))
 
     def add_points(self, xx, fx):
-        xx = np.atleast_2d(xx)
-        newpts = xx.shape[0]
-        self._realloc(extra=newpts)
-
-        self._fX[self.npts:self.npts + newpts] = fx
-        self._npts += newpts
+        super().add_points(xx, fx)
         self.model.add_points(xx, fx)
+        self.model.fX = self.transformation(np.copy(self.fX))  # Apply transformation
 
     def eval(self, x):
-        self._apply_transformation()
         return self.model.eval(x)
 
     def deriv(self, x):
-        self._apply_transformation()
         return self.model.deriv(x)
-
-    def _apply_transformation(self):
-        fvalues = np.copy(self._fX[0:self.npts])
-        self.model.transform_fx(self.transformation(fvalues))
 
 
 class SurrogateUnitBox(Surrogate):
@@ -1206,42 +850,31 @@ class SurrogateUnitBox(Surrogate):
     """
 
     def __init__(self, model, lb, ub):
+        self.npts = 0
+        self.X = np.empty([0, model.dim])
+        self.fX = np.empty([0, 1])
+        self.dim = model.dim
+        self.updated = False
 
+        assert(isinstance(model, Surrogate))
         self.model = model
         self.lb = lb
         self.ub = ub
 
-    @property
-    def dim(self):
-        return self.model.dim
-
-    @property
-    def npts(self):
-        return self.model.npts
-
-    @property
-    def maxpts(self):
-        return self.model.maxpts
-
-    @property
-    def X(self):
-        return from_unit_box(self.model.X, self.lb, self.ub)
-
-    @property
-    def fX(self):
-        return self.model.fX
-
     def reset(self):
+        super().reset()
         self.model.reset()
 
-    def transform_fx(self, fX):
-        self.model.transform_fx(fX)
-
     def add_points(self, xx, fx):
+        super().add_points(xx, fx)
         self.model.add_points(to_unit_box(xx, self.lb, self.ub), fx)
 
     def eval(self, x):
         return self.model.eval(to_unit_box(x, self.lb, self.ub))
 
     def deriv(self, x):
-        return self.model.deriv(to_unit_box(x, self.lb, self.ub))
+        """Remember the chain rule.
+
+        f'(x) = (d/dx) g((x-a)/(b-a)) = g'((x-a)/(b-a)) * 1/(b-a)
+        """
+        return self.model.deriv(to_unit_box(x, self.lb, self.ub)) / (self.ub - self.lb)

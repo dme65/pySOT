@@ -44,7 +44,7 @@ def example_mars():
     print(ackley.info)
 
     try:
-        mars = MARSInterpolant(dim=ackley.dim, maxpts=max_evals)
+        mars = MARSInterpolant(dim=ackley.dim)
     except Exception as e:
         print(str(e))
         return

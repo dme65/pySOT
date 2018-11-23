@@ -73,7 +73,7 @@ def test_linear_tail():
     np.testing.assert_allclose(tail.deriv(x), np.array([[0, 1]]))
 
     dim = 3
-    tail = LinearTail(dim)
+    tail = LinearTail(dim=dim)
     assert(tail.degree == 1)
     assert(tail.dim_tail == dim + 1)
     X = np.random.rand(10, dim)
@@ -83,7 +83,7 @@ def test_linear_tail():
 
 
 def test_constant_tail():
-    tail = ConstantTail(1)
+    tail = ConstantTail(dim=1)
     assert(isinstance(tail, Tail))
 
     x = np.array([2])
@@ -157,7 +157,7 @@ def test_rbf():
 
 def test_gp():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    gp = GPRegressor(2, 50)
+    gp = GPRegressor(dim=2)
     assert (isinstance(gp, Surrogate))
     fX = f(X)
     gp.add_points(X, fX)
@@ -180,7 +180,7 @@ def test_gp():
 
 def test_poly():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    poly = PolyRegressor(2, 500)
+    poly = PolyRegressor(dim=2, degree=2)
     assert (isinstance(poly, Surrogate))
     fX = f(X)
     poly.add_points(X, fX)
@@ -203,7 +203,7 @@ def test_poly():
 def test_mars():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
     try:
-        mars = MARSInterpolant(2, 500)
+        mars = MARSInterpolant(dim=2)
     except Exception as e:
         print(str(e))
         return

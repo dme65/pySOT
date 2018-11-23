@@ -13,9 +13,9 @@
 """
 
 import numpy as np
-import abc
+from abc import ABC, abstractmethod
 
-class OptimizationProblem(object):
+class OptimizationProblem(ABC):
     def __init__(self):
         self.dim = None
         self.lb = None
@@ -27,7 +27,7 @@ class OptimizationProblem(object):
         if len(x) != self.dim:
             raise ValueError('Dimension mismatch')
 
-    @abc.abstractmethod
+    @abstractmethod
     def eval(self, record):  # pragma: no cover
         return
 
