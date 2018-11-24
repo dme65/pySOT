@@ -16,8 +16,6 @@ import math
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.stats as stats
-import types
-
 from pySOT.utils import GeneticAlgorithm as GA
 from pySOT.utils import unit_rescale
 from scipy.optimize import minimize
@@ -28,7 +26,7 @@ class AuxiliaryProblem(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def make_points(self, X, fX, surrogate, Xpend, radius, npts):  # pragma: no cover
+    def make_points(self, X, fX, surrogate, Xpend, sampling_radius, npts):  # pragma: no cover
         pass
 
 
@@ -55,7 +53,6 @@ class CandidateSRBF(AuxiliaryProblem):
 
     def __init__(self, opt_prob, numcand=None, weights=None):
         self.opt_prob = opt_prob
-        self.surrogate = None
         self.xrange = self.opt_prob.ub - self.opt_prob.lb
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
         self.weights = weights
@@ -161,8 +158,9 @@ class CandidateUniform(CandidateSRBF):
     def __generate_cand__(self, scalefactors, xbest, subset):
         cand = np.multiply(np.ones((self.numcand, self.opt_prob.dim)), xbest)
         cand[:, subset] = np.random.uniform(
-            self.opt_prob.xlow[subset], self.opt_prob.xup[subset], 
+            self.opt_prob.lb[subset], self.opt_prob.ub[subset], 
             (self.numcand, len(subset)))
+        return cand
 
 class CandidateDYCORS(CandidateSRBF):
     """An implementation of the DYCORS method
@@ -220,3 +218,34 @@ class CandidateDYCORS(CandidateSRBF):
                 a=(lower - xbest[i]) / sigma, b=(upper - xbest[i]) / sigma,
                 loc=xbest[i], scale=sigma, size=len(ind))
         return cand
+
+
+class MultiSampling(AuxiliaryProblem):
+    """Maintains a list of adaptive sampling methods"""
+    def __init__(self, opt_prob, sampling_list, cycle=None):
+        if cycle is None:
+            cycle = range(len(sampling_list))
+        if (not all(isinstance(i, int) for i in cycle)) or \
+                np.min(cycle) < 0 or \
+                np.max(cycle) > len(sampling_list)-1:
+            raise ValueError("Incorrect cycle!!")
+        self.opt_prob = opt_prob
+        self.sampling_list = sampling_list
+        self.cycle = cycle
+        self.next = 0
+
+    def make_points(self, npts, surrogate, X, fX, Xpend, sampling_radius=0.2, subset=None):
+        """Proposes npts new points to evaluate"""
+        new_points = np.zeros((npts, self.opt_prob.dim))
+        Xpend_new = np.copy(Xpend)
+
+        # Now generate the points from one strategy at the time
+        for i in range(npts):
+            ind = self.cycle[(self.next + len(self.cycle)) % len(self.cycle)]
+            new_points[i, :] = self.sampling_list[ind].make_points(
+                npts=1, X=X, fX=fX, surrogate=surrogate, Xpend=Xpend_new, 
+                sampling_radius=sampling_radius, subset=subset)
+            Xpend_new = np.vstack((Xpend_new, new_points[i, :].copy()))
+            self.next += 1
+
+        return new_points

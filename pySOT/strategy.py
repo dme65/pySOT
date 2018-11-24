@@ -10,15 +10,12 @@
         David Bindel <bindel@cornell.edu>,
 """
 
-from __future__ import print_function
-
 import abc
 import dill
 import logging
 import math
 import numpy as np
 import os
-import six
 import time
 
 from poap.strategy import BaseStrategy, Proposal
@@ -31,7 +28,6 @@ from pySOT.utils import from_unit_box, round_vars
 logger = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
 class SurrogateStrategy(BaseStrategy):
     __metaclass__ = abc.ABCMeta
 
@@ -93,8 +89,7 @@ class GlobalStrategy(SurrogateStrategy):
         self.surrogate = surrogate
         if self.surrogate is None:
             self.surrogate = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(),
-                                            tail=LinearTail(opt_prob.dim),
-                                            maxpts=max_evals)
+                                            tail=LinearTail(opt_prob.dim))
 
         # Default to generate sampling points using Symmetric Latin Hypercube
         if exp_design is None:
