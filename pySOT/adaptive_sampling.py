@@ -80,7 +80,7 @@ class CandidateSRBF(AuxiliaryProblem):
                 loc=xbest[i], scale=sigma, size=self.numcand)
         return cand
 
-    def make_points(self, npts, surrogate, X, fX, Xpend, sampling_radius=0.2, subset=None):
+    def make_points(self, npts, surrogate, X, fX, Xpend=None, sampling_radius=0.2, subset=None):
         """Proposes npts new points to evaluate
 
         :param npts: Number of points to select
@@ -96,6 +96,8 @@ class CandidateSRBF(AuxiliaryProblem):
         :rtype: numpy.array
         """
 
+        if Xpend is None:
+            Xpend = np.empty([0, self.opt_prob.dim])
         ind = np.argmin(fX)
         xbest = np.copy(X[ind, :]).ravel()
 
@@ -124,7 +126,7 @@ class CandidateSRBF(AuxiliaryProblem):
         for i in range(npts):
             ii = self.next_weight
             weight = self.weights[(ii + len(self.weights)) % len(self.weights)]
-            merit = weight*fvals + (1.0 - weight)*(1.0 - unit_rescale(np.copy(dmerit)))
+            merit = weight*fvals + (1.0-weight)*(1.0-unit_rescale(np.copy(dmerit)))
 
             merit[dmerit < self.dtol] = np.inf
             jj = np.argmin(merit)
