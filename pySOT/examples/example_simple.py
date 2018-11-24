@@ -37,8 +37,9 @@ def example_simple():
     print(ackley.info)
 
     rbf = SurrogateUnitBox(
-        RBFInterpolant(ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim),
-        maxpts=max_evals), lb=ackley.lb, ub=ackley.ub)
+        RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), 
+                       tail=LinearTail(ackley.dim)), 
+                       lb=ackley.lb, ub=ackley.ub)
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2 * (ackley.dim + 1))
 

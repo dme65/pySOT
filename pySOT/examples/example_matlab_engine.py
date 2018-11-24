@@ -60,7 +60,7 @@ def example_matlab_engine():
     print(ackley.info)
 
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim), maxpts=max_evals)
+                         tail=LinearTail(ackley.dim))
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
     slhd = LatinHypercube(dim=ackley.dim, npts=ackley.dim+1)
 

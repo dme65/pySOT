@@ -182,6 +182,25 @@ def progress_plot(controller, title='', interactive=False):  # pragma: no cover
     plt.show()
 
 
+def reallocate(A, dims, **kwargs):
+    """Reallocate A with at most 2 dimensions to have size according to dims
+    
+    TODO: Move to utils
+    """
+    if A is None:
+        A = np.zeros(dims, **kwargs)
+        return A
+
+    assert(A.ndim <= 2 and A.ndim == len(dims))
+    assert(np.all(dims >= A.shape))
+    AA = np.zeros(dims, **kwargs)
+    if A.ndim == 1:
+        AA[:A.shape[0]] = A
+    else:
+        AA[:A.shape[0], :A.shape[1]] = A
+    return AA
+
+
 class GeneticAlgorithm:
     """Genetic algorithm
 
@@ -295,7 +314,7 @@ class GeneticAlgorithm:
             population = new_population
 
         # Main loop
-        for ngen in range(self.ngenerations):
+        for _ in range(self.ngenerations):
             # Do tournament selection to select the parents
             competitors = np.random.randint(0, self.nindividuals, (self.nindividuals, self.tournament_size))
             ind = np.argmin(function_values[competitors], axis=1)

@@ -45,7 +45,7 @@ def init():
     print("\nInitializing run...")
 
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim), maxpts=max_evals)
+                         tail=LinearTail(ackley.dim))
     dycors = CandidateDYCORS(max_evals=max_evals, opt_prob=ackley, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 

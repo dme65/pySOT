@@ -22,25 +22,6 @@ from pySOT.utils import to_unit_box, from_unit_box
 import warnings
 
 
-def reallocate(A, dims, **kwargs):
-    """Reallocate A with at most 2 dimensions to have size according to dims
-    
-    TODO: Move to utils
-    """
-    if A is None:
-        A = np.zeros(dims, **kwargs)
-        return A
-
-    assert(A.ndim <= 2 and A.ndim == len(dims))
-    assert(np.all(dims >= A.shape))
-    AA = np.zeros(dims, **kwargs)
-    if A.ndim == 1:
-        AA[:A.shape[0]] = A
-    else:
-        AA[:A.shape[0], :A.shape[1]] = A
-    return AA
-
-
 class Surrogate(ABC):
     def __init__(self):
         self.dim = None
@@ -68,6 +49,7 @@ class Surrogate(ABC):
         """
 
         xx = np.atleast_2d(xx)
+        if isinstance(fx, float): fx = np.array([fx])
         if fx.ndim == 0: fx = np.expand_dims(fx, axis=0)
         if fx.ndim == 1: fx = np.expand_dims(fx, axis=1)
         assert xx.shape[0] == fx.shape[0] and xx.shape[1] == self.dim
@@ -361,20 +343,17 @@ class RBFInterpolant(Surrogate):
     TODO: Update this interface to match the abstract class
     """
 
-    def __init__(self, dim, maxpts=500, kernel=None, tail=None, eta=1e-6):
+    def __init__(self, dim, kernel=None, tail=None, eta=1e-6):
+        self.npts = 0
+        self.dim = dim
+        self.X = np.empty([0, dim])     # pylint: disable=invalid-name
+        self.fX = np.empty([0, 1])
+        self.updated = False
 
         if kernel is None or tail is None:
             kernel = CubicKernel()
             tail = LinearTail(dim)
-
-        assert(isinstance(kernel, Kernel))
-        assert(isinstance(tail, Tail))
-
-        self._dim = dim
-        self._npts = 0
-        self._maxpts = maxpts
-        self._X = None
-        self._fX = None
+        assert(isinstance(kernel, Kernel) and isinstance(tail, Tail))
 
         self.kernel = kernel
         self.tail = tail
@@ -384,89 +363,28 @@ class RBFInterpolant(Surrogate):
         self.U = None
         self.piv = None
         self.c = None
-        self.rhs = None
         self.eta = eta
-        self.dirty = True
 
         if kernel.order - 1 > tail.degree:
             raise ValueError("Kernel and tail mismatch")
         assert self.dim == self.tail.dim
 
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
-
-    @property
-    def maxpts(self):
-        return self._maxpts
-
-    @property
-    def X(self):
-        """Get the list of data points
-
-        :return: List of data points
-        :rtype: numpy.array
-        """
-
-        return self._X[:self.npts, :]
-
-    @property
-    def fX(self):
-        """Get the list of function values for the data points.
-
-        :return: List of function values
-        :rtype: numpy.array
-        """
-
-        return self._fX[:self.npts]
-
     def reset(self):
         """Reset the RBF interpolant"""
-        self._npts = 0
-        self._X = None
-        self._fX = None
-        self.rhs = None
+        super().reset()
         self.L = None
         self.U = None
         self.piv = None
         self.c = None
-        self.dirty = True
 
-    def transform_fx(self, fX):
-        self._fX = fX
-        self.rhs[self.ntail:self.ntail + self.npts] = fX
-
-    def _realloc(self, extra=1):
-        """Expand allocation to accommodate more points (if needed)
-
-        :param extra: Number of additional points to accommodate
-        :type extra: int
-        """
-
-        maxp = self.maxpts
-        ntail = self.ntail
-        if maxp < self.npts + extra or self.npts == 0:
-            while maxp < self.npts + extra: maxp = 2 * maxp
-            self._maxpts = maxp
-            self._X = reallocate(self._X, (maxp, self.dim))
-            self._fX = reallocate(self._fX, (maxp,))
-            self.rhs = reallocate(self.rhs, (maxp + ntail,))
-            self.piv = reallocate(self.piv, (maxp + ntail,), dtype=np.int)
-            self.L = reallocate(self.L, (maxp + ntail, maxp + ntail))
-            self.U = reallocate(self.U, (maxp + ntail, maxp + ntail))
-
-    def coeffs(self):
+    def _fit(self):
         """Compute the expansion coefficients
 
         :return: Expansion coefficients
         :rtype: numpy.array
         """
 
-        if self.dirty:
+        if not self.updated:
             n = self.npts
             ntail = self.ntail
             nact = ntail + n
@@ -474,7 +392,7 @@ class RBFInterpolant(Surrogate):
             if self.c is None:  # Initial fit
                 assert self.npts >= ntail
 
-                X = self._X[0:n, :]
+                X = self.X[0:n, :]
                 D = scpspatial.distance.cdist(X, X)
                 Phi = self.kernel.eval(D) + self.eta * np.eye(n)
                 P = self.tail.eval(X)
@@ -485,11 +403,11 @@ class RBFInterpolant(Surrogate):
                 A = np.vstack((A1, A2))
 
                 [LU, piv] = scplinalg.lu_factor(A)
-                self.L[:nact, :nact] = np.tril(LU, -1) + np.eye(nact)
-                self.U[:nact, :nact] = np.triu(LU)
+                self.L = np.tril(LU, -1) + np.eye(nact)
+                self.U = np.triu(LU)
 
                 # Construct the usual pivoting vector so that we can increment later
-                self.piv[:nact] = np.arange(0, nact)
+                self.piv = np.arange(0, nact)
                 for i in range(nact):
                     self.piv[i], self.piv[piv[i]] = self.piv[piv[i]], self.piv[i]
 
@@ -497,60 +415,40 @@ class RBFInterpolant(Surrogate):
                 k = self.c.shape[0] - ntail
                 numnew = n - k
                 kact = ntail + k
-                self.piv[kact:nact] = np.arange(kact, nact)
 
-                X = self._X[:n, :]
-                XX = self._X[k:n, :]
+                X = self.X[:n, :]
+                XX = self.X[k:n, :]
                 D = scpspatial.distance.cdist(X, XX)
                 Pnew = np.vstack((self.tail.eval(XX).T, self.kernel.eval(D[:k, :])))
                 Phinew = self.kernel.eval(D[k:, :]) + self.eta * np.eye(numnew)
 
                 L21 = np.zeros((kact, numnew))
                 U12 = np.zeros((kact, numnew))
-                for i in range(numnew):  # Todo: Too bad we can't use level-3 BLAS here
-                    L21[:, i] = scplinalg.solve_triangular(a=self.U[:kact, :kact], b=Pnew[:kact, i],
+                for i in range(numnew):  # TODO: Too bad we can't use level-3 BLAS here
+                    L21[:, i] = scplinalg.solve_triangular(a=self.U, b=Pnew[:kact, i],
                                                            lower=False, trans='T')
-                    U12[:, i] = scplinalg.solve_triangular(a=self.L[:kact, :kact], b=Pnew[self.piv[:kact], i],
+                    U12[:, i] = scplinalg.solve_triangular(a=self.L, b=Pnew[self.piv[:kact], i],
                                                            lower=True, trans='N')
                 L21 = L21.T
-                try:
+                try:  # Try to compute a Cholesky factorization of the Schur complement
                     C = scplinalg.cholesky(a=Phinew - np.dot(L21, U12), lower=True)
                 except:  # Compute a new LU factorization if the Cholesky fails
                     self.c = None
-                    return self.coeffs()
+                    return self._fit()
 
-                self.L[kact:nact, :kact] = L21
-                self.U[:kact, kact:nact] = U12
-                self.L[kact:nact, kact:nact] = C
-                self.U[kact:nact, kact:nact] = C.T
+                self.piv = np.hstack((self.piv, np.arange(kact, nact)))
+                self.L = np.vstack((self.L, L21))
+                L2 = np.vstack((np.zeros((kact, numnew)), C))
+                self.L = np.hstack((self.L, L2))
+                self.U = np.hstack((self.U, U12))
+                U2 = np.hstack((np.zeros((numnew, kact)), C.T))
+                self.U = np.vstack((self.U, U2))
 
             # Update coefficients
-            self.c = scplinalg.solve_triangular(a=self.L[:nact, :nact], b=self.rhs[self.piv[:nact]], lower=True)
-            self.c = scplinalg.solve_triangular(a=self.U[:nact, :nact], b=self.c, lower=False)
-            self.c = np.asmatrix(self.c).T
-            self.dirty = False
-
-        return self.c
-
-    def add_points(self, xx, fx):
-        """Add a new function evaluation
-
-        :param xx: Points to add
-        :type xx: numpy.array
-        :param fx: The function value of the point to add
-        :type fx: float
-        """
-
-        xx = np.atleast_2d(xx)
-        newpts = xx.shape[0]
-        self._realloc(extra=newpts)
-
-        self._X[self.npts:self.npts + newpts, :] = xx
-        self._fX[self.npts:self.npts + newpts] = fx
-        self.rhs[self.ntail + self.npts:self.ntail + self.npts+newpts] = fx
-        self._npts += newpts
-
-        self.dirty = True
+            rhs = np.vstack((np.zeros((ntail, 1)), self.fX))
+            self.c = scplinalg.solve_triangular(a=self.L, b=rhs[self.piv], lower=True)
+            self.c = scplinalg.solve_triangular(a=self.U, b=self.c, lower=False)
+            self.updated = True
 
     def eval(self, x):
         """Evaluate the RBF interpolant at the points x
@@ -562,13 +460,12 @@ class RBFInterpolant(Surrogate):
         :return: Values of the rbf interpolant at x, of length npts
         :rtype: numpy.array
         """
-
+        self._fit()
         x = np.atleast_2d(x)
+        ds = scpspatial.distance.cdist(x, self.X)
         ntail = self.ntail
-        c = self.coeffs()
-        ds = scpspatial.distance.cdist(x, self._X[:self.npts, :])
-        fx = self.kernel.eval(ds)*c[ntail:ntail + self.npts] + self.tail.eval(x)*c[:ntail]
-        return fx
+        return np.dot(self.kernel.eval(ds), self.c[ntail:ntail + self.npts]) + \
+            np.dot(self.tail.eval(x), self.c[:ntail])
 
     def deriv(self, xx):
         """Evaluate the derivative of the RBF interpolant at a point x
@@ -580,11 +477,10 @@ class RBFInterpolant(Surrogate):
         :return: Derivative of the RBF interpolant at x
         :rtype: numpy.array
         """
-
+        self._fit()
         xx = np.atleast_2d(xx)
         if xx.shape[1] != self.dim:
             raise ValueError("Input has incorrect number of dimensions")
-
         ds = scpspatial.distance.cdist(self.X, xx)
         ds[ds < np.finfo(float).eps] = np.finfo(float).eps  # Better safe than sorry
 
@@ -593,12 +489,11 @@ class RBFInterpolant(Surrogate):
             x = np.atleast_2d(xx[i, :])
             ntail = self.ntail
             dpx = self.tail.deriv(x)
-            c = self.coeffs()
-            dfx = np.dot(dpx, c[:ntail]).transpose()
-            dsx = -self.X
+            dfx = np.dot(dpx, self.c[:ntail]).transpose()
+            dsx = -(self.X.copy())
             dsx += x
             dss = np.atleast_2d(ds[:, i]).T
-            dsx *= (np.multiply(self.kernel.deriv(dss), c[ntail:]) / dss)
+            dsx *= (np.multiply(self.kernel.deriv(dss), self.c[ntail:]) / dss)
             dfx += np.sum(dsx, 0)
             dfxx[i, :] = dfx
 
@@ -619,6 +514,8 @@ class GPRegressor(Surrogate):
         self.dim = dim
         self.X = np.empty([0, dim])     # pylint: disable=invalid-name
         self.fX = np.empty([0, 1])
+        self.updated = False
+
         if gp is None:
             kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + WhiteKernel(1e-3, (1e-6, 1e-2))
             self.model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=n_restarts_optimizer)
@@ -626,7 +523,6 @@ class GPRegressor(Surrogate):
             self.model = gp
             if not isinstance(gp, GaussianProcessRegressor):
                 raise TypeError("gp is not of type GaussianProcessRegressor")
-        self.updated = False
 
     def _fit(self):
         """Fit the model"""
@@ -693,19 +589,18 @@ class MARSInterpolant(Surrogate):
     """
 
     def __init__(self, dim):
-
-        try:
-            from pyearth import Earth
-        except ImportError as err:
-            print("Failed to import pyearth")
-            raise err
-
         self.npts = 0
         self.X = np.empty([0, dim])
         self.fX = np.empty([0, 1])
         self.dim = dim
-        self.model = Earth()
         self.updated = False
+
+        try:
+            from pyearth import Earth
+            self.model = Earth()
+        except ImportError as err:
+            print("Failed to import pyearth")
+            raise err
 
     def _fit(self):
         warnings.simplefilter("ignore")  # Surpress deprecation warnings from py-earth
@@ -764,6 +659,7 @@ class PolyRegressor(Surrogate):
         self.fX = np.empty([0, 1])
         self.dim = dim
         self.updated = False
+
         self.model = make_pipeline(PolynomialFeatures(degree), Ridge())
 
     def _fit(self):

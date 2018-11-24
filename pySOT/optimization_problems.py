@@ -13,9 +13,12 @@
 """
 
 import numpy as np
-from abc import ABC, abstractmethod
+import abc
+from abc import abstractmethod
 
-class OptimizationProblem(ABC):
+class OptimizationProblem(object):
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self):
         self.dim = None
         self.lb = None

@@ -38,7 +38,7 @@ def example_simple_time():
     print(ackley.info)
 
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim), maxpts=1000)
+                         tail=LinearTail(ackley.dim))
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=1000, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 

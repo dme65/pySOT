@@ -66,7 +66,8 @@ def example_subprocess_files():
     sphere = Sphere(dim=10)
     print(sphere.info)
 
-    rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(), tail=LinearTail(sphere.dim))
+    rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(), 
+                         tail=LinearTail(sphere.dim))
     dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, numcand=100*sphere.dim)
     slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2 * (sphere.dim + 1))
 

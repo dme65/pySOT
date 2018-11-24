@@ -72,7 +72,7 @@ def main_master(nworkers):
     print(sphere.info)
 
     rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(), 
-        tail=LinearTail(sphere.dim), maxpts=max_evals)
+                         tail=LinearTail(sphere.dim))
     dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, numcand=100*sphere.dim)
     slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2*(sphere.dim+1))
 

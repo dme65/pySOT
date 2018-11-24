@@ -89,7 +89,8 @@ def example_subprocess_partial_info():
     sumfun = SumfunExt(dim=10)
     print(sumfun.info)
 
-    rbf = RBFInterpolant(dim=sumfun.dim, kernel=CubicKernel(), tail=LinearTail(sumfun.dim))
+    rbf = RBFInterpolant(dim=sumfun.dim, kernel=CubicKernel(), 
+                         tail=LinearTail(sumfun.dim))
     dycors = CandidateDYCORS(opt_prob=sumfun, max_evals=max_evals, numcand=100*sumfun.dim)
     slhd = SymmetricLatinHypercube(dim=sumfun.dim, npts=2 * (sumfun.dim + 1))
 

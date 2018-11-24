@@ -44,8 +44,8 @@ def main_master(opt_prob, nworkers):
     max_evals = 500
     print(opt_prob.info)
 
-    rbf = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim), 
-                         maxpts=max_evals)
+    rbf = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(), 
+                         tail=LinearTail(opt_prob.dim))
     dycors = CandidateDYCORS(opt_prob=opt_prob, max_evals=max_evals, numcand=100*opt_prob.dim)
     slhd = SymmetricLatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1))
 

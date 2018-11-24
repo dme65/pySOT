@@ -44,7 +44,7 @@ def example_extra_vals():
             extra_vals[i] = ackley.eval(extra[i, :])
 
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim), maxpts=max_evals + nextra)
+                         tail=LinearTail(ackley.dim))
     dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
