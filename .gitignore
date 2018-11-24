@@ -5,3 +5,4 @@ dist/
 pySOT.egg-info
 *.pysot
 .pytest_cache/*
+*checkpoint.ipynb

@@ -108,7 +108,7 @@ def make_grid(n):
 
 def test_rbf():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    rbf = RBFInterpolant(2, 500, eta=1e-6)
+    rbf = RBFInterpolant(dim=2, eta=1e-6)
     assert (isinstance(rbf, Surrogate))
     fX = f(X)
     rbf.add_points(X, fX)
