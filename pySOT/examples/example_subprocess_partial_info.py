@@ -48,9 +48,9 @@ class CppSim(ProcessWorkerThread):
         for line in self.process.stdout:
             try:
                 val = float(line.strip())  # Try to parse output
-                if val > 350:  # Terminate if too large
+                if val > 250.0:  # Terminate if too large
                     self.process.terminate()
-                    self.finish_success(record, 350)
+                    self.finish_success(record, 250.0)
                     return
             except ValueError:  # If the output is nonsense we terminate
                 logging.warning("Incorrect output")
