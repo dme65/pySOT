@@ -38,9 +38,10 @@ class Surrogate(ABC):
         self.updated = False
 
     def add_points(self, xx, fx):
-        """Add a new function evaluation
+        """Add new function evaluations
 
-        This method SHOULD NOT trigger a new fit, it just updates X and fX
+        This method SHOULD NOT trigger a new fit, it just updates X and 
+        fX but leaves the original surrogate object intact
 
         :param xx: Points to add
         :type xx: numpy.ndarray
