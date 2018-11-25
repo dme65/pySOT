@@ -44,7 +44,7 @@ def init():
     print("\nInitializing run...")
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
                          tail=LinearTail(ackley.dim))
-    srbf = CandidateSRBF(opt_prob=ackley, numcand=100*ackley.dim)
+    srbf = CandidateSRBF(opt_prob=ackley, num_cand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller

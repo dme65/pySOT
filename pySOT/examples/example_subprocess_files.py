@@ -68,8 +68,8 @@ def example_subprocess_files():
 
     rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(), 
                          tail=LinearTail(sphere.dim))
-    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, numcand=100*sphere.dim)
-    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2 * (sphere.dim + 1))
+    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, num_cand=100*sphere.dim)
+    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()

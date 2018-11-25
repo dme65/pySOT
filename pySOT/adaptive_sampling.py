@@ -42,8 +42,8 @@ class CandidateSRBF(AuxiliaryProblem):
 
     :param data: Optimization problem object
     :type data: Object
-    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
-    :type numcand: int
+    :param num_cand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type num_cand: int
     :param weights: Weights used for the merit function, to balance exploration vs exploitation
     :type weights: list of numpy.array
 
@@ -51,7 +51,7 @@ class CandidateSRBF(AuxiliaryProblem):
         incorrect or if the weights aren't a list in [0, 1]
     """
 
-    def __init__(self, opt_prob, numcand=None, weights=None):
+    def __init__(self, opt_prob, num_cand=None, weights=None):
         self.opt_prob = opt_prob
         self.xrange = self.opt_prob.ub - self.opt_prob.lb
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
@@ -60,24 +60,24 @@ class CandidateSRBF(AuxiliaryProblem):
             self.weights = [0.3, 0.5, 0.8, 0.95]
         self.next_weight = 0
 
-        self.numcand = numcand
-        if self.numcand is None:
-            self.numcand = min([5000, 100*opt_prob.dim])
+        self.num_cand = num_cand
+        if self.num_cand is None:
+            self.num_cand = min([5000, 100*opt_prob.dim])
 
         # Check that the inputs make sense
-        if not(isinstance(self.numcand, int) and self.numcand > 0):
+        if not(isinstance(self.num_cand, int) and self.num_cand > 0):
             raise ValueError("The number of candidate points has to be a positive integer")
         if not((isinstance(self.weights, np.ndarray) or isinstance(self.weights, list))
                and max(self.weights) <= 1 and min(self.weights) >= 0):
             raise ValueError("Incorrect weights")
 
     def __generate_cand__(self, scalefactors, xbest, subset):
-        cand = np.multiply(np.ones((self.numcand,  self.opt_prob.dim)), xbest)
+        cand = np.multiply(np.ones((self.num_cand,  self.opt_prob.dim)), xbest)
         for i in subset:
             lower, upper, sigma = self.opt_prob.lb[i], self.opt_prob.ub[i], scalefactors[i]
             cand[:, i] = stats.truncnorm.rvs(
                 a=(lower - xbest[i]) / sigma, b=(upper - xbest[i]) / sigma,
-                loc=xbest[i], scale=sigma, size=self.numcand)
+                loc=xbest[i], scale=sigma, size=self.num_cand)
         return cand
 
     def make_points(self, npts, surrogate, X, fX, Xpend=None, sampling_radius=0.2, subset=None):
@@ -145,8 +145,8 @@ class CandidateUniform(CandidateSRBF):
     """Create Candidate points by sampling uniformly in the domain
     :param data: Optimization problem object
     :type data: Object
-    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
-    :type numcand: int
+    :param num_cand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type num_cand: int
     :param weights: Weights used for the merit function, to balance exploration vs exploitation
     :type weights: list of numpy.array
     :raise ValueError: If number of candidate points is
@@ -158,10 +158,10 @@ class CandidateUniform(CandidateSRBF):
             Xpend=Xpend, sampling_radius=sampling_radius, subset=subset)
 
     def __generate_cand__(self, scalefactors, xbest, subset):
-        cand = np.multiply(np.ones((self.numcand, self.opt_prob.dim)), xbest)
+        cand = np.multiply(np.ones((self.num_cand, self.opt_prob.dim)), xbest)
         cand[:, subset] = np.random.uniform(
             self.opt_prob.lb[subset], self.opt_prob.ub[subset], 
-            (self.numcand, len(subset)))
+            (self.num_cand, len(subset)))
         return cand
 
 class CandidateDYCORS(CandidateSRBF):
@@ -172,16 +172,16 @@ class CandidateDYCORS(CandidateSRBF):
     in order to guarantee global convergence.
     :param data: Optimization problem object
     :type data: Object
-    :param numcand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
-    :type numcand: int
+    :param num_cand: Number of candidate points to be used. Default is min([5000, 100*data.dim])
+    :type num_cand: int
     :param weights: Weights used for the merit function, to balance exploration vs exploitation
     :type weights: list of numpy.array
     :raise ValueError: If number of candidate points is
         incorrect or if the weights aren't a list in [0, 1]
     """
 
-    def __init__(self, opt_prob, max_evals, numcand=None, weights=None):
-        CandidateSRBF.__init__(self, opt_prob=opt_prob, numcand=numcand, weights=weights)
+    def __init__(self, opt_prob, max_evals, num_cand=None, weights=None):
+        CandidateSRBF.__init__(self, opt_prob=opt_prob, num_cand=num_cand, weights=weights)
         self.min_prob = np.min([1.0, 1.0/opt_prob.dim])
         self.n0 = None
         self.max_evals = max_evals
@@ -206,13 +206,13 @@ class CandidateDYCORS(CandidateSRBF):
 
     def __generate_cand__(self, sigmas, xbest, subset):  
         if len(subset) == 1: # Fix when nlen is 1
-            ar = np.ones((self.numcand, 1))
+            ar = np.ones((self.num_cand, 1))
         else:
-            ar = (np.random.rand(self.numcand, len(subset)) < self.dds_prob)
+            ar = (np.random.rand(self.num_cand, len(subset)) < self.dds_prob)
             ind = np.where(np.sum(ar, axis=1) == 0)[0]
             ar[ind, np.random.randint(0, len(subset) - 1, size=len(ind))] = 1
 
-        cand = np.multiply(np.ones((self.numcand, self.opt_prob.dim)), xbest)
+        cand = np.multiply(np.ones((self.num_cand, self.opt_prob.dim)), xbest)
         for i in subset:
             lower, upper, sigma = self.opt_prob.lb[i], self.opt_prob.ub[i], sigmas[i]
             ind = np.where(ar[:, i] == 1)[0]

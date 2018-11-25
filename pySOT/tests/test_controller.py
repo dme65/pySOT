@@ -12,9 +12,8 @@ import time
 import os
 
 np.random.seed(0)
-max_evals = 200
+max_evals = 500
 ackley = Ackley(dim=10)
-print(ackley.info)
 
 fname = "checkpoint.pysot"
 
@@ -22,7 +21,7 @@ def test_checkpoint_serial():
     if os.path.isfile(fname):
         os.remove(fname)
 
-    # Run for 3 seconds and kill the controller
+    # Run for 1 seconds and kill the controller
     p = multiprocessing.Process(target=init_serial, args=())
     p.start()
     time.sleep(3)
@@ -37,7 +36,7 @@ def test_checkpoint_serial():
 def init_serial():
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
                          tail=LinearTail(ackley.dim))
-    srbf = CandidateSRBF(opt_prob=ackley, numcand=100*ackley.dim)
+    srbf = CandidateSRBF(opt_prob=ackley, num_cand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller

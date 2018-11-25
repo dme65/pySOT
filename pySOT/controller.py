@@ -77,7 +77,6 @@ class CheckpointController(object):
         """Start the optimization run.
 
         Make sure we do not overwrite any existing checkpointing files"""
-
         if os.path.isfile(self.fname):
             raise IOError("Checkpoint file already exists, refusing to overwrite...")
         return self.controller.run(merit=merit, filter=filter)

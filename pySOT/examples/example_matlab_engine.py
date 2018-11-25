@@ -61,7 +61,7 @@ def example_matlab_engine():
 
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
                          tail=LinearTail(ackley.dim))
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, num_cand=100*ackley.dim)
     slhd = LatinHypercube(dim=ackley.dim, npts=ackley.dim+1)
 
     # Use the serial controller (uses only one thread)

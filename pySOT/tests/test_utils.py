@@ -1,5 +1,6 @@
 import numpy as np
-from pySOT.utils import *
+from pySOT.utils import unit_rescale, from_unit_box, \
+    to_unit_box, round_vars, GeneticAlgorithm
 
 
 def test_unit_box_map():

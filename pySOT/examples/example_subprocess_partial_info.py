@@ -43,7 +43,8 @@ class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         val = np.nan
         # Continuously check for new outputs from the subprocess
-        self.process = Popen([path, array2str(record.params[0])], stdout=PIPE, bufsize=1, universal_newlines=True)
+        self.process = Popen([path, array2str(record.params[0])], \
+                             stdout=PIPE, bufsize=1, universal_newlines=True)
 
         for line in self.process.stdout:
             try:
@@ -91,8 +92,8 @@ def example_subprocess_partial_info():
 
     rbf = RBFInterpolant(dim=sumfun.dim, kernel=CubicKernel(), 
                          tail=LinearTail(sumfun.dim))
-    dycors = CandidateDYCORS(opt_prob=sumfun, max_evals=max_evals, numcand=100*sumfun.dim)
-    slhd = SymmetricLatinHypercube(dim=sumfun.dim, npts=2 * (sumfun.dim + 1))
+    dycors = CandidateDYCORS(opt_prob=sumfun, max_evals=max_evals, num_cand=100*sumfun.dim)
+    slhd = SymmetricLatinHypercube(dim=sumfun.dim, npts=2*(sumfun.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()

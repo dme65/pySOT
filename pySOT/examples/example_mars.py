@@ -49,7 +49,7 @@ def example_mars():
         print(str(e))
         return
 
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, num_cand=100*ackley.dim)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller

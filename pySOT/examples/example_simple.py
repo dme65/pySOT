@@ -40,8 +40,8 @@ def example_simple():
         RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), 
                        tail=LinearTail(ackley.dim)), 
                        lb=ackley.lb, ub=ackley.ub)
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, numcand=100*ackley.dim)
-    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2 * (ackley.dim + 1))
+    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, num_cand=100*ackley.dim)
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()

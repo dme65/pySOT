@@ -36,9 +36,9 @@ def example_multisampling():
     # Create a strategy and a controller
     rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), 
                          tail=LinearTail(ackley.dim))
-    sampling_list = [CandidateDYCORS(opt_prob=ackley, numcand=100*ackley.dim, max_evals=max_evals),
-                     CandidateSRBF(opt_prob=ackley, numcand=100*ackley.dim),
-                     CandidateUniform(opt_prob=ackley, numcand=100*ackley.dim)]
+    sampling_list = [CandidateDYCORS(opt_prob=ackley, num_cand=100*ackley.dim, max_evals=max_evals),
+                     CandidateSRBF(opt_prob=ackley, num_cand=100*ackley.dim),
+                     CandidateUniform(opt_prob=ackley, num_cand=100*ackley.dim)]
     multi_sampling = MultiSampling(opt_prob=ackley, sampling_list=sampling_list, cycle=[0, 1, 2])
     slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
 

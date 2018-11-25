@@ -132,9 +132,7 @@ def test_rbf():
 
     # Reset the surrogate
     rbf.reset()
-    rbf._maxpts = 500
-    assert(rbf.npts == 0)
-    assert(rbf.dim == 2)
+    assert(rbf.npts == 0 and rbf.dim == 2)
 
     # Now add 100 points at a time and test reallocation + LU
     for i in range(9):
@@ -173,9 +171,7 @@ def test_gp():
     # Derivative at previous points
     # Reset the surrogate
     gp.reset()
-    gp._maxpts = 50
-    assert(gp.npts == 0)
-    assert(gp.dim == 2)
+    assert(gp.npts == 0 and gp.dim == 2)
 
 
 def test_poly():
@@ -194,9 +190,7 @@ def test_poly():
 
     # Reset the surrogate
     poly.reset()
-    poly._maxpts = 500
-    assert (poly.npts == 0)
-    assert (poly.dim == 2)
+    assert (poly.npts == 0 and poly.dim == 2)
 
 
 def test_mars():
@@ -220,9 +214,7 @@ def test_mars():
 
     # Reset the surrogate
     mars.reset()
-    mars._maxpts = 500
-    assert(mars.npts == 0)
-    assert(mars.dim == 2)
+    assert(mars.npts == 0 and mars.dim == 2)
 
 
 def test_capped():
@@ -238,23 +230,25 @@ def test_capped():
     # RBF with capping adapter
     rbf1 = SurrogateCapped(RBFInterpolant(dim=1, eta=1e-6))
     rbf1.add_points(x, fX)
-    pred1 = rbf1.eval(xx)
 
     # RBF fitted to capped value
     fX_capped = fX.copy()
     fX_capped[fX > np.median(fX)] = np.median(fX)
     rbf2 = RBFInterpolant(dim=1, eta=1e-6)
     rbf2.add_points(x, fX_capped)
-    pred2 = rbf2.eval(xx)
 
-    assert(np.max(np.abs(pred1 - pred2)) < 1e-10)
+    assert(np.max(np.abs(rbf1.eval(xx) - rbf2.eval(xx))) < 1e-10)
+    assert(np.max(np.abs(rbf1.deriv(x[0, :]) - rbf2.deriv(x[0, :]))) < 1e-10)
+
+    rbf1.reset()
+    assert(rbf1.npts == 0 and rbf1.dim == 1)
+    assert(rbf1.X.size == 0 and rbf1.fX.size == 0)
 
 def test_unit_box():
     ackley = Ackley(dim=1)
     np.random.seed(0)
     x = np.random.rand(30, 1)
     fX = np.expand_dims([ackley.eval(y) for y in x], axis=1)
-    print(fX.shape)
 
     xx = np.expand_dims(np.linspace(0, 1, 100), axis=1)
 
@@ -271,6 +265,10 @@ def test_unit_box():
     assert(np.max(np.abs(rbf1.deriv(x[0, :]) - rbf2.deriv(x[0, :]))) < 1e-10)
     assert(np.max(np.abs(rbf1.X - rbf2.X)) < 1e-10)
     assert(np.max(np.abs(rbf1.fX - rbf2.fX)) < 1e-10)
+
+    rbf1.reset()
+    assert(rbf1.npts == 0 and rbf1.dim == 1)
+    assert(rbf1.X.size == 0 and rbf1.fX.size == 0)
 
 
 if __name__ == '__main__':
