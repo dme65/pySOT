@@ -1,6 +1,8 @@
 from pySOT.surrogate import Surrogate, Tail, ConstantTail, LinearTail, \
     Kernel, CubicKernel, TPSKernel, LinearKernel, \
-    GPRegressor, MARSInterpolant, PolyRegressor, RBFInterpolant
+    GPRegressor, MARSInterpolant, PolyRegressor, RBFInterpolant, \
+    SurrogateCapped, SurrogateUnitBox
+from pySOT.optimization_problems import Ackley
 
 import inspect
 import sys
@@ -11,6 +13,7 @@ import numpy as np
 def f(x):
     """Test function"""
     fx = x[:, 1] * np.sin(x[:, 0]) + x[:, 0] * np.cos(x[:, 1])
+    fx = np.expand_dims(fx, axis=1)
     return fx
 
 
@@ -120,13 +123,12 @@ def test_rbf():
     dfhx = rbf.deriv(Xs)
     fx = f(Xs)
     dfx = df(Xs)
-    for i in range(Xs.shape[0]):
-        assert(abs(fx[i] - fhx[i]) < 1e-4)
-        assert(la.norm(dfx[i, :] - dfhx[i]) < 1e-2)
+    assert(np.max(np.abs(fx - fhx)) < 1e-4)
+    assert(la.norm(dfx - dfhx) < 1e-2)
 
     # Derivative at previous points
     dfhx = rbf.deriv(X[0, :])
-    assert (la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
+    assert(la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
 
     # Reset the surrogate
     rbf.reset()
@@ -146,13 +148,12 @@ def test_rbf():
     dfhx = rbf.deriv(Xs)
     fx = f(Xs)
     dfx = df(Xs)
-    for i in range(Xs.shape[0]):
-        assert(abs(fx[i] - fhx[i]) < 1e-4)
-        assert(la.norm(dfx[i, :] - dfhx[i]) < 1e-2)
+    assert(np.max(np.abs(fx - fhx)) < 1e-4)
+    assert(la.norm(dfx - dfhx) < 1e-2)
 
     # Derivative at previous points
     dfhx = rbf.deriv(X[0, :])
-    assert (la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
+    assert(la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
 
 
 def test_gp():
@@ -167,21 +168,20 @@ def test_gp():
     Xs = np.random.rand(10, 2)
     fhx = gp.eval(Xs)
     fx = f(Xs)
-    for i in range(Xs.shape[0]):
-        assert (abs(fx[i] - fhx[i]) < 1e-2)
+    assert(np.max(np.abs(fx - fhx)) < 1e-2)
 
     # Derivative at previous points
     # Reset the surrogate
     gp.reset()
     gp._maxpts = 50
-    assert (gp.npts == 0)
-    assert (gp.dim == 2)
+    assert(gp.npts == 0)
+    assert(gp.dim == 2)
 
 
 def test_poly():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
     poly = PolyRegressor(dim=2, degree=2)
-    assert (isinstance(poly, Surrogate))
+    assert(isinstance(poly, Surrogate))
     fX = f(X)
     poly.add_points(X, fX)
 
@@ -190,8 +190,7 @@ def test_poly():
     Xs = np.random.rand(10, 2)
     fhx = poly.eval(Xs)
     fx = f(Xs)
-    for i in range(Xs.shape[0]):
-        assert (abs(fx[i] - fhx[i]) < 1e-1)
+    assert(np.max(np.abs(fx - fhx)) < 1e-1)
 
     # Reset the surrogate
     poly.reset()
@@ -217,14 +216,61 @@ def test_mars():
     Xs = np.random.rand(10, 2)
     fhx = mars.eval(Xs)
     fx = f(Xs)
-    for i in range(Xs.shape[0]):
-        assert (abs(fx[i] - fhx[i]) < 1e-1)
+    assert(np.max(np.abs(fx - fhx)) < 1e-1)
 
     # Reset the surrogate
     mars.reset()
     mars._maxpts = 500
     assert(mars.npts == 0)
     assert(mars.dim == 2)
+
+
+def test_capped():
+    def ff(x):
+        return (6*x - 2)**2 * np.sin(12*x - 4)
+
+    np.random.seed(0)
+    x = np.random.rand(30, 1)
+    fX = ff(x)
+
+    xx = np.expand_dims(np.linspace(0, 1, 100), axis=1)
+
+    # RBF with capping adapter
+    rbf1 = SurrogateCapped(RBFInterpolant(dim=1, eta=1e-6))
+    rbf1.add_points(x, fX)
+    pred1 = rbf1.eval(xx)
+
+    # RBF fitted to capped value
+    fX_capped = fX.copy()
+    fX_capped[fX > np.median(fX)] = np.median(fX)
+    rbf2 = RBFInterpolant(dim=1, eta=1e-6)
+    rbf2.add_points(x, fX_capped)
+    pred2 = rbf2.eval(xx)
+
+    assert(np.max(np.abs(pred1 - pred2)) < 1e-10)
+
+def test_unit_box():
+    ackley = Ackley(dim=1)
+    np.random.seed(0)
+    x = np.random.rand(30, 1)
+    fX = np.expand_dims([ackley.eval(y) for y in x], axis=1)
+    print(fX.shape)
+
+    xx = np.expand_dims(np.linspace(0, 1, 100), axis=1)
+
+    # RBF with internal scaling to unit hypercube
+    rbf1 = SurrogateUnitBox(
+        RBFInterpolant(dim=1, eta=1e-6), lb=np.array([0.0]), ub=np.array([1.0]))
+    rbf1.add_points(x, fX)
+
+    # Normal RBF
+    rbf2 = RBFInterpolant(dim=1, eta=1e-6)
+    rbf2.add_points(x, fX)
+
+    assert(np.max(np.abs(rbf1.eval(xx) - rbf2.eval(xx))) < 1e-10)
+    assert(np.max(np.abs(rbf1.deriv(x[0, :]) - rbf2.deriv(x[0, :]))) < 1e-10)
+    assert(np.max(np.abs(rbf1.X - rbf2.X)) < 1e-10)
+    assert(np.max(np.abs(rbf1.fX - rbf2.fX)) < 1e-10)
 
 
 if __name__ == '__main__':
@@ -237,3 +283,5 @@ if __name__ == '__main__':
     test_mars()
     test_rbf()
     test_poly()
+    test_capped()
+    test_unit_box()
