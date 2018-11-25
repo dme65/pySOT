@@ -182,25 +182,6 @@ def progress_plot(controller, title='', interactive=False):  # pragma: no cover
     plt.show()
 
 
-def reallocate(A, dims, **kwargs):
-    """Reallocate A with at most 2 dimensions to have size according to dims
-    
-    TODO: Move to utils
-    """
-    if A is None:
-        A = np.zeros(dims, **kwargs)
-        return A
-
-    assert(A.ndim <= 2 and A.ndim == len(dims))
-    assert(np.all(dims >= A.shape))
-    AA = np.zeros(dims, **kwargs)
-    if A.ndim == 1:
-        AA[:A.shape[0]] = A
-    else:
-        AA[:A.shape[0], :A.shape[1]] = A
-    return AA
-
-
 class GeneticAlgorithm:
     """Genetic algorithm
 

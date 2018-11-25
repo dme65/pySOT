@@ -23,7 +23,7 @@ import warnings
 
 
 class Surrogate(ABC):
-    def __init__(self):
+    def __init__(self):  # pragma: no cover
         self.dim = None
         self.npts = None
         self.X = None
