@@ -4,7 +4,6 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, TPSKernel, LinearTail
@@ -60,26 +59,26 @@ def example_subprocess_files():
 
     assert os.path.isfile(path), "You need to build sphere_ext_files"
 
-    nthreads = 4
+    num_threads = 4
     max_evals = 200
 
     sphere = Sphere(dim=10)
     print(sphere.info)
 
-    rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(), 
-                         tail=LinearTail(sphere.dim))
-    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, num_cand=100*sphere.dim)
-    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2*(sphere.dim+1))
+    rbf = RBFInterpolant(
+        dim=sphere.dim, kernel=TPSKernel(), 
+        tail=LinearTail(sphere.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=sphere.dim, num_pts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=sphere, asynchronous=True,
-                    exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                    batch_size=nthreads)
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
+        surrogate=rbf, asynchronous=False, batch_size=num_threads)
 
     # Launch the threads and give them access to the objective function
-    for i in range(nthreads):
+    for i in range(num_threads):
         worker = CppSim(controller)
         worker.my_filename = str(i) + ".txt"
         controller.launch_worker(worker)

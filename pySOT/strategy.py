@@ -18,9 +18,9 @@ import numpy as np
 import os
 import time
 
-from poap.strategy import BaseStrategy, Proposal
+from poap.strategy import BaseStrategy, Proposal, RetryStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.adaptive_sampling import CandidateDYCORS
+from pySOT.adaptive_sampling import make_srbf
 from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
 from pySOT.utils import from_unit_box, round_vars
 
@@ -28,24 +28,27 @@ from pySOT.utils import from_unit_box, round_vars
 logger = logging.getLogger(__name__)
 
 
-class SurrogateStrategy(BaseStrategy):
+class RandomSampling(BaseStrategy):
+    def __init__(self, opt_prob, max_evals):
+        self.opt_prob = opt_prob
+        self.max_evals = max_evals
+        self.retry = RetryStrategy()
+        for _ in range(max_evals):  # Generate the random points
+            x = np.random.uniform(low=opt_prob.lb, high=opt_prob.ub)
+            proposal = self.propose_eval(x)
+            self.retry.rput(proposal)
+
+    def propose_action(self):
+        """Propose an action based on outstanding points."""
+        if not self.retry.empty():  # Propose next point
+            return self.retry.get()
+        elif self.retry.num_eval_outstanding == 0:  # Budget exhausted and nothing pending
+            return self.propose_terminate()
+
+
+class SurrogateBaseStrategy(BaseStrategy):
     __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
-    def propose_action(self):  # pragma: no cover
-        pass
-
-    @abc.abstractmethod
-    def save(self, fname):  # pragma: no cover
-        pass
-
-    @abc.abstractmethod
-    def resume(self):  # pragma: no cover
-        pass
-
-
-class GlobalStrategy(SurrogateStrategy):
-    """Global strategy
+    """Surrogate base strategy
 
     Once the budget of max_evals function evaluations have been assigned,
     no further evaluations are assigned to processors. The code returns
@@ -53,16 +56,15 @@ class GlobalStrategy(SurrogateStrategy):
     """
 
     def __init__(self, max_evals, opt_prob, exp_design=None, surrogate=None,
-                 adapt_sampling=None, asynchronous=True, batch_size=None,
-                 stopping_criterion=None, extra=None):
-        """Initialize the asynchronous SRBF optimization.
+                 asynchronous=True, batch_size=None, stopping_criterion=None, 
+                 extra=None):
+        """Skeleton for surrogate optimization.
 
         Args:
             max_evals: Maximum number of evaluations (or negative number of seconds)
             opt_prob: Optimization problem object
             exp_design: Experimental design object
             surrogate: Surrogate model object
-            adapt_sampling: Adaptive sampling object
             asynchronous: True if asynchronous, False if batch synchronous
             batch_size: Size of each batch, not used if asynchronous == True
             stopping_criterion: Stopping criterion
@@ -77,7 +79,7 @@ class GlobalStrategy(SurrogateStrategy):
         else:
             self.maxeval = max_evals
             self.time_budget = np.inf
-        max_evals = np.abs(max_evals)
+        self.max_evals = np.abs(max_evals)
 
         self.stopping_criterion = stopping_criterion
         self.proposal_counter = 0
@@ -93,10 +95,7 @@ class GlobalStrategy(SurrogateStrategy):
 
         # Default to generate sampling points using Symmetric Latin Hypercube
         if exp_design is None:
-            if max_evals > 10*self.opt_prob.dim:
-                exp_design = SymmetricLatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1))
-            else:
-                exp_design = LatinHypercube(dim=opt_prob.dim, npts=opt_prob.dim + 1 + batch_size)
+            exp_design = SymmetricLatinHypercube(dim=opt_prob.dim, npts=2*(opt_prob.dim+1))
         self.exp_design = exp_design
 
         # Sampler state
@@ -104,14 +103,13 @@ class GlobalStrategy(SurrogateStrategy):
         self.rejected_count = 0
     
         # Initial design info
-        self.sampling_radius = 0.2
         self.extra = extra
         self.batch_queue = []   # Unassigned points in initial experiment
         self.init_pending = 0   # Number of outstanding initial fevals
         self.phase = 1          # 1 for initial, 2 for adaptive
 
         # Budgeting state
-        self.numeval = 0         # Number of completed fevals
+        self.num_evals = 0               # Number of completed fevals
         self.feval_budget = max_evals  # Remaining feval budget
         self.feval_pending = 0         # Number of outstanding fevals
 
@@ -119,19 +117,17 @@ class GlobalStrategy(SurrogateStrategy):
         self.X = np.empty([0, opt_prob.dim])
         self.fX = np.empty([0, 1])
         self.Xpend = np.empty([0, opt_prob.dim])
+        self.fevals = []
 
-        # Checkpointing temps
-        self.fevals = []  # Save a list of completed records
-
-        # Set up sampling_method and initialize
-        if adapt_sampling is None:
-            adapt_sampling = CandidateDYCORS(opt_prob=opt_prob, max_evals=max_evals)
-        self.adapt_sampling = adapt_sampling
-
+        # Check inputs (implemented by each strategy)
         self.check_input()
 
         # Start with first experimental design
         self.sample_initial()
+
+    @abc.abstractmethod  # pragma: no cover
+    def generate_evals(self, num_pts):
+        pass
 
     def check_input(self):
         """Todo: Write this. """
@@ -159,7 +155,7 @@ class GlobalStrategy(SurrogateStrategy):
         """
         xstr = np.array_str(record.params[0], max_line_width=np.inf,
                             precision=5, suppress_small=True)
-        logger.info("{} {:.3e} @ {}".format(self.numeval, record.value, xstr))
+        logger.info("{} {:.3e} @ {}".format(self.num_evals, record.value, xstr))
 
     def sample_initial(self):
         """Generate and queue an initial experimental design."""
@@ -185,25 +181,25 @@ class GlobalStrategy(SurrogateStrategy):
         """
 
         current_time = time.time()
-        if self.numeval >= self.maxeval or self.terminate or \
+        if self.num_evals >= self.maxeval or self.terminate or \
                 (current_time - self.start_time) >= self.time_budget:
-            if self.feval_pending == 0:
+            if self.feval_pending == 0:  # Only terminate if nothing is pending
                 return Proposal('terminate')
-        elif self.asynchronous:  # In asynchronous mode
-            if self.batch_queue:
+        elif self.batch_queue:  # Propose point from the batch_queue
+            if self.phase == 1:
                 return self.init_proposal()
             else:
-                return self.adapt_proposal_async()
-        else:  # In synchronous mode
-            if self.batch_queue:
-                if self.phase == 1:
-                    return self.init_proposal()
-                else:
-                    return self.adapt_proposal_sync()
-            elif self.feval_pending == 0:  # Nothing to process
-                self.phase = 2  # Mark that we are now the adaptive phase
-                self.make_batch()
-                return self.adapt_proposal_sync()
+                return self.adapt_proposal()
+        else:  # Make new proposal in the adaptive phase
+            self.phase == 2
+            if self.asynchronous:
+                self.generate_evals(num_pts=1)
+                return self.adapt_proposal()
+            elif self.feval_pending == 0:  # Only propose a batch if nothing is pending
+                num_pts = min(self.batch_size, self.max_evals - self.num_evals)
+                self.generate_evals(num_pts=num_pts)
+                for _ in range(self.batch_size):
+                    return self.adapt_proposal()
 
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
@@ -213,7 +209,7 @@ class GlobalStrategy(SurrogateStrategy):
         self.Xpend = np.vstack((self.Xpend, np.copy(x)))
         return proposal
 
-    def remove_closest_pending(self, x):
+    def remove_pending(self, x):
         idx = np.where((self.Xpend == x).all(axis=1))
         self.Xpend = np.delete(self.Xpend, idx, axis=0)
 
@@ -247,7 +243,7 @@ class GlobalStrategy(SurrogateStrategy):
         xx = proposal.args[0]
         self.batch_queue.append(xx)
         self.Xpend = np.vstack((self.Xpend, np.copy(xx)))
-        self.remove_closest_pending(xx)
+        self.remove_pending(xx)
 
     def on_initial_update(self, record):
         """Handle update of feval from initial design."""
@@ -263,10 +259,10 @@ class GlobalStrategy(SurrogateStrategy):
             if self.stopping_criterion(record.value):
                 self.terminate = True
 
-        self.numeval += 1
+        self.num_evals += 1
         self.feval_pending -= 1
         self.init_pending -= 1
-        record.worker_numeval = self.numeval
+        record.worker_num_evals = self.num_evals
         record.feasible = True
 
         xx, fx = np.copy(record.params[0]), record.value
@@ -274,7 +270,7 @@ class GlobalStrategy(SurrogateStrategy):
         self.fX = np.vstack((self.fX, fx))
 
         self.surrogate.add_points(xx, fx)
-        self.remove_closest_pending(xx)
+        self.remove_pending(xx)
 
         self.log_completion(record)
         self.fevals.append(record)
@@ -286,42 +282,15 @@ class GlobalStrategy(SurrogateStrategy):
         self.init_pending -= 1
         xx = record.params[0]
         self.batch_queue.append(xx)
-        self.remove_closest_pending(xx)
+        self.remove_pending(xx)
 
     # == Processing in adaptive phase ==
 
-    def adapt_proposal_async(self):
-        """Generate the next adaptive sample point."""
-        self.proposal_counter += 1
-        x = self.adapt_sampling.make_points(
-            npts=1, surrogate=self.surrogate, X=self.X,
-            fX=self.fX, Xpend=self.Xpend, sampling_radius=self.sampling_radius)
-        x = np.ravel(np.asarray(x))
-        proposal = self.make_proposal(x)
-        proposal.pred_val = self.surrogate.eval(x)
+    def adapt_proposal(self):
+        """Propose a point from the batch_queue."""
+        proposal = self.make_proposal(self.batch_queue.pop())
         proposal.add_callback(self.on_adapt_proposal)
         return proposal
-
-    def adapt_proposal_sync(self):
-        """Generate the next adaptive sample point."""
-
-        self.proposal_counter += 1
-        x = np.ravel(np.asarray(self.batch_queue.pop()))
-        proposal = self.make_proposal(x)
-        proposal.pred_val = self.surrogate.eval(x)
-        proposal.add_callback(self.on_adapt_proposal)
-        return proposal
-
-    def make_batch(self):
-        """Generate the next adaptive sample point."""
-
-        nsamples = min(self.batch_size, self.maxeval - self.numeval)
-        new_points = self.adapt_sampling.make_points(
-            npts=nsamples, surrogate=self.surrogate, X=self.X, 
-            fX=self.fX, Xpend=self.Xpend, sampling_radius=self.sampling_radius)
-        for i in range(nsamples):
-            x = np.copy(np.ravel(new_points[i, :]))
-            self.batch_queue.append(x)
 
     def on_adapt_proposal(self, proposal):
         """Handle accept/reject of proposal from sampling phase."""
@@ -341,7 +310,10 @@ class GlobalStrategy(SurrogateStrategy):
         self.feval_budget += 1
         self.feval_pending -= 1
         xx = np.copy(proposal.args[0])
-        self.remove_closest_pending(xx)
+        self.remove_pending(xx)
+        if not self.asynchronous:  # Add back to the queue in batch synchronous case
+            self.batch_queue.append(xx)
+            return self.adapt_proposal()
 
     def on_adapt_update(self, record):
         """Handle update of feval from sampling phase."""
@@ -357,16 +329,16 @@ class GlobalStrategy(SurrogateStrategy):
             if self.stopping_criterion(record.value):
                 self.terminate = True
 
-        self.numeval += 1
+        self.num_evals += 1
         self.feval_pending -= 1
-        record.worker_numeval = self.numeval
+        record.worker_num_evals = self.num_evals
         record.feasible = True
 
         xx, fx = np.copy(record.params[0]), record.value
         self.X = np.vstack((self.X, np.asmatrix(xx)))
         self.fX = np.vstack((self.fX, fx))
         self.surrogate.add_points(xx, fx)
-        self.remove_closest_pending(xx)
+        self.remove_pending(xx)
 
         self.log_completion(record)
         self.fevals.append(record)
@@ -376,10 +348,10 @@ class GlobalStrategy(SurrogateStrategy):
         self.feval_budget += 1
         self.feval_pending -= 1
         xx =  np.copy(record.params[0])
-        self.remove_closest_pending(xx)
+        self.remove_pending(xx)
 
 
-class SRBFStrategy(GlobalStrategy):
+class SRBFStrategy(SurrogateBaseStrategy):
     """Parallel asynchronous SRBF optimization strategy.
 
     In the asynchronous version of SRBF, workers are given function
@@ -405,8 +377,8 @@ class SRBFStrategy(GlobalStrategy):
     """
 
     def __init__(self, max_evals, opt_prob, exp_design=None, surrogate=None,
-                 adapt_sampling=None, asynchronous=True, batch_size=None,
-                 stopping_criterion=None, extra=None):
+                 asynchronous=True, batch_size=None, stopping_criterion=None, 
+                 extra=None, weights=None):
         """Initialize the asynchronous SRBF optimization.
 
         Args:
@@ -418,6 +390,10 @@ class SRBFStrategy(GlobalStrategy):
         """
 
         self.fbest = np.inf      # Current best f
+
+        self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
+        self.weights = [0.3, 0.5, 0.8, 0.95]
+        self.next_weight = 0
 
         self.sampling_radius_min = 0.2 * (0.5 ** 6)
         self.sampling_radius_max = 0.2
@@ -436,10 +412,15 @@ class SRBFStrategy(GlobalStrategy):
 
         self.record_queue = []  # Completed records that haven't been processed
 
+        # Weights for merit function
+        if weights is None:
+            weights = [0.3, 0.5, 0.8, 0.95]
+        self.weights = weights
+        self.weight_ind = 0
+        
         super().__init__(max_evals=max_evals, opt_prob=opt_prob,
-            exp_design=exp_design, surrogate=surrogate, adapt_sampling=adapt_sampling,
-            asynchronous=asynchronous, batch_size=batch_size,
-            stopping_criterion=stopping_criterion, extra=extra)
+            exp_design=exp_design, surrogate=surrogate, asynchronous=asynchronous, 
+            batch_size=batch_size, stopping_criterion=stopping_criterion, extra=extra)
 
     def check_input(self):
         pass
@@ -453,6 +434,24 @@ class SRBFStrategy(GlobalStrategy):
             self.record_queue.append(record)
             if self.feval_pending == 0:  # Only process if the entire batch is done
                 self.adjust_step()
+
+    def get_weights(self, num_pts):
+        """Generate the nextw weights."""
+        weights = []
+        for _ in range(num_pts):
+            weights.append(self.weights[self.weight_ind])
+            self.weight_ind = (self.weight_ind + 1) % len(self.weights)
+        return weights
+
+    def generate_evals(self, num_pts):
+        """Generate the next adaptive sample point."""
+        weights = self.get_weights(num_pts=num_pts)
+        new_points = make_srbf(
+            opt_prob=self.opt_prob, npts=num_pts, surrogate=self.surrogate, X=self.X, 
+            fX=self.fX, Xpend=self.Xpend, sampling_radius=self.sampling_radius, 
+            weights=weights)
+        for x in new_points:
+            self.batch_queue.append(np.copy(np.ravel(x)))
 
     def adjust_step(self):
         """Adjust the sampling radius sigma.
@@ -487,3 +486,7 @@ class SRBFStrategy(GlobalStrategy):
 
         # Empty the queue
         self.record_queue = []
+
+
+class DYCORSStrategy(SurrogateBaseStrategy):
+    pass

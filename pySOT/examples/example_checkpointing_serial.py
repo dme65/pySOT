@@ -4,9 +4,8 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateSRBF
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import GlobalStrategy
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 from pySOT.controller import CheckpointController
@@ -39,20 +38,19 @@ def example_checkpoint_serial():
     # Resume the run
     resume()
 
-
 def init():
     print("\nInitializing run...")
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim))
-    srbf = CandidateSRBF(opt_prob=ackley, num_cand=100*ackley.dim)
-    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
+    rbf = RBFInterpolant(
+        dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = SerialController(ackley.eval)
-    controller.strategy = \
-        GlobalStrategy(max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
-                       surrogate=rbf, adapt_sampling=srbf, 
-                       asynchronous=True, extra=None)
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=rbf, asynchronous=True, extra=None)
 
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)
@@ -61,7 +59,6 @@ def init():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
-
 
 def resume():
     print("Resuming run...\n")

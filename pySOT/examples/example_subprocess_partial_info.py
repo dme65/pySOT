@@ -4,7 +4,6 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
@@ -43,8 +42,9 @@ class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         val = np.nan
         # Continuously check for new outputs from the subprocess
-        self.process = Popen([path, array2str(record.params[0])], \
-                             stdout=PIPE, bufsize=1, universal_newlines=True)
+        self.process = Popen(
+            [path, array2str(record.params[0])], 
+            stdout=PIPE, bufsize=1, universal_newlines=True)
 
         for line in self.process.stdout:
             try:
@@ -84,26 +84,26 @@ def example_subprocess_partial_info():
 
     assert os.path.isfile(path), "You need to build sumfun_ext"
 
-    nthreads = 4
+    num_threads = 4
     max_evals = 200
 
     sumfun = SumfunExt(dim=10)
     print(sumfun.info)
 
-    rbf = RBFInterpolant(dim=sumfun.dim, kernel=CubicKernel(), 
-                         tail=LinearTail(sumfun.dim))
-    dycors = CandidateDYCORS(opt_prob=sumfun, max_evals=max_evals, num_cand=100*sumfun.dim)
-    slhd = SymmetricLatinHypercube(dim=sumfun.dim, npts=2*(sumfun.dim+1))
+    rbf = RBFInterpolant(
+        dim=sumfun.dim, kernel=CubicKernel(), 
+        tail=LinearTail(sumfun.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=sumfun.dim, num_pts=2*(sumfun.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=sumfun, asynchronous=True,
-                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                     batch_size=nthreads)
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=sumfun, exp_design=slhd, 
+        surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
+    for _ in range(num_threads):
         controller.launch_worker(CppSim(controller))
 
     # Run the optimization strategy

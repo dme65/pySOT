@@ -4,9 +4,8 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import GlobalStrategy
+from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import GPRegressor
 from pySOT.optimization_problems import Ackley
 
@@ -29,25 +28,24 @@ def example_gp_regression():
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Gaussian process regression")
 
-    nthreads = 4
+    num_threads = 4
     max_evals = 50
 
     ackley = Ackley(dim=4)
     print(ackley.info)
 
     gp = GPRegressor(dim=ackley.dim)
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, num_cand=100*ackley.dim)
-    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = \
-        GlobalStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
-                       exp_design=slhd, surrogate=gp, adapt_sampling=dycors,
-                       batch_size=nthreads)
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+        surrogate=gp, asynchronous=True, batch_size=num_threads)
 
     # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
+    for _ in range(num_threads):
         worker = BasicWorkerThread(controller, ackley.eval)
         controller.launch_worker(worker)
 

@@ -4,7 +4,6 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
@@ -36,7 +35,8 @@ path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext"
 class CppSim(MPIProcessWorker):
     def eval(self, record_id, params, extra_args=None):
         try:
-            self.process = Popen([path, array2str(params[0])], stdout=PIPE, \
+            self.process = Popen([
+                path, array2str(params[0])], stdout=PIPE,
                 bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
             self.finish_success(record_id, float(val))
@@ -71,17 +71,16 @@ def main_master(nworkers):
     sphere = Sphere(dim=10)
     print(sphere.info)
 
-    rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(), 
-                         tail=LinearTail(sphere.dim))
-    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, numcand=100*sphere.dim)
-    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2*(sphere.dim+1))
+    rbf = RBFInterpolant(
+        dim=sphere.dim, kernel=CubicKernel(), 
+        tail=LinearTail(sphere.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=sphere.dim, num_pts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
-    strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=sphere, asynchronous=True,
-                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                     batch_size=nworkers)
-
+    strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
+        surrogate=rbf, asynchronous=True, batch_size=nworkers)
     controller = MPIController(strategy)
 
     # Run the optimization strategy

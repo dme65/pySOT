@@ -4,8 +4,7 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
-from pySOT.experimental_design import LatinHypercube
+from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
@@ -17,19 +16,17 @@ import logging
 
 # Try to import the matlab_wrapper module
 try:
-    import matlab_wrapper
+    import matlab.engine
 except Exception as err:
-    print("\nERROR: Failed to import the matlab_wrapper module. "
-          "Install using: pip install matlab_wrapper\n")
+    print("\nERROR: Failed to import the matlab engine\n")
     pass
 
 
 class MatlabWorker(ProcessWorkerThread):
     def handle_eval(self, record):
         try:
-            self.matlab.put('x', record.params[0])
-            self.matlab.eval('matlab_ackley')
-            val = self.matlab.get('val')
+            x = matlab.double(record.params[0].tolist())
+            val = self.matlab.ackley(x)
             if np.isnan(val):
                 raise ValueError()
             self.finish_success(record, val)
@@ -52,43 +49,34 @@ def example_matlab_engine():
     print("Experimental design: Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    nthreads = 4
+    num_threads = 4
     max_evals = 500
-    matlab_root = "/Applications/MATLAB_R2018b.app"
 
     ackley = Ackley(dim=10)
     print(ackley.info)
 
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim))
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=max_evals, num_cand=100*ackley.dim)
-    slhd = LatinHypercube(dim=ackley.dim, npts=ackley.dim+1)
+    rbf = RBFInterpolant(
+        dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Use the serial controller (uses only one thread)
     controller = ThreadController()
-    controller.strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=False,
-                    exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                    batch_size=nthreads)
-
-    print("\nNOTE: You may need to specify the matlab_root keyword in "
-          "order \n      to start a MATLAB  session using the matlab_wrapper "
-          "module\n")
-
-    # We need to tell MATLAB where the script is
-    mfile_location = os.getcwd()
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+        surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     # Launch the threads
-    for _ in range(nthreads):
-        worker = MatlabWorker(controller)
+    for _ in range(num_threads):
         try:
-            worker.matlab = matlab_wrapper.MatlabSession(options='-nojvm', matlab_root=matlab_root)
-        except:
+            worker = MatlabWorker(controller)
+            worker.matlab = matlab.engine.start_matlab()
+            controller.launch_worker(worker)
+        except Exception as e:
             print("\nERROR: Failed to initialize a MATLAB session.\n")
+            print(str(e))
             return
-
-        worker.matlab.workspace.addpath(mfile_location)
-        controller.launch_worker(worker)
 
     # Run the optimization strategy
     result = controller.run()

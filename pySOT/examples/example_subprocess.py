@@ -4,7 +4,6 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
@@ -29,8 +28,9 @@ path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext"
 class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         try:
-            self.process = Popen([path, array2str(record.params[0])],
-                                 stdout=PIPE, bufsize=1, universal_newlines=True)
+            self.process = Popen(
+                [path, array2str(record.params[0])],
+                stdout=PIPE, bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
             self.finish_success(record, float(val))
         except ValueError:
@@ -54,26 +54,26 @@ def example_subprocess():
 
     assert os.path.isfile(path), "You need to build sphere_ext"
 
-    nthreads = 1
+    num_threads = 1
     max_evals = 200
 
     sphere = Sphere(dim=10)
     print(sphere.info)
 
-    rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(), 
-                         tail=LinearTail(sphere.dim))
-    dycors = CandidateDYCORS(opt_prob=sphere, max_evals=max_evals, num_cand=100*sphere.dim)
-    slhd = SymmetricLatinHypercube(dim=sphere.dim, npts=2*(sphere.dim+1))
+    rbf = RBFInterpolant(
+        dim=sphere.dim, kernel=CubicKernel(), 
+        tail=LinearTail(sphere.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=sphere.dim, num_pts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=sphere, asynchronous=True,
-                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                     batch_size=nthreads)
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
+        surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
+    for _ in range(num_threads):
         controller.launch_worker(CppSim(controller))
 
     # Run the optimization strategy

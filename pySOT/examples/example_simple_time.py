@@ -4,7 +4,6 @@
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.adaptive_sampling import CandidateDYCORS
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
@@ -31,26 +30,26 @@ def example_simple_time():
     print("Experimental design: Symmetric Latin Hypercube")
     print("Surrogate: Cubic RBF")
 
-    nthreads = 4
+    num_threads = 4
     max_evals = -10  # This means 10 seconds
 
     ackley = Ackley(dim=30)
     print(ackley.info)
 
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                         tail=LinearTail(ackley.dim))
-    dycors = CandidateDYCORS(opt_prob=ackley, max_evals=1000, num_cand=100*ackley.dim)
-    slhd = SymmetricLatinHypercube(dim=ackley.dim, npts=2*(ackley.dim+1))
+    rbf = RBFInterpolant(
+        dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = \
-        SRBFStrategy(max_evals=max_evals, opt_prob=ackley, asynchronous=True,
-                     exp_design=slhd, surrogate=rbf, adapt_sampling=dycors,
-                     batch_size=nthreads)
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+        surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     # Launch the threads and give them access to the objective function
-    for _ in range(nthreads):
+    for _ in range(num_threads):
         worker = BasicWorkerThread(controller, ackley.eval)
         controller.launch_worker(worker)
 

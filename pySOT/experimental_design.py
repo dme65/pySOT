@@ -21,15 +21,9 @@ import itertools
 class ExperimentalDesign(object):
     __metaclass__ = abc.ABCMeta
 
-    @property
-    @abc.abstractmethod
-    def dim(self):  # pragma: no cover
-        pass
-
-    @property
-    @abc.abstractmethod
-    def npts(self):  # pragma: no cover
-        pass
+    def __init__(self):  # pragma: no cover
+        self.dim = None
+        self.num_pts = None
 
     @abc.abstractmethod
     def generate_points(self):  # pragma: no cover
@@ -57,18 +51,10 @@ class LatinHypercube(ExperimentalDesign):
     :type criterion: string
     """
 
-    def __init__(self, dim, npts, criterion='c'):
-        self._dim = dim
-        self._npts = npts
+    def __init__(self, dim, num_pts, criterion='c'):
+        self.dim = dim
+        self.num_pts = num_pts
         self.criterion = criterion
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
@@ -78,7 +64,7 @@ class LatinHypercube(ExperimentalDesign):
         :rtype: numpy.array
         """
 
-        return pydoe.lhs(self.dim, self.npts, self.criterion)
+        return pydoe.lhs(self.dim, self.num_pts, self.criterion)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
@@ -86,25 +72,17 @@ class SymmetricLatinHypercube(ExperimentalDesign):
 
     :param dim: Number of dimensions
     :type dim: int
-    :param npts: Number of desired sampling points
-    :type npts: int
+    :param num_pts: Number of desired sampling points
+    :type num_pts: int
 
     :raises ValueError: If npts < 2*dim
     """
 
-    def __init__(self, dim, npts):
-        self._dim = dim
-        self._npts = npts
-        if npts < 2*dim:
+    def __init__(self, dim, num_pts):
+        self.dim = dim
+        self.num_pts = num_pts
+        if num_pts < 2*dim:
             raise ValueError("We need npts >= 2*dim to make sure the SLHD has full rank")
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
 
     def _slhd(self):
         """Generate a matrix with the initial sample points,
@@ -115,30 +93,30 @@ class SymmetricLatinHypercube(ExperimentalDesign):
         """
 
         # Generate a one-dimensional array based on sample number
-        points = np.zeros([self.npts, self.dim])
-        points[:, 0] = np.arange(1, self.npts+1)
+        points = np.zeros([self.num_pts, self.dim])
+        points[:, 0] = np.arange(1, self.num_pts+1)
 
         # Get the last index of the row in the top half of the hypercube
-        middleind = self.npts//2
+        middleind = self.num_pts // 2
 
         # special manipulation if odd number of rows
-        if self.npts % 2 == 1:
+        if self.num_pts % 2 == 1:
             points[middleind, :] = middleind + 1
 
         # Generate the top half of the hypercube matrix
         for j in range(1, self.dim):
             for i in range(middleind):
                 if np.random.random() < 0.5:
-                    points[i, j] = self.npts-i
+                    points[i, j] = self.num_pts - i
                 else:
                     points[i, j] = i + 1
             np.random.shuffle(points[:middleind, j])
 
         # Generate the bottom half of the hypercube matrix
-        for i in range(middleind, self.npts):
-            points[i, :] = self.npts + 1 - points[self.npts - 1 - i, :]
+        for i in range(middleind, self.num_pts):
+            points[i, :] = self.num_pts + 1 - points[self.num_pts - 1 - i, :]
 
-        return points/self.npts
+        return points/self.num_pts
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
@@ -165,16 +143,8 @@ class TwoFactorial(ExperimentalDesign):
     def __init__(self, dim):
         if dim >= 15:
             raise ValueError("Not generating a design with 2^15 points or more, sorry.")
-        self._dim = dim
-        self._npts = 2 ** dim
-
-    @property
-    def dim(self):
-        return self._dim
-
-    @property
-    def npts(self):
-        return self._npts
+        self.dim = dim
+        self.num_pts = 2 ** dim
 
     def generate_points(self):
         """Generate a matrix with the initial sample points,
