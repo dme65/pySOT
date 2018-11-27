@@ -156,8 +156,8 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.surrogate.reset()
 
         start_sample = self.exp_design.generate_points()
-        assert(start_sample.shape[1] == self.opt_prob.dim, \
-            "Dimension mismatch between problem and experimental design")
+        assert start_sample.shape[1] == self.opt_prob.dim, \
+            "Dimension mismatch between problem and experimental design"
         start_sample = from_unit_box(
             start_sample, self.opt_prob.lb, self.opt_prob.ub)
         start_sample = round_vars(
