@@ -1,5 +1,5 @@
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SRBFStrategy
+from pySOT.strategy import DYCORSStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 from pySOT.controller import CheckpointController
@@ -11,7 +11,7 @@ import time
 import os
 
 np.random.seed(0)
-max_evals = 500
+max_evals = 300
 ackley = Ackley(dim=10)
 
 fname = "checkpoint.pysot"
@@ -41,7 +41,7 @@ def init_serial():
 
     # Create a strategy and a controller
     controller = SerialController(ackley.eval)
-    controller.strategy = SRBFStrategy(
+    controller.strategy = DYCORSStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=rbf, asynchronous=True, extra=None)
 
