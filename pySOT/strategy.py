@@ -467,14 +467,16 @@ class DYCORSStrategy(SRBFStrategy):
     """DYCORS strategy implemented on top of SRBF."""
     def __init__(
         self, max_evals, opt_prob, exp_design=None, surrogate=None,
-        asynchronous=True, batch_size=None, extra=None, weights=None):
+        asynchronous=True, batch_size=None, extra=None, weights=None,
+        num_cand=None):
         
         self.num_exp = exp_design.num_pts  # We need this later
 
         super().__init__(
             max_evals=max_evals, opt_prob=opt_prob, exp_design=exp_design,
             surrogate=surrogate, asynchronous=asynchronous,
-            batch_size=batch_size, extra=extra, weights=weights)
+            batch_size=batch_size, extra=extra, weights=weights,
+            num_cand=num_cand)
 
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
