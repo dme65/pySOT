@@ -30,24 +30,15 @@ def example_mars():
     logging.basicConfig(filename="./logfiles/example_mars.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 200")
-    print("Sampling method: CandidateDYCORS")
-    print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: MARS interpolant")
-
     num_threads = 4
     max_evals = 200
 
     ackley = Ackley(dim=5)
-    print(ackley.info)
-
     try:
         mars = MARSInterpolant(dim=ackley.dim)
     except Exception as e:
         print(str(e))
         return
-
     slhd = SymmetricLatinHypercube(
         dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
@@ -56,6 +47,12 @@ def example_mars():
     controller.strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
         surrogate=mars, asynchronous=True, batch_size=num_threads)
+
+    print("Number of threads: {}".format(num_threads))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(mars.__class__.__name__))
 
     # Launch the threads and give them access to the objective function
     for _ in range(num_threads):

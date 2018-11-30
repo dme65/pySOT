@@ -225,20 +225,23 @@ class GeneticAlgorithm:
     :ivar function: Object that can be used to evaluate the objective function
     """
 
-    def __init__(self, function, dim, lb, ub, intvar=None, popsize=100, ngen=100, start="SLHD"):
+    def __init__(
+        self, function, dim, lb, ub, int_var=None, 
+        pop_size=100, num_gen=100, start="SLHD"):
+        
         self.nvariables = dim
-        self.nindividuals = popsize + (popsize % 2)  # Make sure this is even
+        self.nindividuals = pop_size + (pop_size % 2)  # Make sure this is even
         self.lower_boundary = np.array(lb)
         self.upper_boundary = np.array(ub)
         self.integer_variables = []
-        if intvar is not None:
-            self.integer_variables = np.array(intvar)
+        if int_var is not None:
+            self.integer_variables = np.array(int_var)
         self.start = start
         self.sigma = 0.2
         self.p_mutation = 1.0/dim
         self.tournament_size = 5
         self.p_cross = 0.9
-        self.ngenerations = ngen
+        self.ngenerations = num_gen
         self.function = function
 
     def optimize(self):
@@ -297,7 +300,8 @@ class GeneticAlgorithm:
         # Main loop
         for _ in range(self.ngenerations):
             # Do tournament selection to select the parents
-            competitors = np.random.randint(0, self.nindividuals, (self.nindividuals, self.tournament_size))
+            competitors = np.random.randint(
+                0, self.nindividuals, (self.nindividuals, self.tournament_size))
             ind = np.argmin(function_values[competitors], axis=1)
             winner_indices = np.zeros(self.nindividuals, dtype=int)
             for i in range(self.tournament_size):  # This loop is short
@@ -312,8 +316,10 @@ class GeneticAlgorithm:
             alpha = np.random.rand(nn, 1)
 
             # Create the new chromosomes
-            parent1_new = np.multiply(alpha, parent1[cross, :]) + np.multiply(1-alpha, parent2[cross, :])
-            parent2_new = np.multiply(alpha, parent2[cross, :]) + np.multiply(1-alpha, parent1[cross, :])
+            parent1_new = np.multiply(
+                alpha, parent1[cross, :]) + np.multiply(1-alpha, parent2[cross, :])
+            parent2_new = np.multiply(
+                alpha, parent2[cross, :]) + np.multiply(1-alpha, parent1[cross, :])
             parent1[cross, :] = parent1_new
             parent2[cross, :] = parent2_new
             population = np.concatenate((parent1, parent2))

@@ -52,6 +52,12 @@ def init():
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=rbf, asynchronous=True, extra=None)
 
+    print("Number of workers: 1")
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
+
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)
     result = controller.run()

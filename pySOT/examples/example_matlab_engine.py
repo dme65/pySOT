@@ -43,18 +43,10 @@ def example_matlab_engine():
     logging.basicConfig(filename="./logfiles/example_matlab_engine.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
-    print("Sampling method: CandidateDYCORS")
-    print("Experimental design: Latin Hypercube")
-    print("Surrogate: Cubic RBF")
-
     num_threads = 4
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    print(ackley.info)
-
     rbf = RBFInterpolant(
         dim=ackley.dim, kernel=CubicKernel(),
         tail=LinearTail(ackley.dim))
@@ -66,6 +58,12 @@ def example_matlab_engine():
     controller.strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
         surrogate=rbf, asynchronous=True, batch_size=num_threads)
+
+    print("Number of threads: {}".format(num_threads))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     # Launch the threads
     for _ in range(num_threads):

@@ -26,7 +26,7 @@ def main_worker(objfunction):
     MPISimpleWorker(objfunction).run()
 
 
-def main_master(opt_prob, nworkers):
+def main_master(opt_prob, num_workers):
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/mpiexample_mpi.log"):
@@ -34,14 +34,7 @@ def main_master(opt_prob, nworkers):
     logging.basicConfig(filename="./logfiles/mpiexample_mpi.log",
                         level=logging.INFO)
 
-    print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
-    print("Maximum number of evaluations: 500")
-    print("Sampling method: CandidateDYCORS")
-    print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF")
-
     max_evals = 500
-    print(opt_prob.info)
 
     rbf = RBFInterpolant(
         dim=opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim))
@@ -51,8 +44,14 @@ def main_master(opt_prob, nworkers):
     # Create a strategy and a controller
     strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=opt_prob, exp_design=slhd, 
-        surrogate=rbf, asynchronous=True, batch_size=nworkers)
+        surrogate=rbf, asynchronous=True, batch_size=num_workers)
     controller = MPIController(strategy)
+
+    print("Number of workers: {}".format(num_workers))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     result = controller.run()
     print('Best value found: {0}'.format(result.value))

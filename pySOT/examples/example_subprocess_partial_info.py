@@ -76,11 +76,6 @@ def example_subprocess_partial_info():
     logging.basicConfig(filename="./logfiles/example_subprocess_partial_info.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 200")
-    print("Sampling method: Candidate DYCORS")
-    print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF")
 
     assert os.path.isfile(path), "You need to build sumfun_ext"
 
@@ -88,8 +83,6 @@ def example_subprocess_partial_info():
     max_evals = 200
 
     sumfun = SumfunExt(dim=10)
-    print(sumfun.info)
-
     rbf = RBFInterpolant(
         dim=sumfun.dim, kernel=CubicKernel(), 
         tail=LinearTail(sumfun.dim))
@@ -101,6 +94,12 @@ def example_subprocess_partial_info():
     controller.strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=sumfun, exp_design=slhd, 
         surrogate=rbf, asynchronous=True, batch_size=num_threads)
+
+    print("Number of threads: {}".format(num_threads))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     # Launch the threads and give them access to the objective function
     for _ in range(num_threads):

@@ -63,8 +63,6 @@ def example_subprocess_files():
     max_evals = 200
 
     sphere = Sphere(dim=10)
-    print(sphere.info)
-
     rbf = RBFInterpolant(
         dim=sphere.dim, kernel=TPSKernel(), 
         tail=LinearTail(sphere.dim))
@@ -76,6 +74,12 @@ def example_subprocess_files():
     controller.strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
         surrogate=rbf, asynchronous=False, batch_size=num_threads)
+
+    print("Number of threads: {}".format(num_threads))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     # Launch the threads and give them access to the objective function
     for i in range(num_threads):

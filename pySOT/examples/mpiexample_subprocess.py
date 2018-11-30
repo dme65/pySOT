@@ -51,7 +51,7 @@ def main_worker():
     CppSim().run()
 
 
-def main_master(nworkers):
+def main_master(num_workers):
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/test_subprocess_mpi.log"):
@@ -59,7 +59,7 @@ def main_master(nworkers):
     logging.basicConfig(filename="./logfiles/test_subprocess_mpi.log",
                         level=logging.INFO)
 
-    print("\nTesting the POAP MPI controller with {0} workers".format(nworkers))
+    print("\nTesting the POAP MPI controller with {0} workers".format(num_workers))
     print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
@@ -68,9 +68,8 @@ def main_master(nworkers):
     assert os.path.isfile(path), "You need to build sphere_ext"
 
     max_evals = 200
-    sphere = Sphere(dim=10)
-    print(sphere.info)
 
+    sphere = Sphere(dim=10)
     rbf = RBFInterpolant(
         dim=sphere.dim, kernel=CubicKernel(), 
         tail=LinearTail(sphere.dim))
@@ -80,8 +79,14 @@ def main_master(nworkers):
     # Create a strategy and a controller
     strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
-        surrogate=rbf, asynchronous=True, batch_size=nworkers)
+        surrogate=rbf, asynchronous=True, batch_size=num_workers)
     controller = MPIController(strategy)
+
+    print("Number of threads: {}".format(num_workers))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     # Run the optimization strategy
     result = controller.run()

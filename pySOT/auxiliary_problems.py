@@ -1,11 +1,11 @@
 """
-.. module:: adaptive_sampling
+.. module:: auxiliary_problems
    :synopsis: Ways of finding the next point to evaluate in the adaptive phase
 
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>,
                 David Bindel <bindel@cornell.edu>
 
-:Module: adaptive_sampling
+:Module: auxiliary_problems
 :Author: David Eriksson <dme65@cornell.edu>,
         David Bindel <bindel@cornell.edu>
 
@@ -33,7 +33,7 @@ def weighted_distance_merit(
     dmerit = np.amin(np.asmatrix(dists), axis=1)
 
     # Values
-    fvals = surrogate.eval(cand)
+    fvals = surrogate.predict(cand)
     fvals = unit_rescale(fvals)
 
     # Pick candidate points
@@ -155,3 +155,40 @@ def candidate_uniform(
     return weighted_distance_merit(
         num_pts=num_pts, surrogate=surrogate, X=X, fX=fX, 
         Xpend=Xpend, cand=cand, dtol=dtol, weights=weights)
+
+
+def expected_improvement_ga(
+    num_pts, opt_prob, surrogate, X, fX,
+    Xpend=None, dtol=1e-3, ei_tol=1e-6):
+    """Just use a GA for now."""
+    
+    XX = np.vstack((X, Xpend))
+
+    new_points = np.zeros((num_pts, opt_prob.dim))
+    for i in range(num_pts):
+        def ei_merit(Y):
+            mu, sig = surrogate.predict(Y), surrogate.predict_std(Y)
+            gamma = (np.min(fX) - mu) / sig
+            beta = gamma * norm.cdf(gamma) + norm.pdf(gamma)
+            ei = sig * beta
+
+            dists = scpspatial.distance.cdist(Y, XX)
+            dmerit = np.amin(np.asmatrix(dists), axis=1)
+            
+            ei[dmerit < dtol] = -np.inf
+            return -ei  # Remember that we are minimizing!!!
+
+        ga = GA(
+            function=ei_merit, dim=opt_prob.dim, lb=opt_prob.lb, 
+            ub=opt_prob.ub, int_var=opt_prob.int_var, 
+            pop_size=max([2*opt_prob.dim, 100]), num_gen=100)
+        x_best, f_min = ga.optimize()
+
+        ei_max = -f_min
+        if ei_max < ei_tol:
+            return None  # Give up
+
+        new_points[i, :] = x_best
+        XX = np.vstack((XX, x_best))
+
+    return new_points

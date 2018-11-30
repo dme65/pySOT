@@ -1,40 +1,41 @@
 """
-.. module:: example_gp_regression
-  :synopsis: Example GP Regression
+.. module:: example_simple
+  :synopsis: Example Simple
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import SRBFStrategy
+from pySOT.strategy import ExpectedImprovementStrategy
 from pySOT.surrogate import GPRegressor
-from pySOT.optimization_problems import Ackley
+from pySOT.optimization_problems import Hartman6
 
 from poap.controller import ThreadController, BasicWorkerThread
 import numpy as np
 import os.path
 import logging
 
-def example_gp_regression():
+
+def example_simple():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/example_gp.log"):
-        os.remove("./logfiles/example_gp.log")
-    logging.basicConfig(filename="./logfiles/example_gp.log",
+    if os.path.exists("./logfiles/example_simple.log"):
+        os.remove("./logfiles/example_simple.log")
+    logging.basicConfig(filename="./logfiles/example_simple.log",
                         level=logging.INFO)
 
     num_threads = 4
-    max_evals = 50
+    max_evals = 100
 
-    ackley = Ackley(dim=4)
-    gp = GPRegressor(dim=ackley.dim)
+    hart6 = Hartman6()
+    gp = GPRegressor(dim=hart6.dim)
     slhd = SymmetricLatinHypercube(
-        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+        dim=hart6.dim, num_pts=2*(hart6.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
-        surrogate=gp, asynchronous=True, batch_size=num_threads)
+    controller.strategy =  ExpectedImprovementStrategy(
+        max_evals=max_evals, opt_prob=hart6, exp_design=slhd, 
+        surrogate=gp, asynchronous=True)
 
     print("Number of threads: {}".format(num_threads))
     print("Maximum number of evaluations: {}".format(max_evals))
@@ -44,7 +45,7 @@ def example_gp_regression():
 
     # Launch the threads and give them access to the objective function
     for _ in range(num_threads):
-        worker = BasicWorkerThread(controller, ackley.eval)
+        worker = BasicWorkerThread(controller, hart6.eval)
         controller.launch_worker(worker)
 
     # Run the optimization strategy
@@ -55,6 +56,5 @@ def example_gp_regression():
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 
-
 if __name__ == '__main__':
-    example_gp_regression()
+    example_simple()

@@ -61,11 +61,11 @@ def test_ga():
             np.exp(np.sum(np.cos(2.0*np.pi*x), axis=1)/dim) + 20 + np.exp(1)
 
     ga = GeneticAlgorithm(obj_function, dim, -15*np.ones(dim), 20*np.ones(dim),
-                          popsize=100, ngen=100, start="SLHD")
+                          pop_size=100, num_gen=100, start="SLHD")
     x_best, f_best = ga.optimize()
 
     ga = GeneticAlgorithm(obj_function, dim, -15*np.ones(dim), 20*np.ones(dim), np.array([0]),
-                          popsize=100, ngen=100, start="SLHD")
+                          pop_size=100, num_gen=100, start="SLHD")
     x_best, f_best = ga.optimize()
     np.testing.assert_almost_equal(x_best[0], np.round(x_best[0]))
 

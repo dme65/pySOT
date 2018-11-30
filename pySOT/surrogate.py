@@ -61,7 +61,7 @@ class Surrogate(ABC):
         self.updated = False
 
     @abstractmethod
-    def eval(self, xx):  # pragma: no cover
+    def predict(self, xx):  # pragma: no cover
         """Evaluate interpolant at points xx
 
         xx must be of size npts x dim or (dim, )
@@ -69,7 +69,7 @@ class Surrogate(ABC):
         return
 
     @abstractmethod
-    def deriv(self, X):  # pragma: no cover
+    def predict_deriv(self, X):  # pragma: no cover
         """Evaluate derivative of interpolant at points xx
 
         xx must be of size npts x dim or (dim, )
@@ -451,7 +451,7 @@ class RBFInterpolant(Surrogate):
             self.c = scplinalg.solve_triangular(a=self.U, b=self.c, lower=False)
             self.updated = True
 
-    def eval(self, x):
+    def predict(self, x):
         """Evaluate the RBF interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -468,7 +468,7 @@ class RBFInterpolant(Surrogate):
         return np.dot(self.kernel.eval(ds), self.c[ntail:ntail + self.npts]) + \
             np.dot(self.tail.eval(x), self.c[:ntail])
 
-    def deriv(self, xx):
+    def predict_deriv(self, xx):
         """Evaluate the derivative of the RBF interpolant at a point x
 
         :param xx: Point for which we want to compute the RBF gradient
@@ -518,8 +518,10 @@ class GPRegressor(Surrogate):
         self.updated = False
 
         if gp is None:
-            kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + WhiteKernel(1e-3, (1e-6, 1e-2))
-            self.model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=n_restarts_optimizer)
+            kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + \
+                WhiteKernel(1e-3, (1e-6, 1e-2))
+            self.model = GaussianProcessRegressor(
+                kernel=kernel, n_restarts_optimizer=n_restarts_optimizer)
         else:
             self.model = gp
             if not isinstance(gp, GaussianProcessRegressor):
@@ -531,7 +533,7 @@ class GPRegressor(Surrogate):
             self.model.fit(self.X, self.fX)
             self.updated = True
 
-    def eval(self, x):
+    def predict(self, x):
         """Evaluate the GP regression object at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -545,7 +547,14 @@ class GPRegressor(Surrogate):
         x = np.atleast_2d(x)
         return self.model.predict(x)
 
-    def deriv(self, x):
+    def predict_std(self, x):
+        """Predict standard deviation at a given point."""
+        self._fit()
+        x = np.atleast_2d(x)
+        _, std = self.model.predict(x, return_std=True)
+        return np.expand_dims(std, axis=1)
+
+    def predict_deriv(self, x):
         """Evaluate the GP regression object at a point x
 
         :param x: Point for which we want to compute the GP regression gradient
@@ -609,7 +618,7 @@ class MARSInterpolant(Surrogate):
             self.model.fit(self.X, self.fX)
             self.updated = True
 
-    def eval(self, x):
+    def predict(self, x):
         """Evaluate the MARS interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -624,7 +633,7 @@ class MARSInterpolant(Surrogate):
         x = np.atleast_2d(x)
         return np.expand_dims(self.model.predict(x), axis=1)
 
-    def deriv(self, x):
+    def predict_deriv(self, x):
         """Evaluate the derivative of the MARS interpolant at a point x
 
         :param x: Point for which we want to compute the MARS gradient
@@ -669,7 +678,7 @@ class PolyRegressor(Surrogate):
             self.model.fit(self.X, self.fX)
             self.updated = True
 
-    def eval(self, x):
+    def predict(self, x):
         """Evaluate the MARS interpolant at the points x
 
         :param x: Points where to evaluate, of size npts x dim
@@ -683,7 +692,7 @@ class PolyRegressor(Surrogate):
         x = np.atleast_2d(x)
         return self.model.predict(x)
 
-    def deriv(self, x):
+    def predict_deriv(self, x):
         """TODO: Not implemented"""
         raise NotImplementedError
 
@@ -725,11 +734,14 @@ class SurrogateCapped(Surrogate):
         self.model.add_points(xx, fx)
         self.model.fX = self.transformation(np.copy(self.fX))  # Apply transformation
 
-    def eval(self, x):
-        return self.model.eval(x)
+    def predict(self, x):
+        return self.model.predict(x)
 
-    def deriv(self, x):
-        return self.model.deriv(x)
+    def predict_std(self, x):
+        return self.model.predict_std(x)
+
+    def predict_deriv(self, x):
+        return self.model.predict_deriv(x)
 
 
 class SurrogateUnitBox(Surrogate):
@@ -764,14 +776,21 @@ class SurrogateUnitBox(Surrogate):
 
     def add_points(self, xx, fx):
         super().add_points(xx, fx)
-        self.model.add_points(to_unit_box(xx, self.lb, self.ub), fx)
+        self.model.add_points(
+            to_unit_box(xx, self.lb, self.ub), fx)
 
-    def eval(self, x):
-        return self.model.eval(to_unit_box(x, self.lb, self.ub))
+    def predict(self, x):
+        return self.model.predict(
+            to_unit_box(x, self.lb, self.ub))
 
-    def deriv(self, x):
+    def predict_std(self, x):
+        return self.model.predict_std(
+            to_unit_box(x, self.lb, self.ub))
+
+    def predict_deriv(self, x):
         """Remember the chain rule.
 
         f'(x) = (d/dx) g((x-a)/(b-a)) = g'((x-a)/(b-a)) * 1/(b-a)
         """
-        return self.model.deriv(to_unit_box(x, self.lb, self.ub)) / (self.ub - self.lb)
+        return self.model.predict_deriv(
+            to_unit_box(x, self.lb, self.ub)) / (self.ub - self.lb)

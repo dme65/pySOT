@@ -119,15 +119,15 @@ def test_rbf():
     # Derivative at random points
     np.random.seed(0)
     Xs = np.random.rand(10, 2)
-    fhx = rbf.eval(Xs)
-    dfhx = rbf.deriv(Xs)
+    fhx = rbf.predict(Xs)
+    dfhx = rbf.predict_deriv(Xs)
     fx = f(Xs)
     dfx = df(Xs)
     assert(np.max(np.abs(fx - fhx)) < 1e-4)
     assert(la.norm(dfx - dfhx) < 1e-2)
 
     # Derivative at previous points
-    dfhx = rbf.deriv(X[0, :])
+    dfhx = rbf.predict_deriv(X[0, :])
     assert(la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
 
     # Reset the surrogate
@@ -137,20 +137,20 @@ def test_rbf():
     # Now add 100 points at a time and test reallocation + LU
     for i in range(9):
         rbf.add_points(X[i*100:(i+1)*100, :], fX[i*100:(i+1)*100])
-        rbf.eval(Xs)  # Force fit
+        rbf.predict(Xs)  # Force fit
 
     # Derivative at random points
     np.random.seed(0)
     Xs = np.random.rand(10, 2)
-    fhx = rbf.eval(Xs)
-    dfhx = rbf.deriv(Xs)
+    fhx = rbf.predict(Xs)
+    dfhx = rbf.predict_deriv(Xs)
     fx = f(Xs)
     dfx = df(Xs)
     assert(np.max(np.abs(fx - fhx)) < 1e-4)
     assert(la.norm(dfx - dfhx) < 1e-2)
 
     # Derivative at previous points
-    dfhx = rbf.deriv(X[0, :])
+    dfhx = rbf.predict_deriv(X[0, :])
     assert(la.norm(df(np.atleast_2d(X[0, :])) - dfhx) < 1e-1)
 
 
@@ -164,7 +164,7 @@ def test_gp():
     # Derivative at random points
     np.random.seed(0)
     Xs = np.random.rand(10, 2)
-    fhx = gp.eval(Xs)
+    fhx = gp.predict(Xs)
     fx = f(Xs)
     assert(np.max(np.abs(fx - fhx)) < 1e-2)
 
@@ -184,7 +184,7 @@ def test_poly():
     # Derivative at random points
     np.random.seed(0)
     Xs = np.random.rand(10, 2)
-    fhx = poly.eval(Xs)
+    fhx = poly.predict(Xs)
     fx = f(Xs)
     assert(np.max(np.abs(fx - fhx)) < 1e-1)
 
@@ -208,7 +208,7 @@ def test_mars():
     # Derivative at random points
     np.random.seed(0)
     Xs = np.random.rand(10, 2)
-    fhx = mars.eval(Xs)
+    fhx = mars.predict(Xs)
     fx = f(Xs)
     assert(np.max(np.abs(fx - fhx)) < 1e-1)
 
@@ -237,8 +237,8 @@ def test_capped():
     rbf2 = RBFInterpolant(dim=1, eta=1e-6)
     rbf2.add_points(x, fX_capped)
 
-    assert(np.max(np.abs(rbf1.eval(xx) - rbf2.eval(xx))) < 1e-10)
-    assert(np.max(np.abs(rbf1.deriv(x[0, :]) - rbf2.deriv(x[0, :]))) < 1e-10)
+    assert(np.max(np.abs(rbf1.predict(xx) - rbf2.predict(xx))) < 1e-10)
+    assert(np.max(np.abs(rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
 
     rbf1.reset()
     assert(rbf1.npts == 0 and rbf1.dim == 1)
@@ -261,8 +261,8 @@ def test_unit_box():
     rbf2 = RBFInterpolant(dim=1, eta=1e-6)
     rbf2.add_points(x, fX)
 
-    assert(np.max(np.abs(rbf1.eval(xx) - rbf2.eval(xx))) < 1e-10)
-    assert(np.max(np.abs(rbf1.deriv(x[0, :]) - rbf2.deriv(x[0, :]))) < 1e-10)
+    assert(np.max(np.abs(rbf1.predict(xx) - rbf2.predict(xx))) < 1e-10)
+    assert(np.max(np.abs(rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
     assert(np.max(np.abs(rbf1.X - rbf2.X)) < 1e-10)
     assert(np.max(np.abs(rbf1.fX - rbf2.fX)) < 1e-10)
 

@@ -33,8 +33,6 @@ def example_simple():
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    print(ackley.info)
-
     rbf = SurrogateUnitBox(
         RBFInterpolant(
             dim=ackley.dim, kernel=CubicKernel(), 
@@ -48,6 +46,12 @@ def example_simple():
     controller.strategy =  SRBFStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
         surrogate=rbf, asynchronous=True)
+
+    print("Number of threads: {}".format(num_threads))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     # Launch the threads and give them access to the objective function
     for _ in range(num_threads):

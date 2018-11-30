@@ -23,18 +23,10 @@ def example_extra_vals():
     logging.basicConfig(filename="./logfiles/example_extra_vals.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
-    print("Sampling method: CandidateDYCORS")
-    print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF")
-
     num_threads = 4
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    print(ackley.info)
-
     num_extra = 10
     extra = np.random.uniform(ackley.lb, ackley.ub, (num_extra, ackley.dim))
     extra_vals = np.nan * np.ones((num_extra, 1))
@@ -54,6 +46,12 @@ def example_extra_vals():
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
         surrogate=rbf, asynchronous=True, batch_size=num_threads, 
         extra=(extra, extra_vals))
+
+    print("Number of threads: {}".format(num_threads))
+    print("Maximum number of evaluations: {}".format(max_evals))
+    print("Strategy: {}".format(controller.strategy.__class__.__name__))
+    print("Experimental design: {}".format(slhd.__class__.__name__))
+    print("Surrogate: {}".format(rbf.__class__.__name__))
 
     # Append the known function values to the POAP database since POAP won't evaluate these points
     for i in range(len(extra_vals)):

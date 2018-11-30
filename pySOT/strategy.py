@@ -20,7 +20,7 @@ import time
 
 from poap.strategy import BaseStrategy, Proposal, RetryStrategy
 from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.adaptive_sampling import candidate_srbf, candidate_dycors
+from pySOT.auxiliary_problems import candidate_srbf, candidate_dycors, expected_improvement_ga
 from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
 from pySOT.utils import from_unit_box, round_vars
 
@@ -175,7 +175,9 @@ class SurrogateBaseStrategy(BaseStrategy):
         design for us to construct a surrogate.
         """
 
-        if self.num_evals + self.pending_evals >= self.max_evals or self.terminate:
+        if self.terminate:  # Check if termination has been triggered
+            return Proposal('terminate')
+        elif self.num_evals + self.pending_evals >= self.max_evals or self.terminate:
             if self.pending_evals == 0:  # Only terminate if nothing is pending
                 return Proposal('terminate')
         elif self.batch_queue:  # Propose point from the batch_queue
@@ -187,11 +189,15 @@ class SurrogateBaseStrategy(BaseStrategy):
             self.phase = 2
             if self.asynchronous:
                 self.generate_evals(num_pts=1)
-                return self.adapt_proposal()
             elif self.pending_evals == 0:  # Only propose a batch if nothing is pending
                 self.generate_evals(num_pts=self.batch_size)
-                return self.adapt_proposal()  # Launch evaluation (the others will be triggered later)
 
+            if self.terminate:  # Check if termination has been triggered
+                return Proposal('terminate')
+
+            # Launch evaluation (the others will be triggered later)
+            return self.adapt_proposal()  
+            
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
         proposal = Proposal('eval', x)
@@ -497,3 +503,32 @@ class DYCORSStrategy(SRBFStrategy):
 
         for i in range(num_pts):
             self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
+
+
+class ExpectedImprovementStrategy(SurrogateBaseStrategy):
+    """Expected improvement strategy."""
+    def __init__(
+        self, max_evals, opt_prob, exp_design=None, surrogate=None,
+        asynchronous=True, batch_size=None, extra=None,
+        optimizer=None, ei_tol=1e-6):
+        
+        self.optimizer = expected_improvement_ga  # For now
+        self.ei_tol = ei_tol
+
+        super().__init__(
+            max_evals=max_evals, opt_prob=opt_prob, exp_design=exp_design,
+            surrogate=surrogate, asynchronous=asynchronous,
+            batch_size=batch_size, extra=extra)
+
+    def generate_evals(self, num_pts):
+        """Generate the next adaptive sample points."""
+        new_points = expected_improvement_ga(
+            num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate, 
+            X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=1e-3, 
+            ei_tol=self.ei_tol)
+            
+        if new_points is None:  # Not enough improvement
+            self.terminate = True
+        else:
+            for i in range(num_pts):
+                self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
