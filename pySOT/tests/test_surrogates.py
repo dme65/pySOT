@@ -129,7 +129,7 @@ def test_rbf():
 
     # Reset the surrogate
     rbf.reset()
-    assert(rbf.npts == 0 and rbf.dim == 2)
+    assert(rbf.num_pts == 0 and rbf.dim == 2)
 
     # Now add 100 points at a time and test reallocation + LU
     for i in range(9):
@@ -168,7 +168,7 @@ def test_gp():
     # Derivative at previous points
     # Reset the surrogate
     gp.reset()
-    assert(gp.npts == 0 and gp.dim == 2)
+    assert(gp.num_pts == 0 and gp.dim == 2)
 
 
 def test_poly():
@@ -187,7 +187,7 @@ def test_poly():
 
     # Reset the surrogate
     poly.reset()
-    assert (poly.npts == 0 and poly.dim == 2)
+    assert (poly.num_pts == 0 and poly.dim == 2)
 
 
 def test_mars():
@@ -211,7 +211,7 @@ def test_mars():
 
     # Reset the surrogate
     mars.reset()
-    assert(mars.npts == 0 and mars.dim == 2)
+    assert(mars.num_pts == 0 and mars.dim == 2)
 
 
 def test_capped():
@@ -238,7 +238,7 @@ def test_capped():
     assert(np.max(np.abs(rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
 
     rbf1.reset()
-    assert(rbf1.npts == 0 and rbf1.dim == 1)
+    assert(rbf1.num_pts == 0 and rbf1.dim == 1)
     assert(rbf1.X.size == 0 and rbf1.fX.size == 0)
 
 def test_unit_box():
@@ -264,7 +264,7 @@ def test_unit_box():
     assert(np.max(np.abs(rbf1.fX - rbf2.fX)) < 1e-10)
 
     rbf1.reset()
-    assert(rbf1.npts == 0 and rbf1.dim == 1)
+    assert(rbf1.num_pts == 0 and rbf1.dim == 1)
     assert(rbf1.X.size == 0 and rbf1.fX.size == 0)
 
 

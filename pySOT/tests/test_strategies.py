@@ -1,5 +1,5 @@
 from pySOT.strategy import SRBFStrategy, DYCORSStrategy, \
-    ExpectedImprovementStrategy
+    ExpectedImprovementStrategy, RandomSampling
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.surrogate import GPRegressor, \
     RBFInterpolant, CubicKernel, LinearTail
@@ -25,6 +25,7 @@ def check_strategy(controller):
     assert controller.strategy.X.shape == (controller.strategy.num_evals, ackley.dim)
     assert controller.strategy.fX.shape == (controller.strategy.num_evals, 1)
     assert controller.strategy.Xpend.shape == (0, ackley.dim)
+    assert controller.strategy.surrogate.num_pts == controller.strategy.num_evals
     assert len(controller.strategy.fevals) == controller.strategy.num_evals
 
     # Check that the strategy and controller have the same information
@@ -33,6 +34,8 @@ def check_strategy(controller):
             controller.fevals[i].params[0]).all(axis=1))[0]
         assert np.all(controller.fevals[i].params[0] == controller.strategy.X[idx, :])
         assert controller.fevals[i].value == controller.strategy.fX[idx]
+        assert np.all(controller.fevals[i].params[0] <= ackley.ub)
+        assert np.all(controller.fevals[i].params[0] >= ackley.lb)
 
 
 def test_srbf_serial():
@@ -214,6 +217,24 @@ def test_ei_async():
     controller.run()
 
     check_strategy(controller)
+
+
+def test_random_sampling():
+    max_evals = 500
+    controller = ThreadController()
+    controller.strategy = RandomSampling(
+        opt_prob=ackley, max_evals=max_evals)
+
+    for _ in range(num_threads):
+        worker = BasicWorkerThread(controller, ackley.eval)
+        controller.launch_worker(worker)
+    controller.run()
+
+    assert len(controller.fevals) == max_evals
+    for rec in controller.fevals:
+        assert np.all(rec.params[0] <= ackley.ub)
+        assert np.all(rec.params[0] >= ackley.lb)
+    
 
 
 if __name__ == '__main__':

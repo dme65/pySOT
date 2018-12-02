@@ -1,6 +1,6 @@
 """
 .. module:: strategy
-   :synopsis: Parallel synchronous optimization strategy
+   :synopsis: Surrogate optimization strategies
 
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
                 David Bindel <bindel@cornell.edu>,
@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class RandomSampling(BaseStrategy):
+    """Random sampling strategy."""
     def __init__(self, opt_prob, max_evals):
         self.opt_prob = opt_prob
         self.max_evals = max_evals

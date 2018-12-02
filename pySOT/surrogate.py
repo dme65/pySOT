@@ -25,14 +25,14 @@ import warnings
 class Surrogate(ABC):
     def __init__(self):  # pragma: no cover
         self.dim = None
-        self.npts = None
+        self.num_pts = None
         self.X = None
         self.fX = None
         self.updated = None
 
     def reset(self):
         """Reset the interpolation."""
-        self.npts = 0
+        self.num_pts = 0
         self.X = np.empty([0, self.dim])
         self.fX = np.empty([0, 1])
         self.updated = False
@@ -57,14 +57,14 @@ class Surrogate(ABC):
         newpts = xx.shape[0]
         self.X = np.vstack((self.X, xx))
         self.fX = np.vstack((self.fX, fx))
-        self.npts += newpts
+        self.num_pts += newpts
         self.updated = False
 
     @abstractmethod
     def predict(self, xx):  # pragma: no cover
         """Evaluate interpolant at points xx
 
-        xx must be of size npts x dim or (dim, )
+        xx must be of size num_pts x dim or (dim, )
         """
         return
 
@@ -72,7 +72,7 @@ class Surrogate(ABC):
     def predict_deriv(self, X):  # pragma: no cover
         """Evaluate derivative of interpolant at points xx
 
-        xx must be of size npts x dim or (dim, )
+        xx must be of size num_pts x dim or (dim, )
         """
         return
 
@@ -225,9 +225,9 @@ class LinearTail(Tail):
     def eval(self, X):
         """Evaluates the linear polynomial tail for a set of points
 
-        :param X: Points to evaluate, of size npts x dim
+        :param X: Points to evaluate, of size num_pts x dim
         :type X: numpy.array
-        :returns: A numpy.array of size npts x dim_tail(dim)
+        :returns: A numpy.array of size num_pts x dim_tail(dim)
         :rtype: numpy.array
         """
 
@@ -267,9 +267,9 @@ class ConstantTail(Tail):
     def eval(self, X):
         """Evaluates the constant polynomial tail for a set of points
 
-        :param X: Points to evaluate, of size npts x dim
+        :param X: Points to evaluate, of size num_pts x dim
         :type X: numpy.array
-        :returns: A numpy.array of size npts x dim_tail(dim)
+        :returns: A numpy.array of size num_pts x dim_tail(dim)
         :rtype: numpy.array
         """
 
@@ -328,7 +328,7 @@ class RBFInterpolant(Surrogate):
     :ivar tail: RBF tail
     :ivar eta: Regularization parameter
     :ivar ntail: Number of tail functions
-    :ivar npts: Current number of points
+    :ivar num_pts: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar A: Interpolation system matrix
     :ivar LU: LU-factorization of the RBF system
@@ -345,7 +345,7 @@ class RBFInterpolant(Surrogate):
     """
 
     def __init__(self, dim, kernel=None, tail=None, eta=1e-6):
-        self.npts = 0
+        self.num_pts = 0
         self.dim = dim
         self.X = np.empty([0, dim])     # pylint: disable=invalid-name
         self.fX = np.empty([0, 1])
@@ -386,12 +386,12 @@ class RBFInterpolant(Surrogate):
         """
 
         if not self.updated:
-            n = self.npts
+            n = self.num_pts
             ntail = self.ntail
             nact = ntail + n
 
             if self.c is None:  # Initial fit
-                assert self.npts >= ntail
+                assert self.num_pts >= ntail
 
                 X = self.X[0:n, :]
                 D = scpspatial.distance.cdist(X, X)
@@ -454,18 +454,18 @@ class RBFInterpolant(Surrogate):
     def predict(self, x):
         """Evaluate the RBF interpolant at the points x
 
-        :param x: Points where to evaluate, of size npts x dim
+        :param x: Points where to evaluate, of size num_pts x dim
         :type x: numpy.array
-        :param ds: Distances between the centers and the points x, of size npts x ncenters
+        :param ds: Distances between the centers and the points x, of size num_pts x ncenters
         :type ds: numpy.array
-        :return: Values of the rbf interpolant at x, of length npts
+        :return: Values of the rbf interpolant at x, of length num_pts
         :rtype: numpy.array
         """
         self._fit()
         x = np.atleast_2d(x)
         ds = scpspatial.distance.cdist(x, self.X)
         ntail = self.ntail
-        return np.dot(self.kernel.eval(ds), self.c[ntail:ntail + self.npts]) + \
+        return np.dot(self.kernel.eval(ds), self.c[ntail:ntail + self.num_pts]) + \
             np.dot(self.tail.eval(x), self.c[:ntail])
 
     def predict_deriv(self, xx):
@@ -511,7 +511,7 @@ class GPRegressor(Surrogate):
     """
 
     def __init__(self, dim, gp=None, n_restarts_optimizer=3):
-        self.npts = 0
+        self.num_pts = 0
         self.dim = dim
         self.X = np.empty([0, dim])     # pylint: disable=invalid-name
         self.fX = np.empty([0, 1])
@@ -536,11 +536,11 @@ class GPRegressor(Surrogate):
     def predict(self, x):
         """Evaluate the GP regression object at the points x
 
-        :param x: Points where to evaluate, of size npts x dim
+        :param x: Points where to evaluate, of size num_pts x dim
         :type x: numpy.array
         :param ds: Not used
         :type ds: None
-        :return: Values of the GP regression object at x, of length npts
+        :return: Values of the GP regression object at x, of length num_pts
         :rtype: numpy.array
         """
         self._fit()
@@ -590,7 +590,7 @@ class MARSInterpolant(Surrogate):
     :param maxp: Initial capacity
     :type maxp: int
 
-    :ivar npts: Current number of points
+    :ivar num_pts: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar x: Interpolation points
     :ivar fx: Function evaluations of interpolation points
@@ -599,7 +599,7 @@ class MARSInterpolant(Surrogate):
     """
 
     def __init__(self, dim):
-        self.npts = 0
+        self.num_pts = 0
         self.X = np.empty([0, dim])
         self.fX = np.empty([0, 1])
         self.dim = dim
@@ -621,11 +621,11 @@ class MARSInterpolant(Surrogate):
     def predict(self, x):
         """Evaluate the MARS interpolant at the points x
 
-        :param x: Points where to evaluate, of size npts x dim
+        :param x: Points where to evaluate, of size num_pts x dim
         :type x: numpy.array
         :param ds: Not used
         :type ds: None
-        :return: Values of the MARS interpolant at x, of length npts
+        :return: Values of the MARS interpolant at x, of length num_pts
         :rtype: numpy.array
         """
 
@@ -656,7 +656,7 @@ class PolyRegressor(Surrogate):
     :param maxp: Initial capacity
     :type maxp: int
 
-    :ivar npts: Current number of points
+    :ivar num_pts: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar x: Interpolation points
     :ivar fx: Function evaluations of interpolation points
@@ -664,7 +664,7 @@ class PolyRegressor(Surrogate):
     """
 
     def __init__(self, dim, degree=2):
-        self.npts = 0
+        self.num_pts = 0
         self.X = np.empty([0, dim])
         self.fX = np.empty([0, 1])
         self.dim = dim
@@ -681,11 +681,11 @@ class PolyRegressor(Surrogate):
     def predict(self, x):
         """Evaluate the MARS interpolant at the points x
 
-        :param x: Points where to evaluate, of size npts x dim
+        :param x: Points where to evaluate, of size num_pts x dim
         :type x: numpy.array
         :param ds: Not used
         :type ds: None
-        :return: Values of the MARS interpolant at x, of length npts
+        :return: Values of the MARS interpolant at x, of length num_pts
         :rtype: numpy.array
         """
         self._fit()
@@ -708,7 +708,7 @@ class SurrogateCapped(Surrogate):
     """
 
     def __init__(self, model, transformation=None):
-        self.npts = 0
+        self.num_pts = 0
         self.X = np.empty([0, model.dim])
         self.fX = np.empty([0, 1])
         self.dim = model.dim
@@ -759,7 +759,7 @@ class SurrogateUnitBox(Surrogate):
     """
 
     def __init__(self, model, lb, ub):
-        self.npts = 0
+        self.num_pts = 0
         self.X = np.empty([0, model.dim])
         self.fX = np.empty([0, 1])
         self.dim = model.dim
