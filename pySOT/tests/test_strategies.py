@@ -25,8 +25,12 @@ def check_strategy(controller):
     assert controller.strategy.X.shape == (controller.strategy.num_evals, ackley.dim)
     assert controller.strategy.fX.shape == (controller.strategy.num_evals, 1)
     assert controller.strategy.Xpend.shape == (0, ackley.dim)
-    assert controller.strategy.surrogate.num_pts == controller.strategy.num_evals
     assert len(controller.strategy.fevals) == controller.strategy.num_evals
+
+    # Check that all evaluations are in the surrogate model
+    assert controller.strategy.surrogate.num_pts == controller.strategy.num_evals
+    assert np.all(controller.strategy.X == controller.strategy.surrogate.X)
+    assert np.all(controller.strategy.fX == controller.strategy.surrogate.fX)
 
     # Check that the strategy and controller have the same information
     for i in range(controller.strategy.num_evals):
@@ -162,7 +166,6 @@ def test_dycors_async():
     check_strategy(controller)
 
 
-
 def test_ei_serial():
     max_evals = 50
     gp = GPRegressor(dim=ackley.dim)
@@ -235,7 +238,6 @@ def test_random_sampling():
         assert np.all(rec.params[0] <= ackley.ub)
         assert np.all(rec.params[0] >= ackley.lb)
     
-
 
 if __name__ == '__main__':
     test_srbf_serial()

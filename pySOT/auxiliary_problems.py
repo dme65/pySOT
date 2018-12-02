@@ -205,9 +205,10 @@ def expected_improvement_ga(
 
 def expected_improvement_uniform(
     num_pts, opt_prob, surrogate, X, fX,
-    Xpend=None, dtol=1e-3, ei_tol=1e-6):
-    """Just use a GA for now."""
-    
+    Xpend=None, dtol=1e-3, ei_tol=1e-6, num_cand=None):
+    """Pick the best from a set of uniform points."""
+    if num_cand is None:
+        num_cand = 100*opt_prob.dim
     if Xpend is None:  # cdist can't handle None arguments
         Xpend = np.empty([0, opt_prob.dim])
     XX = np.vstack((X, Xpend))
