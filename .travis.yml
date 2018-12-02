@@ -39,7 +39,7 @@ script:
   - make example
   - make mpiexample
   - cd -
-  - python -m pytest --cov-config .coveragerc --cov=pySOT
+  - python -m pytest --cov-config .coveragerc --cov=pySOT --disable-warnings
 
 after_success:
   - codecov

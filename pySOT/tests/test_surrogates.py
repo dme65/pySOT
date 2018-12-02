@@ -3,9 +3,6 @@ from pySOT.surrogate import Surrogate, Tail, ConstantTail, LinearTail, \
     GPRegressor, MARSInterpolant, PolyRegressor, RBFInterpolant, \
     SurrogateCapped, SurrogateUnitBox
 from pySOT.optimization_problems import Ackley
-
-import inspect
-import sys
 import numpy.linalg as la
 import numpy as np
 

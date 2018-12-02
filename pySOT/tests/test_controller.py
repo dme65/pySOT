@@ -9,6 +9,7 @@ import numpy as np
 import multiprocessing
 import time
 import os
+import pytest
 
 np.random.seed(0)
 max_evals = 300
@@ -55,6 +56,11 @@ def resume(controller):
     controller = CheckpointController(controller, fname=fname)
     result = controller.resume()
     assert(result.value < 2.0)
+
+    # Try to resume again and make sure an exception is raised
+    with pytest.raises(IOError):
+        result = controller.run()
+
 
 if __name__ == '__main__':
     test_checkpoint_serial()

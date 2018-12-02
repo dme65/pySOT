@@ -73,6 +73,8 @@ class SurrogateBaseStrategy(BaseStrategy):
 
         self.proposal_counter = 0
         self.terminate = False
+        if not asynchronous and batch_size is None:
+            raise ValueError("You must specify batch size in synchronous mode (use 1 for serial)")
         self.asynchronous = asynchronous
         self.batch_size = batch_size
 
@@ -176,7 +178,8 @@ class SurrogateBaseStrategy(BaseStrategy):
         """
 
         if self.terminate:  # Check if termination has been triggered
-            return Proposal('terminate')
+            if self.pending_evals == 0:
+                return Proposal('terminate')
         elif self.num_evals + self.pending_evals >= self.max_evals or self.terminate:
             if self.pending_evals == 0:  # Only terminate if nothing is pending
                 return Proposal('terminate')
@@ -193,7 +196,8 @@ class SurrogateBaseStrategy(BaseStrategy):
                 self.generate_evals(num_pts=self.batch_size)
 
             if self.terminate:  # Check if termination has been triggered
-                return Proposal('terminate')
+                if self.pending_evals == 0:
+                    return Proposal('terminate')
 
             # Launch evaluation (the others will be triggered later)
             return self.adapt_proposal()  
@@ -206,7 +210,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         return proposal
 
     def remove_pending(self, x):
-        idx = np.where((self.Xpend == x).all(axis=1))
+        idx = np.where((self.Xpend == x).all(axis=1))[0]
         self.Xpend = np.delete(self.Xpend, idx, axis=0)
 
     # == Processing in initial phase ==

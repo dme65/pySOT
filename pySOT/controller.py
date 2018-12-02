@@ -1,3 +1,14 @@
+"""
+.. module:: controller
+   :synopsis: pySOT controllers
+
+.. moduleauthor:: David Eriksson <dme65@cornell.edu>,
+
+:Module: controller
+:Author: David Eriksson <dme65@cornell.edu>,
+
+"""
+
 import dill
 import copy
 import os.path
@@ -35,7 +46,7 @@ class CheckpointController(object):
         self.controller.strategy.save(self.fname)  # Checkpoint the state of the strategy
 
     def resume(self, merit=None, filter=None):
-        """Resume an optimization run
+        """Resume an optimization run.
 
         The strategy assumes that all pending evaluations are cancelled
         """

@@ -1,8 +1,6 @@
 from pySOT.experimental_design import ExperimentalDesign, \
         SymmetricLatinHypercube, LatinHypercube, TwoFactorial
 import numpy as np
-import inspect
-import sys
 import pytest
 
 
