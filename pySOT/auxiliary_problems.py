@@ -157,29 +157,38 @@ def candidate_uniform(
         Xpend=Xpend, cand=cand, dtol=dtol, weights=weights)
 
 
+def ei_merit(X, surrogate, fX, XX=None, dtol=0):
+    """Compute the expected improvement"""
+    mu, sig = surrogate.predict(X), surrogate.predict_std(X)
+    gamma = (np.min(fX) - mu) / sig
+    beta = gamma * norm.cdf(gamma) + norm.pdf(gamma)
+    ei = sig * beta
+    
+    if dtol > 0:
+        dists = scpspatial.distance.cdist(X, XX)
+        dmerit = np.amin(np.asmatrix(dists), axis=1)
+        ei[dmerit < dtol] = 0.0
+
+    return ei
+
+
 def expected_improvement_ga(
     num_pts, opt_prob, surrogate, X, fX,
     Xpend=None, dtol=1e-3, ei_tol=1e-6):
     """Just use a GA for now."""
     
+    if Xpend is None:  # cdist can't handle None arguments
+        Xpend = np.empty([0, opt_prob.dim])
     XX = np.vstack((X, Xpend))
 
     new_points = np.zeros((num_pts, opt_prob.dim))
     for i in range(num_pts):
-        def ei_merit(Y):
-            mu, sig = surrogate.predict(Y), surrogate.predict_std(Y)
-            gamma = (np.min(fX) - mu) / sig
-            beta = gamma * norm.cdf(gamma) + norm.pdf(gamma)
-            ei = sig * beta
-
-            dists = scpspatial.distance.cdist(Y, XX)
-            dmerit = np.amin(np.asmatrix(dists), axis=1)
-            
-            ei[dmerit < dtol] = -np.inf
+        def obj(Y):
+            ei = ei_merit(X=Y, surrogate=surrogate, fX=fX, XX=XX, dtol=dtol)
             return -ei  # Remember that we are minimizing!!!
 
         ga = GA(
-            function=ei_merit, dim=opt_prob.dim, lb=opt_prob.lb, 
+            function=obj, dim=opt_prob.dim, lb=opt_prob.lb, 
             ub=opt_prob.ub, int_var=opt_prob.int_var, 
             pop_size=max([2*opt_prob.dim, 100]), num_gen=100)
         x_best, f_min = ga.optimize()
@@ -190,5 +199,38 @@ def expected_improvement_ga(
 
         new_points[i, :] = x_best
         XX = np.vstack((XX, x_best))
+
+    return new_points
+
+
+def expected_improvement_uniform(
+    num_pts, opt_prob, surrogate, X, fX,
+    Xpend=None, dtol=1e-3, ei_tol=1e-6):
+    """Just use a GA for now."""
+    
+    if Xpend is None:  # cdist can't handle None arguments
+        Xpend = np.empty([0, opt_prob.dim])
+    XX = np.vstack((X, Xpend))
+
+    new_points = np.zeros((num_pts, opt_prob.dim))
+    for i in range(num_pts):
+
+        # Fix default values   
+        if num_cand is None:
+            num_cand = 100*opt_prob.dim
+
+        # Generate uniformly random candidate points
+        cand = np.random.uniform(
+            opt_prob.lb, opt_prob.ub, (num_cand, opt_prob.dim))
+        ei = ei_merit(X=cand, surrogate=surrogate, fX=fX, XX=XX, dtol=dtol)
+
+        jj = np.argmax(ei)
+        ei_max = ei[jj]
+
+        if ei_max < ei_tol:
+            return None  # Give up
+        new_points[i, :] = cand[jj, :].copy()
+
+        XX = np.vstack((XX, cand[jj, :].copy()))
 
     return new_points
