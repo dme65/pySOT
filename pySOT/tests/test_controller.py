@@ -17,6 +17,39 @@ ackley = Ackley(dim=10)
 
 fname = "checkpoint.pysot"
 
+
+def check_strategy(controller):
+    """Make sure the strategy object is correct."""
+
+    # Check the strategy object
+    assert controller.strategy.num_evals <= controller.strategy.max_evals
+    assert controller.strategy.phase == 2
+    assert controller.strategy.init_pending == 0
+    assert controller.strategy.pending_evals == 0
+    assert controller.strategy.X.shape == (controller.strategy.num_evals, ackley.dim)
+    assert controller.strategy.fX.shape == (controller.strategy.num_evals, 1)
+    assert controller.strategy.Xpend.shape == (0, ackley.dim)
+    assert len(controller.strategy.fevals) == controller.strategy.num_evals
+
+    # Check that all evaluations are in the surrogate model
+    assert controller.strategy.surrogate.num_pts == controller.strategy.num_evals
+    assert np.all(controller.strategy.X == controller.strategy.surrogate.X)
+    assert np.all(controller.strategy.fX == controller.strategy.surrogate.fX)
+
+    # Check that the strategy and controller have the same information
+    assert len(controller.fevals) == controller.strategy.num_evals
+    for i in range(controller.strategy.num_evals):
+        if controller.fevals[i].status == 'completed':
+            idx = np.where((controller.strategy.X == \
+                controller.fevals[i].params[0]).all(axis=1))[0]
+
+            assert(len(idx) == 1)
+            assert np.all(controller.fevals[i].params[0] == controller.strategy.X[idx, :])
+            assert controller.fevals[i].value == controller.strategy.fX[idx]
+            assert np.all(controller.fevals[i].params[0] <= ackley.ub)
+            assert np.all(controller.fevals[i].params[0] >= ackley.lb)
+
+
 def test_checkpoint_serial():
     if os.path.isfile(fname):
         os.remove(fname)
@@ -55,7 +88,9 @@ def resume(controller):
     # Wrap controller in checkpoint object
     controller = CheckpointController(controller, fname=fname)
     result = controller.resume()
-    assert(result.value < 2.0)
+    assert(result.value < 2.0)  # To make sure performance is the same
+
+    check_strategy(controller.controller)
 
     # Try to resume again and make sure an exception is raised
     with pytest.raises(IOError):

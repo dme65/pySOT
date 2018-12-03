@@ -58,7 +58,8 @@ class SurrogateBaseStrategy(BaseStrategy):
 
     def __init__(
         self, max_evals, opt_prob, exp_design=None, surrogate=None,
-        asynchronous=True, batch_size=None, extra=None):
+        asynchronous=True, batch_size=None, extra=None, 
+        reset_surrogate=True):
         """Skeleton for surrogate optimization.
 
         Args:
@@ -70,21 +71,22 @@ class SurrogateBaseStrategy(BaseStrategy):
             batch_size: Size of each batch, not used if asynchronous == True
             stopping_criterion: Stopping criterion
             extra: Extra points (and values) to be added to the experimental design
+            reset_surrogate: Reset surrogate before optimizing
         """
 
-        self.proposal_counter = 0
-        self.terminate = False
         if not asynchronous and batch_size is None:
             raise ValueError("You must specify batch size in synchronous mode (use 1 for serial)")
         self.asynchronous = asynchronous
         self.batch_size = batch_size
 
         self.opt_prob = opt_prob
-        self.surrogate = surrogate
-        if self.surrogate is None:
-            self.surrogate = RBFInterpolant(
+        if surrogate is None:
+            surrogate = RBFInterpolant(
                 dim=opt_prob.dim, kernel=CubicKernel(),
                 tail=LinearTail(opt_prob.dim))
+        if reset_surrogate:
+            surrogate.reset()
+        self.surrogate = surrogate
 
         # Default to using a Symmetric Latin Hypercube
         if exp_design is None:
@@ -93,6 +95,8 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.exp_design = exp_design
 
         # Sampler state
+        self.proposal_counter = 0
+        self.terminate = False
         self.accepted_count = 0
         self.rejected_count = 0
     
@@ -139,8 +143,15 @@ class SurrogateBaseStrategy(BaseStrategy):
         os.rename(temp_fname, fname)
 
     def resume(self):
-        """Resuming a terminated run."""
+        """Resume a terminated run."""
+        if self.phase == 1:  # Put the points back in the queue if we are in the initial phase
+            self.init_pending = 0
+            for x in self.Xpend:
+                self.batch_queue.append(np.copy(x))
+        
+        # Remove everything that is pending
         self.pending_evals = 0
+        self.Xpend = np.empty([0, self.opt_prob.dim])
 
     def log_completion(self, record):
         """Record a completed evaluation to the log.
@@ -271,6 +282,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         xx = record.params[0]
         self.batch_queue.append(xx)
         self.remove_pending(xx)
+        self.fevals.append(record)
 
     # == Processing in adaptive phase ==
 
@@ -328,6 +340,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.pending_evals -= 1
         xx =  np.copy(record.params[0])
         self.remove_pending(xx)
+        self.fevals.append(record)
 
 
 class SRBFStrategy(SurrogateBaseStrategy):
@@ -537,3 +550,7 @@ class ExpectedImprovementStrategy(SurrogateBaseStrategy):
         else:
             for i in range(num_pts):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
+
+
+class SOMIStrategy(SurrogateBaseStrategy):
+    pass
