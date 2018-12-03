@@ -2,6 +2,7 @@
 *.log
 build/
 dist/
+docs/_build
 pySOT.egg-info
 *.pysot
 .pytest_cache/*

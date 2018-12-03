@@ -587,9 +587,6 @@ class MARSInterpolant(Surrogate):
     3. a product of two or more hinge functions. These basis functions c \
        an model interaction between two or more variables.
 
-    :param maxp: Initial capacity
-    :type maxp: int
-
     :ivar num_pts: Current number of points
     :ivar maxp: Initial maximum number of points (can grow)
     :ivar x: Interpolation points

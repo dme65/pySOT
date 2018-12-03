@@ -7,14 +7,12 @@ global deterministic optimization problems. pySOT is hosted on GitHub:
 
 The main purpose of the toolbox is for optimization of computationally
 expensive black-box objective functions with continuous and/or integer
-variables. We support inequality constraints of any form through a penalty
-method approach, but cannot yet efficiently handle equality constraints.
+variables. 
 All variables are assumed to have bound constraints in some form where none
 of the bounds are infinity. The tighter the bounds, the more efficient are
 the algorithms since it reduces the search region and increases the quality
-of the constructed surrogate. The longer the objective functions take to
-evaluate, the more efficient are these algorithms. For this reason, this
-toolbox may not be very efficient for problems with computationally cheap
+of the constructed surrogate. 
+This toolbox may not be very efficient for problems with computationally cheap
 function evaluations. Surrogate models are intended to be used when function
 evaluations take from several minutes to several hours or more.
 
@@ -36,9 +34,6 @@ The toolbox is based on the following published papers: [1_], [2_], [3_], [4_],
    surrogate_optimization
    options
    poap
-   gui
-   tutorials
-   guidelines
    logging
    source_code
    changes

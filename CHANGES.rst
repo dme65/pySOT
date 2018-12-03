@@ -1,3 +1,12 @@
+v.0.2.0,  2018-12-xx
+
+- Most of the pySOT codebase has been rewritten
+- The strategy has been merged with the adaptive sampling
+- The penalty method strategy has been removed, but may be added back later
+- A CheckpointController has been added that enables resuming terminated runs
+- Python 2 support has been dropped, we now support Python 3.4 and newer versions
+- Expected improvement has been added
+
 v.0.1.36, 2017-07-20
 --------------------
 

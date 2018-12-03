@@ -10,8 +10,8 @@ Surrogate optimization algorithms generally consist of four components:
    Common choices are RBFs, Kriging, MARS, etc.
 3. **Experimental design:** Generates an initial set of points for building
    the initial surrogate model
-4. **Adaptive sampling:** Method for choosing evaluations after the
-   experimental design has been evaluated.
+4. **Strategy:** Method for choosing evaluations after the experimental 
+   design has been evaluated.
 
 The surrogate model (or response surfaces) is used to approximate an underlying
 function that has been evaluated for a set of points. During the optimization
@@ -22,8 +22,8 @@ the same steps as shown in the algorithm below.
 
 The general framework for a Surrogate Optimization algorithm is the following:
 
-**Inputs:** Optimization problem, Experimental design, Adaptive sampling method,
-Surrogate model, Stopping criterion, Restart criterion
+**Inputs:** Optimization problem, Experimental design, Optimization strategy,
+Surrogate model, Stopping criterion
 
 .. code-block:: console
    :linenos:
@@ -32,10 +32,7 @@ Surrogate model, Stopping criterion, Restart criterion
    Evaluate the points in the experimental design
    Build a Surrogate model from the data
    Repeat until stopping criterion met
-      If restart criterion met
-         Reset the Surrogate model and the adaptive sampling method
-         go to 1
-      Use the adaptive sampling method to generate new point(s) to evaluate
+      Use the strategy to generate new point(s) to evaluate
       Evaluate the point(s) generated using all computational resources
       Update the Surrogate model
 

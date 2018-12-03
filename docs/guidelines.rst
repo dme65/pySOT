@@ -1,4 +1,0 @@
-Guidelines
-==========
-
-Stay patient!

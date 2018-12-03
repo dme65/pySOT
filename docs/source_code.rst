@@ -3,10 +3,17 @@ Source code
 
 .. toctree::
 
-pySOT.adaptive_sampling module
-------------------------------
+pySOT.auxiliary_problems module
+-------------------------------
 
-.. automodule:: pySOT.adaptive_sampling
+.. automodule:: pySOT.auxiliary_problems
+    :members:
+    :undoc-members:
+
+pySOT.controller module
+-----------------------
+
+.. automodule:: pySOT.controller
     :members:
     :undoc-members:
 
@@ -14,6 +21,13 @@ pySOT.experimental_design module
 --------------------------------
 
 .. automodule:: pySOT.experimental_design
+    :members:
+    :undoc-members:
+
+pySOT.optimization_problems module
+----------------------------------
+
+.. automodule:: pySOT.optimization_problems
     :members:
     :undoc-members:
 
@@ -28,13 +42,6 @@ pySOT.surrogate module
 ----------------------
 
 .. automodule:: pySOT.surrogate
-    :members:
-    :undoc-members:
-
-pySOT.test_problems module
---------------------------
-
-.. automodule:: pySOT.test_problems
     :members:
     :undoc-members:
 

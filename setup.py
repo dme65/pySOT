@@ -12,7 +12,7 @@ setup(
     description='Surrogate Optimization Toolbox',
     long_description=long_description,
     setup_requires=['numpy'],
-    install_requires=['scipy', 'pyDOE2', 'POAP>=0.1.25', 'pytest', 'dill', 'matlab_wrapper', 'scikit-learn'],
+    install_requires=['scipy', 'pyDOE2', 'POAP>=0.1.25', 'pytest', 'dill', 'scikit-learn'],
     classifiers=['Intended Audience :: Science/Research',
                  'Programming Language :: Python',
                  'Topic :: Scientific/Engineering',

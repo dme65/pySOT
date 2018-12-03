@@ -7,20 +7,12 @@ Quickstart
 Dependencies
 ------------
 
-Before starting you will need Python 2.7.x or Python 3. You need to have numpy, scipy, and pip
+Before starting you will need Python 3.4 or newer. You need to have numpy, scipy, and pip
 installed and we recommend installing Anaconda/Miniconda for your desired Python version.
 
 There are a couple of optional components of pySOT that needs to be installed manually:
 
-1. **scikit-learn**: Necessary in order to use the Gaussian process regression. The minimum
-   version is 0.18.1. Can be installed using
-
-   .. code-block:: bash
-
-      pip install "scikit-learn >= 0.18.1"
-
-
-2. **py-earth**: Implementation of MARS. Can be installed using:
+1. **py-earth**: Implementation of MARS. Can be installed using:
 
    .. code-block:: bash
 
@@ -35,7 +27,7 @@ There are a couple of optional components of pySOT that needs to be installed ma
       pip install six
       python setup.py install
 
-3. **mpi4py**: This module is necessary in order to use pySOT with MPI. Can be installed through pip:
+2. **mpi4py**: This module is necessary in order to use pySOT with MPI. Can be installed through pip:
 
    .. code-block:: bash
 
@@ -47,27 +39,6 @@ There are a couple of optional components of pySOT that needs to be installed ma
    .. code-block:: bash
 
       conda install --channel mpi4py mpich mpi4py
-
-4. **subprocess32**: A backport of the subprocess module for Python 3.2 that works for Python 2.7.
-   This is the recommended way of launching workers through subprocesses for Python 2.7
-   and this module is easily installed using:
-
-   .. code-block:: bash
-
-      pip install subprocess32
-
-5. **matlab_wrapper**: A module that can be used to create MATLAB sessions for
-   older MATLAB versions where there is no default MATLAB engine. Easily instead using:
-
-   .. code-block:: bash
-
-      pip install matlab_wrapper
-
-6. **PySide**: If you want to use the GUI you need to install PySide. This can be done with pip:
-
-   .. code-block:: bash
-
-      pip install PySide
 
 Installation
 ------------
@@ -101,4 +72,4 @@ There are currently two ways to install pySOT:
 
       python setup.py install
 
-Several examples problems are available at ./pySOT/test or in the pySOT.test module
+Several examples are available in ./pySOT/examples and ./pySOT/notebooks
