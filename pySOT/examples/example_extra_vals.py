@@ -34,18 +34,16 @@ def example_extra_vals():
         if i % 2 == 0:
             extra_vals[i] = ackley.eval(extra[i, :])
 
-    rbf = RBFInterpolant(
-        dim=ackley.dim, kernel=CubicKernel(),
-        tail=LinearTail(ackley.dim))
-    slhd = SymmetricLatinHypercube(
-        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+                         tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
-        surrogate=rbf, asynchronous=True, batch_size=num_threads, 
-        extra=(extra, extra_vals))
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=rbf, asynchronous=True, batch_size=num_threads,
+        extra_points=extra, extra_vals=extra_vals)
 
     print("Number of threads: {}".format(num_threads))
     print("Maximum number of evaluations: {}".format(max_evals))
@@ -53,7 +51,8 @@ def example_extra_vals():
     print("Experimental design: {}".format(slhd.__class__.__name__))
     print("Surrogate: {}".format(rbf.__class__.__name__))
 
-    # Append the known function values to the POAP database since POAP won't evaluate these points
+    # Append the known function values to the POAP database since
+    # POAP won't evaluate these points
     for i in range(len(extra_vals)):
         if not np.isnan(extra_vals[i]):
             record = EvalRecord(

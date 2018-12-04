@@ -23,9 +23,6 @@ def test_slhd():
         assert (slhd.num_pts == i)
         assert (slhd.dim == 3)
 
-    with pytest.raises(ValueError):  # This should raise an exception
-        SymmetricLatinHypercube(3, 5)
-
 
 def test_full_factorial():
     ff = TwoFactorial(dim=3)

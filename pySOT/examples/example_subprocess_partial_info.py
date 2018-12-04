@@ -16,21 +16,23 @@ import logging
 from pySOT.optimization_problems import OptimizationProblem
 from subprocess import Popen, PIPE
 
+
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
 
 # Find path of the executable
 path = os.path.dirname(os.path.abspath(__file__)) + "/sumfun_ext"
 
+
 class SumfunExt(OptimizationProblem):
     def __init__(self, dim=10):
         self.dim = dim
         self.lb = -5 * np.ones(self.dim)
-        self.ub =  5 * np.ones(self.dim)
+        self.ub = 5 * np.ones(self.dim)
         self.cont_var = np.arange(0, self.dim)
         self.int_var = np.array([])
         self.info = str(dim) + "-dimensional Sumfun function \n" +\
-                             "Global optimum: f(0,0,...,0) = 0"
+                               "Global optimum: f(0,0,...,0) = 0"
         self.min = 0
 
     def eval(self, xx):
@@ -42,9 +44,8 @@ class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         val = np.nan
         # Continuously check for new outputs from the subprocess
-        self.process = Popen(
-            [path, array2str(record.params[0])], 
-            stdout=PIPE, bufsize=1, universal_newlines=True)
+        self.process = Popen([path, array2str(record.params[0])],
+                             stdout=PIPE, bufsize=1, universal_newlines=True)
 
         for line in self.process.stdout:
             try:
@@ -73,9 +74,9 @@ def example_subprocess_partial_info():
         os.makedirs("logfiles")
     if os.path.exists("./logfiles/example_subprocess_partial_info.log"):
         os.remove("./logfiles/example_subprocess_partial_info.log")
-    logging.basicConfig(filename="./logfiles/example_subprocess_partial_info.log",
-                        level=logging.INFO)
-
+    logging.basicConfig(
+        filename="./logfiles/example_subprocess_partial_info.log",
+        level=logging.INFO)
 
     assert os.path.isfile(path), "You need to build sumfun_ext"
 
@@ -84,7 +85,7 @@ def example_subprocess_partial_info():
 
     sumfun = SumfunExt(dim=10)
     rbf = RBFInterpolant(
-        dim=sumfun.dim, kernel=CubicKernel(), 
+        dim=sumfun.dim, kernel=CubicKernel(),
         tail=LinearTail(sumfun.dim))
     slhd = SymmetricLatinHypercube(
         dim=sumfun.dim, num_pts=2*(sumfun.dim+1))
@@ -92,7 +93,7 @@ def example_subprocess_partial_info():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=sumfun, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=sumfun, exp_design=slhd,
         surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))

@@ -23,6 +23,14 @@ import warnings
 
 
 class Surrogate(ABC):
+    """Base class for a surrogate model.
+
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
+    """
     def __init__(self):  # pragma: no cover
         self.dim = None
         self.num_pts = None
@@ -31,28 +39,30 @@ class Surrogate(ABC):
         self.updated = None
 
     def reset(self):
-        """Reset the interpolation."""
+        """Reset the surrogate."""
         self.num_pts = 0
         self.X = np.empty([0, self.dim])
         self.fX = np.empty([0, 1])
         self.updated = False
 
     def add_points(self, xx, fx):
-        """Add new function evaluations
+        """Add new function evaluations.
 
-        This method SHOULD NOT trigger a new fit, it just updates X and 
-        fX but leaves the original surrogate object intact
+        This method SHOULD NOT trigger a new fit, it just updates X
+        and fX but leaves the original surrogate object intact
 
         :param xx: Points to add
         :type xx: numpy.ndarray
         :param fx: The function values of the point to add
         :type fx: numpy.array or float
         """
-
         xx = np.atleast_2d(xx)
-        if isinstance(fx, float): fx = np.array([fx])
-        if fx.ndim == 0: fx = np.expand_dims(fx, axis=0)
-        if fx.ndim == 1: fx = np.expand_dims(fx, axis=1)
+        if isinstance(fx, float):
+            fx = np.array([fx])
+        if fx.ndim == 0:
+            fx = np.expand_dims(fx, axis=0)
+        if fx.ndim == 1:
+            fx = np.expand_dims(fx, axis=1)
         assert xx.shape[0] == fx.shape[0] and xx.shape[1] == self.dim
         newpts = xx.shape[0]
         self.X = np.vstack((self.X, xx))
@@ -62,35 +72,65 @@ class Surrogate(ABC):
 
     @abstractmethod
     def predict(self, xx):  # pragma: no cover
-        """Evaluate interpolant at points xx
+        """Evaluate surroagte at points xx.
 
-        xx must be of size num_pts x dim or (dim, )
+        :param xx: xx must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Surrogate predictions, of size num_pts x 1
+        :rtype: numpy.ndarray
         """
         return
 
     @abstractmethod
-    def predict_deriv(self, X):  # pragma: no cover
-        """Evaluate derivative of interpolant at points xx
+    def predict_deriv(self, xx):  # pragma: no cover
+        """Evaluate derivative of interpolant at points xx.
 
-        xx must be of size num_pts x dim or (dim, )
+        :param xx: xx must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Surrogate derivative predictions, of size num_pts x dim
+        :rtype: numpy.ndarray
         """
         return
 
 
 class Kernel(ABC):
+    """Base class for a radial kernel.
+
+    :ivar order: Order of the conditionally positive definite kernel
+    """
     def __init__(self):  # pragma: no cover
         self.order = None
 
     @abstractmethod
     def eval(self, dists):  # pragma: no cover
+        """Evaluate the radial kernel.
+
+        :param dists: Array of size n x n with pairwise distances
+        :type dists: numpy.ndarray
+        :return: Array of size n x n with kernel values
+        :rtype: numpy.ndarray
+        """
         pass
 
     @abstractmethod
     def deriv(self, dists):  # pragma: no cover
+        """Evaluate derivatives of radial kernel wrt distance.
+
+        :param dists: Array of size n x n with pairwise distances
+        :type dists: numpy.ndarray
+        :return: Array of size n x n with kernel derivatives
+        :rtype: numpy.ndarray
+        """
         pass
 
 
 class Tail(ABC):
+    """Base class for a polynomial tail.
+
+    "ivar dim: Dimensionality of the original space
+    :ivar dim_tail: Dimensionality of the polynomial space
+        (number of basis functions)
+    """
     def __init__(self):  # pragma: no cover
         self.degree = None
         self.dim = None
@@ -98,18 +138,32 @@ class Tail(ABC):
 
     @abstractmethod
     def eval(self, X):  # pragma: no cover
+        """Evaluate the polynomial tail.
+
+        :param X: Array of size num_pts x dim
+        :type X: numpy.ndarray
+        :return: Array of size num_pts x dim_tail
+        :rtype: numpy.ndarray
+        """
         pass
 
     @abstractmethod
     def deriv(self, x):  # pragma: no cover
+        """Evaluate derivative of the polynomial tail.
+
+        :param x: Array of size 1 x dim or (dim,)
+        :type x: numpy.ndarray
+        :return: Array of size dim_tail x dim
+        :rtype: numpy.ndarray
+        """
         pass
 
 
 class CubicKernel(Kernel):
     """Cubic RBF kernel
 
-    This is a basic class for the Cubic RBF kernel: :math:`\\varphi(r) = r^3` which is
-    conditionally positive definite of order 2.
+    This is a class for the Cubic RBF kernel: :math:`\\varphi(r) = r^3` which
+    is conditionally positive definite of order 2.
     """
 
     def __init__(self):
@@ -121,10 +175,10 @@ class CubicKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|^3`
+        :returns: a matrix where element :math:`(i,j)` is
+            :math:`\\|x_i - x_j \\|^3`
         :rtype: numpy.array
         """
-
         return dists ** 3
 
     def deriv(self, dists):
@@ -132,90 +186,88 @@ class CubicKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`3 \\| x_i - x_j \\|^2`
+        :returns: a matrix where element :math:`(i,j)` is
+            :math:`3 \\| x_i - x_j \\|^2`
         :rtype: numpy.array
         """
-
         return 3 * dists ** 2
 
 
 class TPSKernel(Kernel):
-    """Thin-plate spline RBF kernel
+    """Thin-plate spline RBF kernel.
 
-    This is a basic class for the TPS RBF kernel: :math:`\\varphi(r) = r^2 \\log(r)` which is
+    This is a basic class for the TPS RBF kernel:
+    :math:`\\varphi(r) = r^2 \\log(r)` which is
     conditionally positive definite of order 2.
     """
-
     def __init__(self):
         super().__init__()
         self.order = 2
 
     def eval(self, dists):
-        """Evaluates the TPS kernel for a distance matrix
+        """Evaluate the TPS kernel.
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|^2 \\log (\\|x_i - x_j \\|)`
+        :returns: a matrix where element :math:`(i,j)` is
+            :math:`\\|x_i - x_j \\|^2 \\log (\\|x_i - x_j \\|)`
         :rtype: numpy.array
         """
-
         dists[dists < np.finfo(float).eps] = np.finfo(float).eps
         return (dists ** 2) * np.log(dists)
 
     def deriv(self, dists):
-        """Evaluates the derivative of the TPS kernel for a distance matrix
+        """Evaluate the derivative of the TPS kernel.
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|(1 + 2 \\log (\\|x_i - x_j \\|) )`
+        :returns: a matrix where element :math:`(i,j)` is
+            :math:`\\|x_i - x_j \\|(1 + 2 \\log (\\|x_i - x_j \\|) )`
         :rtype: numpy.array
         """
-
         dists[dists < np.finfo(float).eps] = np.finfo(float).eps
         return dists * (1 + 2 * np.log(dists))
 
 
 class LinearKernel(Kernel):
-    """Linear RBF kernel
+    """Linear RBF kernel.
 
-     This is a basic class for the Linear RBF kernel: :math:`\\varphi(r) = r` which is
+     This is a basic class for the Linear RBF kernel:
+     :math:`\\varphi(r) = r` which is
      conditionally positive definite of order 1.
      """
-
     def __init__(self):
         super().__init__()
         self.order = 1
 
     def eval(self, dists):
-        """Evaluates the Linear kernel for a distance matrix
+        """Evaluate the Linear kernel.
 
         :param dists: Distance input matrix
         :type dists: numpy.array
-        :returns: a matrix where element :math:`(i,j)` is :math:`\\|x_i - x_j \\|`
+        :returns: a matrix where element :math:`(i,j)` is
+            :math:`\\|x_i - x_j \\|`
         :rtype: numpy.array
         """
-
         return dists
 
     def deriv(self, dists):
-        """Evaluates the derivative of the Linear kernel for a distance matrix
+        """Evaluate the derivative of the Linear kernel.
 
         :param dists: Distance input matrix
         :type dists: numpy.array
         :returns: a matrix where element :math:`(i,j)` is 1
         :rtype: numpy.array
         """
-
         return np.ones(dists.shape)
 
 
 class LinearTail(Tail):
     """Linear polynomial tail.
 
-    This is a standard linear polynomial in d-dimension, built from the basis
-    :math:`\\{1,x_1,x_2,\\ldots,x_d\\}`.
+    This is a standard linear polynomial in d-dimension, built from
+    the basis :math:`\\{1,x_1,x_2,\\ldots,x_d\\}`.
     """
-
     def __init__(self, dim):
         super().__init__()
         self.degree = 1
@@ -223,28 +275,26 @@ class LinearTail(Tail):
         self.dim_tail = 1 + dim
 
     def eval(self, X):
-        """Evaluates the linear polynomial tail for a set of points
+        """Evaluate the linear polynomial tail.
 
         :param X: Points to evaluate, of size num_pts x dim
         :type X: numpy.array
-        :returns: A numpy.array of size num_pts x dim_tail(dim)
+        :returns: A numpy.array of size num_pts x dim_tail
         :rtype: numpy.array
         """
-
         X = np.atleast_2d(X)
         if X.shape[1] != self.dim:
             raise ValueError("Input has the wrong number of dimensions")
         return np.hstack((np.ones((X.shape[0], 1)), X))
 
     def deriv(self, x):
-        """Evaluates the gradient of the linear polynomial tail for one point
+        """Evaluate the derivative of the linear polynomial tail
 
-        :param x: Point to evaluate, of length dim
+        :param x: Point to evaluate, of size (1, dim) or (dim,)
         :type x: numpy.array
-        :returns: A numpy.array of size dim x dim_tail(dim)
+        :returns: A numpy.array of size dim_tail x dim
         :rtype: numpy.array
         """
-
         x = np.atleast_2d(x)
         if x.shape[1] != self.dim:
             raise ValueError("Input has the wrong number of dimensions")
@@ -252,12 +302,10 @@ class LinearTail(Tail):
 
 
 class ConstantTail(Tail):
-    """Constant polynomial tail
+    """Constant polynomial tail.
 
-    This is a standard linear polynomial in d-dimension, built from the basis
-    :math:`\\{ 1 \\}`.
+    Constant polynomial in d-dimension, built from the basis :math:`\\{ 1 \\}`.
     """
-
     def __init__(self, dim):
         super().__init__()
         self.degree = 0
@@ -265,28 +313,26 @@ class ConstantTail(Tail):
         self.dim_tail = 1
 
     def eval(self, X):
-        """Evaluates the constant polynomial tail for a set of points
+        """Evaluate the constant polynomial tail.
 
         :param X: Points to evaluate, of size num_pts x dim
         :type X: numpy.array
         :returns: A numpy.array of size num_pts x dim_tail(dim)
         :rtype: numpy.array
         """
-
         X = np.atleast_2d(X)
         if X.shape[1] != self.dim:
             raise ValueError("Input has the wrong number of dimensions")
         return np.ones((X.shape[0], 1))
 
     def deriv(self, x):
-        """Evaluates the gradient of the linear polynomial tail for one point
+        """Evaluate the derivative of the constant polynomial tail.
 
-        :param x: Point to evaluate, of length dim
+        :param x: Point to evaluate, of size (1, dim) or (dim,)
         :type x: numpy.array
-        :returns: A numpy.array of size dim x dim_tail(dim)
+        :returns: A numpy.array of size dim_tail x dim
         :rtype: numpy.array
         """
-
         x = np.atleast_2d(x)
         if x.shape[1] != self.dim:
             raise ValueError("Input has the wrong number of dimensions")
@@ -310,40 +356,30 @@ class RBFInterpolant(Surrogate):
         \\begin{bmatrix} \\lambda \\\\ c \\end{bmatrix} =
         \\begin{bmatrix} 0 \\\\ f \\end{bmatrix}
 
-    where :math:`P_{ij} = p_j(x_i)` and :math:`\\Phi_{ij}=\\phi(\\|x_i-x_j\\|)`.
+    where :math:`P_{ij} = p_j(x_i)` and :math:`\\Phi_{ij}=\\phi(\\|x_i-x_j\\|)`
     The regularization parameter :math:`\\eta` allows us to avoid problems
-    with potential poor conditioning of the system. The regularization parameter
-    can either be fixed or estimated via LOOCV. Specify eta='adapt' for estimation.
+    with potential poor conditioning of the system. Consider using the
+    SurrogateUnitBox wrapper or manually scaling the domain to the unit
+    hypercube to avoid issues with the domain scaling.
 
+    :param dim: Number of dimensions
+    :type dim: int
     :param kernel: RBF kernel object
     :type kernel: Kernel
     :param tail: RBF polynomial tail object
     :type tail: Tail
-    :param maxp: Initial point capacity
-    :type maxp: int
     :param eta: Regularization parameter
-    :type eta: float or 'adapt'
+    :type eta: float or
 
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
     :ivar kernel: RBF kernel
     :ivar tail: RBF tail
     :ivar eta: Regularization parameter
-    :ivar ntail: Number of tail functions
-    :ivar num_pts: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar A: Interpolation system matrix
-    :ivar LU: LU-factorization of the RBF system
-    :ivar piv: pivot vector for the LU-factorization
-    :ivar rhs: Right hand side for interpolation system
-    :ivar x: Interpolation points
-    :ivar fx: Values at interpolation points
-    :ivar c: Expansion coefficients
-    :ivar dim: Number of dimensions
-    :ivar ntail: Number of tail functions
-    :ivar updated: True if the RBF coefficients are up to date
-
-    TODO: Update this interface to match the abstract class
     """
-
     def __init__(self, dim, kernel=None, tail=None, eta=1e-6):
         self.num_pts = 0
         self.dim = dim
@@ -371,7 +407,7 @@ class RBFInterpolant(Surrogate):
         assert self.dim == self.tail.dim
 
     def reset(self):
-        """Reset the RBF interpolant"""
+        """Reset the RBF interpolant."""
         super().reset()
         self.L = None
         self.U = None
@@ -379,12 +415,13 @@ class RBFInterpolant(Surrogate):
         self.c = None
 
     def _fit(self):
-        """Compute the expansion coefficients
+        """Compute new coefficients if the RBF is not updated.
 
-        :return: Expansion coefficients
-        :rtype: numpy.array
+        We try to update an existing LU factorization by computing a Cholesky
+        factorization of the Schur complemented system. This may fail if the
+        system is ill-conditioned, in which case we compute a new LU
+        factorization.
         """
-
         if not self.updated:
             n = self.num_pts
             ntail = self.ntail
@@ -407,10 +444,11 @@ class RBFInterpolant(Surrogate):
                 self.L = np.tril(LU, -1) + np.eye(nact)
                 self.U = np.triu(LU)
 
-                # Construct the usual pivoting vector so that we can increment later
+                # Construct the usual pivoting vector so that we can increment
                 self.piv = np.arange(0, nact)
                 for i in range(nact):
-                    self.piv[i], self.piv[piv[i]] = self.piv[piv[i]], self.piv[i]
+                    self.piv[i], self.piv[piv[i]] = \
+                        self.piv[piv[i]], self.piv[i]
 
             else:  # Extend LU factorization
                 k = self.c.shape[0] - ntail
@@ -420,19 +458,22 @@ class RBFInterpolant(Surrogate):
                 X = self.X[:n, :]
                 XX = self.X[k:n, :]
                 D = scpspatial.distance.cdist(X, XX)
-                Pnew = np.vstack((self.tail.eval(XX).T, self.kernel.eval(D[:k, :])))
+                Pnew = np.vstack((self.tail.eval(XX).T,
+                                  self.kernel.eval(D[:k, :])))
                 Phinew = self.kernel.eval(D[k:, :]) + self.eta * np.eye(numnew)
 
                 L21 = np.zeros((kact, numnew))
                 U12 = np.zeros((kact, numnew))
-                for i in range(numnew):  # TODO: Too bad we can't use level-3 BLAS here
-                    L21[:, i] = scplinalg.solve_triangular(a=self.U, b=Pnew[:kact, i],
-                                                           lower=False, trans='T')
-                    U12[:, i] = scplinalg.solve_triangular(a=self.L, b=Pnew[self.piv[:kact], i],
-                                                           lower=True, trans='N')
+                for i in range(numnew):  # TODO: Can we use level-3 BLAS?
+                    L21[:, i] = scplinalg.solve_triangular(
+                        a=self.U, b=Pnew[:kact, i], lower=False, trans='T')
+                    U12[:, i] = scplinalg.solve_triangular(
+                        a=self.L, b=Pnew[self.piv[:kact], i],
+                        lower=True, trans='N')
                 L21 = L21.T
-                try:  # Try to compute a Cholesky factorization of the Schur complement
-                    C = scplinalg.cholesky(a=Phinew - np.dot(L21, U12), lower=True)
+                try:  # Compute Cholesky factorization of the Schur complement
+                    C = scplinalg.cholesky(
+                        a=Phinew - np.dot(L21, U12), lower=True)
                 except:  # Compute a new LU factorization if the Cholesky fails
                     self.c = None
                     return self._fit()
@@ -447,35 +488,34 @@ class RBFInterpolant(Surrogate):
 
             # Update coefficients
             rhs = np.vstack((np.zeros((ntail, 1)), self.fX))
-            self.c = scplinalg.solve_triangular(a=self.L, b=rhs[self.piv], lower=True)
-            self.c = scplinalg.solve_triangular(a=self.U, b=self.c, lower=False)
+            self.c = scplinalg.solve_triangular(
+                a=self.L, b=rhs[self.piv], lower=True)
+            self.c = scplinalg.solve_triangular(
+                a=self.U, b=self.c, lower=False)
             self.updated = True
 
-    def predict(self, x):
-        """Evaluate the RBF interpolant at the points x
+    def predict(self, xx):
+        """Evaluate the RBF interpolant at the points xx
 
-        :param x: Points where to evaluate, of size num_pts x dim
-        :type x: numpy.array
-        :param ds: Distances between the centers and the points x, of size num_pts x ncenters
-        :type ds: numpy.array
-        :return: Values of the rbf interpolant at x, of length num_pts
-        :rtype: numpy.array
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Prediction of size num_pts x 1
+        :rtype: numpy.ndarray
         """
         self._fit()
-        x = np.atleast_2d(x)
-        ds = scpspatial.distance.cdist(x, self.X)
+        xx = np.atleast_2d(xx)
+        ds = scpspatial.distance.cdist(xx, self.X)
         ntail = self.ntail
-        return np.dot(self.kernel.eval(ds), self.c[ntail:ntail + self.num_pts]) + \
-            np.dot(self.tail.eval(x), self.c[:ntail])
+        return np.dot(self.kernel.eval(ds),
+                      self.c[ntail:ntail + self.num_pts]) + \
+            np.dot(self.tail.eval(xx), self.c[:ntail])
 
     def predict_deriv(self, xx):
-        """Evaluate the derivative of the RBF interpolant at a point x
+        """Evaluate the derivative of the RBF interpolant at a point xx
 
-        :param xx: Point for which we want to compute the RBF gradient
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.array
-        :param ds: Distances between the centers and the point x
-        :type ds: numpy.array
-        :return: Derivative of the RBF interpolant at x
+        :return: Derivative of the RBF interpolant at xx
         :rtype: numpy.array
         """
         self._fit()
@@ -483,7 +523,7 @@ class RBFInterpolant(Surrogate):
         if xx.shape[1] != self.dim:
             raise ValueError("Input has incorrect number of dimensions")
         ds = scpspatial.distance.cdist(self.X, xx)
-        ds[ds < np.finfo(float).eps] = np.finfo(float).eps  # Better safe than sorry
+        ds[ds < np.finfo(float).eps] = np.finfo(float).eps  # Avoid 0*inf
 
         dfxx = np.zeros((xx.shape[0], self.dim))
         for i in range(xx.shape[0]):
@@ -502,14 +542,24 @@ class RBFInterpolant(Surrogate):
 
 
 class GPRegressor(Surrogate):
-    """Compute and evaluate a GP
+    """Gaussian process (GP) regressor.
 
-    Gaussian Process Regression object.
+    Wrapper around the GPRegressor in scikit-learn.
 
-    More details:
-        http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html
+    :param dim: Number of dimensions
+    :type dim: int
+    :param gp: GPRegressor model
+    :type gp: object
+    :param n_restarts_optimizer: Number of restarts in hyperparam fitting
+    :type n_restarts_optimizer: int
+
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
+    :ivar model: GPRegressor object
     """
-
     def __init__(self, dim, gp=None, n_restarts_optimizer=3):
         self.num_pts = 0
         self.dim = dim
@@ -517,7 +567,7 @@ class GPRegressor(Surrogate):
         self.fX = np.empty([0, 1])
         self.updated = False
 
-        if gp is None:
+        if gp is None:  # Use the SE kernel
             kernel = ConstantKernel(1, (1e-3, 1e3)) * RBF(1, (0.1, 100)) + \
                 WhiteKernel(1e-3, (1e-6, 1e-2))
             self.model = GaussianProcessRegressor(
@@ -528,43 +578,38 @@ class GPRegressor(Surrogate):
                 raise TypeError("gp is not of type GaussianProcessRegressor")
 
     def _fit(self):
-        """Fit the model"""
+        """Compute new coefficients if the GP is not updated."""
         if not self.updated:
             self.model.fit(self.X, self.fX)
             self.updated = True
 
-    def predict(self, x):
-        """Evaluate the GP regression object at the points x
+    def predict(self, xx):
+        """Evaluate the GP regressor at the points xx.
 
-        :param x: Points where to evaluate, of size num_pts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the GP regression object at x, of length num_pts
-        :rtype: numpy.array
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Prediction of size num_pts x 1
+        :rtype: numpy.ndarray
         """
         self._fit()
-        x = np.atleast_2d(x)
-        return self.model.predict(x)
+        xx = np.atleast_2d(xx)
+        return self.model.predict(xx)
 
-    def predict_std(self, x):
-        """Predict standard deviation at a given point."""
+    def predict_std(self, xx):
+        """Predict standard deviation at points xx.
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Predicted standard deviation, of size num_pts x 1
+        :rtype: numpy.ndarray
+        """
         self._fit()
-        x = np.atleast_2d(x)
-        _, std = self.model.predict(x, return_std=True)
+        xx = np.atleast_2d(xx)
+        _, std = self.model.predict(xx, return_std=True)
         return np.expand_dims(std, axis=1)
 
-    def predict_deriv(self, x):
-        """Evaluate the GP regression object at a point x
-
-        :param x: Point for which we want to compute the GP regression gradient
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Derivative of the GP regression object at x
-        :rtype: numpy.array
-        """
-
+    def predict_deriv(self, xx):
+        """TODO: Not implemented"""
         raise NotImplementedError
 
 
@@ -587,14 +632,16 @@ class MARSInterpolant(Surrogate):
     3. a product of two or more hinge functions. These basis functions c \
        an model interaction between two or more variables.
 
-    :ivar num_pts: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar x: Interpolation points
-    :ivar fx: Function evaluations of interpolation points
-    :ivar dim: Number of dimensions
-    :ivar model: MARS interpolation model
-    """
+    :param dim: Number of dimensions
+    :type dim: int
 
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
+    :ivar model: Earth object
+    """
     def __init__(self, dim):
         self.num_pts = 0
         self.X = np.empty([0, dim])
@@ -610,100 +657,106 @@ class MARSInterpolant(Surrogate):
             raise err
 
     def _fit(self):
-        warnings.simplefilter("ignore")  # Surpress deprecation warnings from py-earth
+        """Compute new coefficients if the MARS interpolant is not updated."""
+        warnings.simplefilter("ignore")  # Surpress deprecation warnings
         if self.updated is False:
             self.model.fit(self.X, self.fX)
             self.updated = True
 
-    def predict(self, x):
-        """Evaluate the MARS interpolant at the points x
+    def predict(self, xx):
+        """Evaluate the MARS interpolant at the points xx
 
-        :param x: Points where to evaluate, of size num_pts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the MARS interpolant at x, of length num_pts
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Prediction of size num_pts x 1
+        :rtype: numpy.ndarray
+        """
+        self._fit()
+        xx = np.atleast_2d(xx)
+        return np.expand_dims(self.model.predict(xx), axis=1)
+
+    def predict_deriv(self, xx):
+        """Evaluate the derivative of the MARS interpolant at points xx
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.array
+        :return: Derivative of the RBF interpolant at xx
         :rtype: numpy.array
         """
-
         self._fit()
-        x = np.atleast_2d(x)
-        return np.expand_dims(self.model.predict(x), axis=1)
-
-    def predict_deriv(self, x):
-        """Evaluate the derivative of the MARS interpolant at a point x
-
-        :param x: Point for which we want to compute the MARS gradient
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Derivative of the MARS interpolant at x
-        :rtype: numpy.array
-        """
-
-        self._fit()
-        x = np.expand_dims(x, axis=0)
-        dfx = self.model.predict_deriv(x, variables=None)
+        xx = np.expand_dims(xx, axis=0)
+        dfx = self.model.predict_deriv(xx, variables=None)
         return dfx[0]
 
 
 class PolyRegressor(Surrogate):
-    """Computes a polynomial regression model
+    """Polynomial regression with cross-terms
 
-    :param maxp: Initial capacity
-    :type maxp: int
+    :param dim: Number of dimensions
+    :type dim: int
+    :param degree: Polynomial degree
+    :type dim: int
 
-    :ivar num_pts: Current number of points
-    :ivar maxp: Initial maximum number of points (can grow)
-    :ivar x: Interpolation points
-    :ivar fx: Function evaluations of interpolation points
     :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
+    :ivar model: scikit-learn pipeline for polynomial regression
     """
-
     def __init__(self, dim, degree=2):
         self.num_pts = 0
         self.X = np.empty([0, dim])
         self.fX = np.empty([0, 1])
         self.dim = dim
         self.updated = False
-
         self.model = make_pipeline(PolynomialFeatures(degree), Ridge())
 
     def _fit(self):
-        """Fit the model"""
+        """Update the polynomial regression model."""
         if not self.updated:
             self.model.fit(self.X, self.fX)
             self.updated = True
 
-    def predict(self, x):
-        """Evaluate the MARS interpolant at the points x
+    def predict(self, xx):
+        """Evaluate the polynomial regressor at the points xx
 
-        :param x: Points where to evaluate, of size num_pts x dim
-        :type x: numpy.array
-        :param ds: Not used
-        :type ds: None
-        :return: Values of the MARS interpolant at x, of length num_pts
-        :rtype: numpy.array
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Prediction of size num_pts x 1
+        :rtype: numpy.ndarray
         """
         self._fit()
-        x = np.atleast_2d(x)
-        return self.model.predict(x)
+        xx = np.atleast_2d(xx)
+        return self.model.predict(xx)
 
-    def predict_deriv(self, x):
+    def predict_deriv(self, xx):
         """TODO: Not implemented"""
         raise NotImplementedError
 
 
 class SurrogateCapped(Surrogate):
-    """Cap adapter for response surfaces.
+    """Wrapper for tranformation of function values.
 
-    This adapter takes an existing response surface and replaces it
-    with a modified version in which the function values are replaced
-    according to some transformation. A very common transformation
-    is to replace all values above the median by the median in order
+    This adapter takes an existing surrogate model and replaces it
+    with a modified version where the function values are replaced
+    according to some transformation. A common transformation
+    is replacing all values above the median by the median
     to reduce the influence of large function values.
-    """
 
+    :param model: Original surrogate model (must implement Surrogate)
+    :type model: object
+    :param transformation: Function that transforms the function values
+    :type transformation: function
+
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
+    :ivar model: scikit-learn pipeline for polynomial regression
+    :ivar transformation: Transformation function
+    """
     def __init__(self, model, transformation=None):
         self.num_pts = 0
         self.X = np.empty([0, model.dim])
@@ -723,38 +776,81 @@ class SurrogateCapped(Surrogate):
         self.model = model
 
     def reset(self):
+        """Reset the surrogate."""
         super().reset()
         self.model.reset()
 
     def add_points(self, xx, fx):
+        """Add new function evaluations.
+
+        This method SHOULD NOT trigger a new fit, it just updates X and
+        fX but leaves the original surrogate object intact
+
+        :param xx: Points to add
+        :type xx: numpy.ndarray
+        :param fx: The function values of the point to add
+        :type fx: numpy.array or float
+        """
         super().add_points(xx, fx)
         self.model.add_points(xx, fx)
-        self.model.fX = self.transformation(np.copy(self.fX))  # Apply transformation
+        # Apply transformation
+        self.model.fX = self.transformation(np.copy(self.fX))
 
-    def predict(self, x):
-        return self.model.predict(x)
+    def predict(self, xx):
+        """Evaluate the surrogate model at the points xx
 
-    def predict_std(self, x):
-        return self.model.predict_std(x)
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Prediction of size num_pts x 1
+        :rtype: numpy.ndarray
+        """
+        return self.model.predict(xx)
 
-    def predict_deriv(self, x):
-        return self.model.predict_deriv(x)
+    def predict_std(self, xx):
+        """Predict standard deviation at points xx.
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Predicted standard deviation, of size num_pts x 1
+        :rtype: numpy.ndarray
+        """
+        return self.model.predict_std(xx)
+
+    def predict_deriv(self, xx):
+        """Evaluate the derivative of the surrogate model at points xx.
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.array
+        :return: Derivative of the RBF interpolant at xx
+        :rtype: numpy.array
+        """
+        return self.model.predict_deriv(xx)
 
 
 class SurrogateUnitBox(Surrogate):
-    """Unit box adapter for response surfaces
+    """Unit box adapter for surrogate models.
 
-    This adapter takes an existing response surface and replaces it
-    with a modified version where the domain is rescaled to the unit
-    box. This is useful for response surfaces that are sensitive to
-    scaling, such as radial basis functions.
+    This adapter takes an existing surrogate model and replaces it
+    by a modified version where the domain is rescaled to the unit
+    hypercube. This is useful for surrogate models that are sensitive to
+    scaling, such as RBFs.
 
-    :param model: Original response surface object
-    :type model: Object
+    :param model: Original surrogate model (must implement Surrogate)
+    :type model: object
+    :param lb: Lower variable bounds, of size 1 x dim
+    :type lb: function
+    :param ub: Upper variable bounds, of size 1 x dim
+    :type ub: function
 
-    :ivar model: original response surface object
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in surrogate model
+    :ivar X: Point incorporated in surrogate model (num_pts x dim)
+    :ivar fX: Function values in surrogate model (num_pts x 1)
+    :ivar updated: True if model is up-to-date (no refit needed)
+    :ivar model: scikit-learn pipeline for polynomial regression
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
     """
-
     def __init__(self, model, lb, ub):
         self.num_pts = 0
         self.X = np.empty([0, model.dim])
@@ -768,26 +864,57 @@ class SurrogateUnitBox(Surrogate):
         self.ub = ub
 
     def reset(self):
+        """Reset the surrogate model."""
         super().reset()
         self.model.reset()
 
     def add_points(self, xx, fx):
+        """Add new function evaluations.
+
+        This method SHOULD NOT trigger a new fit, it just updates X and
+        fX but leaves the original surrogate object intact
+
+        :param xx: Points to add
+        :type xx: numpy.ndarray
+        :param fx: The function values of the point to add
+        :type fx: numpy.array or float
+        """
         super().add_points(xx, fx)
         self.model.add_points(
             to_unit_box(xx, self.lb, self.ub), fx)
 
-    def predict(self, x):
+    def predict(self, xx):
+        """Evaluate the surrogate model at the points xx
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Prediction of size num_pts x 1
+        :rtype: numpy.ndarray
+        """
         return self.model.predict(
-            to_unit_box(x, self.lb, self.ub))
+            to_unit_box(xx, self.lb, self.ub))
 
     def predict_std(self, x):
+        """Predict standard deviation at points xx.
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.ndarray
+        :return: Predicted standard deviation, of size num_pts x 1
+        :rtype: numpy.ndarray
+        """
         return self.model.predict_std(
             to_unit_box(x, self.lb, self.ub))
 
     def predict_deriv(self, x):
-        """Remember the chain rule.
+        """Evaluate the derivative of the surrogate model at points xx
 
-        f'(x) = (d/dx) g((x-a)/(b-a)) = g'((x-a)/(b-a)) * 1/(b-a)
+        Remember the chain rule:
+            f'(x) = (d/dx) g((x-a)/(b-a)) = g'((x-a)/(b-a)) * 1/(b-a)
+
+        :param xx: Prediction points, must be of size num_pts x dim or (dim, )
+        :type xx: numpy.array
+        :return: Derivative of the RBF interpolant at xx
+        :rtype: numpy.array
         """
         return self.model.predict_deriv(
             to_unit_box(x, self.lb, self.ub)) / (self.ub - self.lb)

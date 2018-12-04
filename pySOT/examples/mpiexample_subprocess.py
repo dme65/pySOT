@@ -59,7 +59,8 @@ def main_master(num_workers):
     logging.basicConfig(filename="./logfiles/test_subprocess_mpi.log",
                         level=logging.INFO)
 
-    print("\nTesting the POAP MPI controller with {0} workers".format(num_workers))
+    print("\nTesting the POAP MPI controller with {0} workers".format(
+        num_workers))
     print("Maximum number of evaluations: 200")
     print("Search strategy: Candidate DYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
@@ -70,15 +71,14 @@ def main_master(num_workers):
     max_evals = 200
 
     sphere = Sphere(dim=10)
-    rbf = RBFInterpolant(
-        dim=sphere.dim, kernel=CubicKernel(), 
-        tail=LinearTail(sphere.dim))
+    rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(),
+                         tail=LinearTail(sphere.dim))
     slhd = SymmetricLatinHypercube(
         dim=sphere.dim, num_pts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
     strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=sphere, exp_design=slhd,
         surrogate=rbf, asynchronous=True, batch_size=num_workers)
     controller = MPIController(strategy)
 

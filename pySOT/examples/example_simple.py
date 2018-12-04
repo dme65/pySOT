@@ -6,7 +6,8 @@
 
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.strategy import SRBFStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, SurrogateUnitBox
+from pySOT.surrogate import RBFInterpolant, CubicKernel, \
+    LinearTail, SurrogateUnitBox
 from pySOT.optimization_problems import Ackley
 
 from poap.controller import ThreadController, BasicWorkerThread
@@ -33,18 +34,16 @@ def example_simple():
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    rbf = SurrogateUnitBox(
-        RBFInterpolant(
-            dim=ackley.dim, kernel=CubicKernel(), 
-            tail=LinearTail(ackley.dim)), 
-            lb=ackley.lb, ub=ackley.ub)
+    rbf = SurrogateUnitBox(RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+                                          tail=LinearTail(ackley.dim)),
+                           lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(
         dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy =  SRBFStrategy(
-        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+    controller.strategy = SRBFStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=rbf, asynchronous=True)
 
     print("Number of threads: {}".format(num_threads))
@@ -65,6 +64,7 @@ def example_simple():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
+
 
 if __name__ == '__main__':
     example_simple()

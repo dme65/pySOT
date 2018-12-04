@@ -23,6 +23,7 @@ def array2str(x):
 # Find path of the executable
 path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext_files"
 
+
 class CppSim(ProcessWorkerThread):
     def handle_eval(self, record):
         try:
@@ -31,8 +32,8 @@ class CppSim(ProcessWorkerThread):
             f.write(array2str(record.params[0]))
             f.close()
 
-            self.process = Popen([path, self.my_filename], stdout=PIPE, \
-                bufsize=1, universal_newlines=True)
+            self.process = Popen([path, self.my_filename], stdout=PIPE,
+                                 bufsize=1, universal_newlines=True)
             val = self.process.communicate()[0]
 
             self.finish_success(record, float(val))
@@ -63,16 +64,15 @@ def example_subprocess_files():
     max_evals = 200
 
     sphere = Sphere(dim=10)
-    rbf = RBFInterpolant(
-        dim=sphere.dim, kernel=TPSKernel(), 
-        tail=LinearTail(sphere.dim))
+    rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(),
+                         tail=LinearTail(sphere.dim))
     slhd = SymmetricLatinHypercube(
         dim=sphere.dim, num_pts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=sphere, exp_design=slhd,
         surrogate=rbf, asynchronous=False, batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))

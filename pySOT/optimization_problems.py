@@ -9,14 +9,15 @@
 :Module: optimization_problems
 :Author: David Eriksson <dme65@cornell.edu>,
         David Bindel <bindel@cornell.edu>
-
 """
 
 import numpy as np
 import abc
 from abc import abstractmethod
 
+
 class OptimizationProblem(object):
+    """Base class for optimization problems."""
     __metaclass__ = abc.ABCMeta
 
     def __init__(self):
@@ -32,7 +33,7 @@ class OptimizationProblem(object):
 
     @abstractmethod
     def eval(self, record):  # pragma: no cover
-        return
+        pass
 
 # ========================= 2-dimensional =======================
 
@@ -49,23 +50,47 @@ class GoldsteinPrice(OptimizationProblem):
         self.cont_var = np.arange(0, 2)
 
     def eval(self, x):
+        """Evaluate the GoldStein Price function at x
+
+        :param x: Data point
+        :type x: numpy.array
+        :return: Value at x
+        :rtype: float
+        """
         self.__check_input__(x)
 
         x1 = x[0]
         x2 = x[1]
 
         fact1a = (x1 + x2 + 1) ** 2
-        fact1b = 19 - 14 * x1 + 3 * x1 ** 2 - 14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2
+        fact1b = 19 - 14 * x1 + 3 * x1 ** 2 - \
+            14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2
         fact1 = 1 + fact1a * fact1b
 
         fact2a = (2 * x1 - 3 * x2) ** 2
-        fact2b = 18 - 32 * x1 + 12 * x1 ** 2 + 48 * x2 - 36 * x1 * x2 + 27 * x2 ** 2
+        fact2b = 18 - 32 * x1 + 12 * x1 ** 2 + 48 * x2 - \
+            36 * x1 * x2 + 27 * x2 ** 2
         fact2 = 30 + fact2a * fact2b
 
         return fact1 * fact2
 
 
 class SixHumpCamel(OptimizationProblem):
+    """Six-hump camel function
+
+    Details: https://www.sfu.ca/~ssurjano/camel6.html
+
+    Global optimum: :math:`f(0.0898,-0.7126)=-1.0316`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self):
         self.min = -1.0316
         self.minimum = np.array([0.0898, -0.7126])
@@ -91,6 +116,21 @@ class SixHumpCamel(OptimizationProblem):
 
 
 class Branin(OptimizationProblem):
+    """Branin function
+
+    Details: http://www.sfu.ca/~ssurjano/branin.html
+
+    Global optimum: :math:`f(-\\pi,12.275)=0.397887`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self):
         self.min = 0.397887
         self.minimum = np.array([-np.pi, 12.275])
@@ -101,7 +141,6 @@ class Branin(OptimizationProblem):
         self.cont_var = np.arange(0, 2)
         self.info = "2-dimensional Branin function \nGlobal optimum: " +\
                     "f(-pi, 12.275) = 0.397887"
-
 
     def eval(self, x):
         """Evaluate the Branin function at x
@@ -136,16 +175,24 @@ class Hartman3(OptimizationProblem):
     Details: http://www.sfu.ca/~ssurjano/hart3.html
 
     Global optimum: :math:`f(0.114614,0.555649,0.852547)=-3.86278`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self):
-        self.min = -3.86278
-        self.minimum = np.array([0.114614, 0.555649, 0.852547])
         self.dim = 3
         self.lb = np.zeros(3)
         self.ub = np.ones(3)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, 3)
+        self.min = -3.86278
+        self.minimum = np.array([0.114614, 0.555649, 0.852547])
         self.info = "3-dimensional Hartman function \nGlobal optimum: " +\
                     "f(0.114614,0.555649,0.852547) = -3.86278"
 
@@ -160,11 +207,11 @@ class Hartman3(OptimizationProblem):
         self.__check_input__(x)
         alpha = np.array([1, 1.2, 3, 3.2])
         A = np.array([[3.0, 10.0, 30.0], [0.1, 10.0, 35.0],
-                       [3.0, 10.0, 30.0], [0.1, 10.0, 35.0]])
+                     [3.0, 10.0, 30.0], [0.1, 10.0, 35.0]])
         P = np.array([[0.3689, 0.1170, 0.2673],
-                       [0.4699, 0.4387, 0.747],
-                       [0.1091, 0.8732, 0.5547],
-                       [0.0381, 0.5743, 0.8828]])
+                     [0.4699, 0.4387, 0.747],
+                     [0.1091, 0.8732, 0.5547],
+                     [0.0381, 0.5743, 0.8828]])
         outer = 0
         for ii in range(4):
             inner = 0
@@ -175,7 +222,7 @@ class Hartman3(OptimizationProblem):
                 inner += Aij * ((xj-Pij) ** 2)
             outer += alpha[ii] * np.exp(-inner)
         return -outer
-        
+
 
 # =========================6-dimensional =======================
 
@@ -185,19 +232,29 @@ class Hartman6(OptimizationProblem):
 
     Details: http://www.sfu.ca/~ssurjano/hart6.html
 
-    Global optimum: :math:`f(0.20169,0.150011,0.476874,0.275332,0.311652,0.6573)=-3.32237`
+    Global optimum: :math:`f(0.201,0.150,0.476,0.275,0.311,0.657)=-3.322`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
     """
 
     def __init__(self):
         self.min = -3.32237
-        self.minimum = np.array([0.20169, 0.150011, 0.476874, 0.275332, 0.311652, 0.6573])
+        self.minimum = np.array([0.20169, 0.150011, 0.476874,
+                                 0.275332, 0.311652, 0.6573])
         self.dim = 6
         self.lb = np.zeros(6)
         self.ub = np.ones(6)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, 6)
         self.info = "6-dimensional Hartman function \nGlobal optimum: " + \
-                    "f(0.20169,0.150011,0.476874,0.275332,0.311652,0.6573) = -3.32237"
+                    "f(0.2016,0.15001,0.47687,0.27533,0.31165,0.657) = -3.3223"
 
     def eval(self, x):
         """Evaluate the Hartman 6 function at x
@@ -209,14 +266,14 @@ class Hartman6(OptimizationProblem):
         """
         self.__check_input__(x)
         alpha = np.array([1.0, 1.2, 3.0, 3.2])
-        A = np.array([[10.0, 3.0,  17.0, 3.5,  1.7,  8.0 ],
-                       [0.05, 10.0, 17.0, 0.1,  8.0,  14.0],
-                       [3.0,  3.5,  1.7,  10.0, 17.0, 8.0 ],
-                       [17.0, 8.0,  0.05, 10.0, 0.1,  14.0]])
+        A = np.array([[10.0, 3.0,  17.0, 3.5,  1.7,  8.0],
+                      [0.05, 10.0, 17.0, 0.1,  8.0,  14.0],
+                      [3.0,  3.5,  1.7,  10.0, 17.0, 8.0],
+                      [17.0, 8.0,  0.05, 10.0, 0.1,  14.0]])
         P = 1e-4 * np.array([[1312.0, 1696.0, 5569.0, 124.0,  8283.0, 5886.0],
-                              [2329.0, 4135.0, 8307.0, 3736.0, 1004.0, 9991.0],
-                              [2348.0, 1451.0, 3522.0, 2883.0, 3047.0, 6650.0],
-                              [4047.0, 8828.0, 8732.0, 5743.0, 1091.0, 381.0]])
+                             [2329.0, 4135.0, 8307.0, 3736.0, 1004.0, 9991.0],
+                             [2348.0, 1451.0, 3522.0, 2883.0, 3047.0, 6650.0],
+                             [4047.0, 8828.0, 8732.0, 5743.0, 1091.0, 381.0]])
         outer = 0
         for ii in range(4):
             inner = 0
@@ -243,17 +300,25 @@ class Rastrigin(OptimizationProblem):
         -5.12 \\leq x_i \\leq 5.12
 
     Global optimum: :math:`f(0,0,...,0)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
         self.lb = -5.12 * np.ones(dim)
-        self.ub =  5.12 * np.ones(dim)
+        self.ub = 5.12 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
-        self.info = str(dim) + "-dimensional Rastrigin function \n" +\
+        self.info = str(dim) + "-dimensional Rastrigin function \n" + \
                                "Global optimum: f(0,0,...,0) = 0"
 
     def eval(self, x):
@@ -282,14 +347,22 @@ class Ackley(OptimizationProblem):
         -15 \\leq x_i \\leq 20
 
     Global optimum: :math:`f(0,0,...,0)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
         self.lb = -15 * np.ones(dim)
-        self.ub =  20 * np.ones(dim)
+        self.ub = 20 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Ackley function \n" +\
@@ -313,25 +386,34 @@ class Michalewicz(OptimizationProblem):
     """Michalewicz function
 
     .. math::
-        f(x_1,\\ldots,x_n) = -\\sum_{i=1}^n \\sin(x_i) \\sin^{20} \\left( \\frac{ix_i^2}{\\pi} \\right)
+        f(x_1,\\ldots,x_n) = -\\sum_{i=1}^n \\sin(x_i) \\sin^{20}
+            \\left( \\frac{ix_i^2}{\\pi} \\right)
 
     subject to
 
     .. math::
         0 \\leq x_i \\leq \\pi
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.lb = np.zeros(dim)
         self.ub = np.pi * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
-        self.info = str(dim) + "-dimensional Michalewicz function \n" +\
+        self.info = str(dim) + "-dimensional Michalewicz function \n" + \
                                "Global optimum: ??"
 
     def eval(self, x):
-        """Evaluate the Michalewicz function  at x
+        """Evaluate the Michalewicz function  at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -339,8 +421,8 @@ class Michalewicz(OptimizationProblem):
         :rtype: float
         """
         self.__check_input__(x)
-        return -np.sum(np.sin(x) * (np.sin(((1+np.arange(self.dim))
-                                            * x**2)/np.pi)) ** 20)
+        return -np.sum(np.sin(x) * (
+            np.sin(((1 + np.arange(self.dim)) * x**2)/np.pi)) ** 20)
 
 
 class Levy(OptimizationProblem):
@@ -349,8 +431,16 @@ class Levy(OptimizationProblem):
     Details: https://www.sfu.ca/~ssurjano/levy.html
 
     Global optimum: :math:`f(1,1,...,1)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0.0
@@ -363,7 +453,7 @@ class Levy(OptimizationProblem):
                                "Global optimum: f(1,1,...,1) = 0"
 
     def eval(self, x):
-        """Evaluate the Levy function at x
+        """Evaluate the Levy function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -373,8 +463,8 @@ class Levy(OptimizationProblem):
         self.__check_input__(x)
         w = 1 + (x - 1.0) / 4.0
         d = self.dim
-        return np.sin(np.pi*w[0])**2 + np.sum((w[1:d-1] - 1)**2 * \
-            (1 + 10*np.sin(np.pi*w[1:d-1] + 1)**2)) + \
+        return np.sin(np.pi*w[0]) ** 2 + \
+            np.sum((w[1:d-1]-1)**2 * (1 + 10*np.sin(np.pi*w[1:d-1]+1)**2)) + \
             (w[d-1] - 1)**2 * (1 + np.sin(2*np.pi*w[d-1])**2)
 
 
@@ -391,22 +481,29 @@ class Griewank(OptimizationProblem):
         -512 \\leq x_i \\leq 512
 
     Global optimum: :math:`f(0,0,...,0)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
         self.minimum = np.zeros(dim)
         self.lb = -512 * np.ones(dim)
-        self.ub =  512 * np.ones(dim)
+        self.ub = 512 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Griewank function \n" +\
                                "Global optimum: f(0,0,...,0) = 0"
 
-
     def eval(self, x):
-        """Evaluate the Griewank function at x
+        """Evaluate the Griewank function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -433,14 +530,22 @@ class Rosenbrock(OptimizationProblem):
         -2.048 \\leq x_i \\leq 2.048
 
     Global optimum: :math:`f(1,1,...,1)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
         self.minimum = np.ones(dim)
         self.lb = -2.048 * np.ones(dim)
-        self.ub =  2.048 * np.ones(dim)
+        self.ub = 2.048 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Rosenbrock function \n" +\
@@ -474,21 +579,29 @@ class Schwefel(OptimizationProblem):
         -512 \\leq x_i \\leq 512
 
     Global optimum: :math:`f(420.968746,420.968746,...,420.968746)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
         self.minimum = 420.968746 * np.ones(dim)
         self.lb = -512 * np.ones(dim)
-        self.ub =  512 * np.ones(dim)
+        self.ub = 512 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Schwefel function \n" +\
-                               "Global optimum: f(420.968746,...,420.968746) = 0"
+                               "Global optimum: f(420.9687,...,420.9687) = 0"
 
     def eval(self, x):
-        """Evaluate the Schwefel function at x
+        """Evaluate the Schwefel function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -512,21 +625,29 @@ class Sphere(OptimizationProblem):
         -5.12 \\leq x_i \\leq 5.12
 
     Global optimum: :math:`f(0,0,...,0)=0`
-    """
 
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
-        self.minimum = np.zeros(dim)        
+        self.minimum = np.zeros(dim)
         self.lb = -5.12 * np.ones(dim)
-        self.ub =  5.12 * np.ones(dim)
+        self.ub = 5.12 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
-        self.info = str(dim) + "-dimensional Sphere function \n" +\
+        self.info = str(dim) + "-dimensional Sphere function \n" + \
                                "Global optimum: f(0,0,...,0) = 0"
 
     def eval(self, x):
-        """Evaluate the Sphere function at x
+        """Evaluate the Sphere function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -549,21 +670,30 @@ class Exponential(OptimizationProblem):
         -5.12 \\leq x_i \\leq 5.12
 
     Global optimum: :math:`f(0,0,...,0)=0`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
     """
 
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0
-        self.minimum = -5.12 * np.ones(dim)        
+        self.minimum = -5.12 * np.ones(dim)
         self.lb = -5.12 * np.ones(dim)
-        self.ub =  5.12 * np.ones(dim)
+        self.ub = 5.12 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Exponential function \n" +\
                                "Global optimum: f(-5.12,-5.12,...,-5.12) = 0"
 
     def eval(self, x):
-        """Evaluate the Exponential function  at x
+        """Evaluate the Exponential function  at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -571,26 +701,43 @@ class Exponential(OptimizationProblem):
         :rtype: float
         """
         self.__check_input__(x)
-        total = 0
+        total = 0.0
         for i in range(len(x)):
             total += np.exp((i+1)*x[i-1]) - np.exp(-5.12*(i+1))
         return total
 
 
 class Himmelblau(OptimizationProblem):
+    """Himmelblau function
+
+    .. math::
+        f(x_1,\\ldots,x_n) = 10n -
+            \\frac{1}{2n} \\sum_{i=1}^n (x_i^4 - 16x_i^2 + 5x_i)
+
+    Global optimum: :math:`f(-2.903,...,-2.903)=-39.166`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = -39.166165703771412
         self.minimum = -2.903534027771178 * np.ones(dim)
         self.lb = -5.12 * np.ones(dim)
-        self.ub =  5.12 * np.ones(dim)
+        self.ub = 5.12 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Himmelblau function \n" + \
-                               "Global optimum: f(-2.903524,-2.903524,...,-2.903524) = -39.166165"
+                               "Global optimum: f(-2.903,...,-2.903) = -39.166"
 
     def eval(self, x):
-        """Evaluate the Himmelblau function at x
+        """Evaluate the Himmelblau function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -602,6 +749,19 @@ class Himmelblau(OptimizationProblem):
 
 
 class Zakharov(OptimizationProblem):
+    """Zakharov function
+
+    Global optimum: :math:`f(0,0,...,0)=1`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0.0
@@ -611,10 +771,10 @@ class Zakharov(OptimizationProblem):
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Zakharov function \n" + \
-                               "Global optimum: f(0,0,...,0)=1"
+                               "Global optimum: f(0,0,...,0) = 1"
 
     def eval(self, x):
-        """Evaluate the Zakharov function at x
+        """Evaluate the Zakharov function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -627,19 +787,35 @@ class Zakharov(OptimizationProblem):
 
 
 class SumOfSquares(OptimizationProblem):
+    """Sum of squares function
+
+    .. math::
+        f(x_1,\\ldots,x_n)=\\sum_{i=1}^n ix_i^2
+
+    Global optimum: :math:`f(0,0,...,0)=0`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0.0
         self.minimum = np.zeros(dim)
         self.lb = -5 * np.ones(dim)
-        self.ub =  5 * np.ones(dim)
+        self.ub = 5 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional SumOfSquares function \n" + \
-                               "Global optimum: f(0,0,...,0)=0"
+                               "Global optimum: f(0,0,...,0) = 0"
 
     def eval(self, x):
-        """Evaluate the Sum of squares function at x
+        """Evaluate the Sum of squares function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -651,19 +827,32 @@ class SumOfSquares(OptimizationProblem):
 
 
 class Perm(OptimizationProblem):
+    """Perm function
+
+    Global optimum: :math:`f(1,1/2,1/3,...,1/n)=0`
+
+    :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar int_var: Integer variables
+    :ivar cont_var: Continuous variables
+    :ivar min: Global minimum value
+    :ivar minimum: Global minimizer
+    :ivar info: String with problem info
+    """
     def __init__(self, dim=10):
         self.dim = dim
         self.min = 0.0
         self.minimum = np.ones(dim) / np.arange(1, dim + 1)
         self.lb = -5 * np.ones(dim)
-        self.ub =  5 * np.ones(dim)
+        self.ub = 5 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Perm function \n" + \
-                               "Global optimum: f(1,1/2,1/3...,1/d)=0"
+                               "Global optimum: f(1,1/2,1/3...,1/d) = 0"
 
     def eval(self, x):
-        """Evaluate the Perm function at x
+        """Evaluate the Perm function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -689,13 +878,13 @@ class Weierstrass(OptimizationProblem):
         self.min = 0
         self.minimum = np.zeros(dim)
         self.lb = -5 * np.ones(dim)
-        self.ub =  5 * np.ones(dim)
+        self.ub = 5 * np.ones(dim)
         self.int_var = np.array([])
         self.cont_var = np.arange(0, dim)
         self.info = str(dim) + "-dimensional Weierstrass function"
 
     def eval(self, x):
-        """Evaluate the Weierstrass function at x
+        """Evaluate the Weierstrass function at x.
 
         :param x: Data point
         :type x: numpy.array
@@ -708,5 +897,5 @@ class Weierstrass(OptimizationProblem):
         for k in range(12):
             f0 += 1.0 / (2 ** k) * np.cos(np.pi * (3 ** k))
             for i in range(d):
-                val += 1.0 / (2 ** k) * np.cos(2 * np.pi * (3 ** k) * (x[i] + 0.5))
+                val += 1.0 / (2**k) * np.cos(2*np.pi * (3**k) * (x[i] + 0.5))
         return 10 * ((1.0 / float(d) * val - f0) ** 3)

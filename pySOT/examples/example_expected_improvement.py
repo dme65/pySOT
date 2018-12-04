@@ -33,8 +33,8 @@ def example_simple():
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy =  ExpectedImprovementStrategy(
-        max_evals=max_evals, opt_prob=hart6, exp_design=slhd, 
+    controller.strategy = ExpectedImprovementStrategy(
+        max_evals=max_evals, opt_prob=hart6, exp_design=slhd,
         surrogate=gp, asynchronous=True)
 
     print("Number of threads: {}".format(num_threads))

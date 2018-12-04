@@ -17,20 +17,34 @@ import math
 import numpy as np
 import os
 import time
-
 from poap.strategy import BaseStrategy, Proposal, RetryStrategy
-from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-from pySOT.auxiliary_problems import candidate_srbf, candidate_dycors, expected_improvement_ga
-from pySOT.experimental_design import SymmetricLatinHypercube, LatinHypercube
-from pySOT.utils import from_unit_box, round_vars
+
+from pySOT.auxiliary_problems import candidate_srbf, candidate_dycors
+from pySOT.auxiliary_problems import expected_improvement_ga
+from pySOT.experimental_design import ExperimentalDesign
+from pySOT.optimization_problems import OptimizationProblem
+from pySOT.surrogate import Surrogate
+from pySOT.utils import from_unit_box, round_vars, check_opt_prob
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
 
 
 class RandomSampling(BaseStrategy):
-    """Random sampling strategy."""
-    def __init__(self, opt_prob, max_evals):
+    """Random sampling strategy.
+
+    We generate and evaluate a fixed number of points using all resources.
+
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: OptimizationProblem
+    """
+    def __init__(self, max_evals, opt_prob):
+        check_opt_prob(opt_prob)
+        if not isinstance(max_evals, int) and max_evals > 0:
+            raise ValueError("max_evals must be an integer >= exp_des.num_pts")
+
         self.opt_prob = opt_prob
         self.max_evals = max_evals
         self.retry = RetryStrategy()
@@ -43,7 +57,7 @@ class RandomSampling(BaseStrategy):
         """Propose an action based on outstanding points."""
         if not self.retry.empty():  # Propose next point
             return self.retry.get()
-        elif self.retry.num_eval_outstanding == 0:  # Budget exhausted and nothing pending
+        elif self.retry.num_eval_outstanding == 0:  # Budget exhausted
             return self.propose_terminate()
 
 
@@ -54,57 +68,51 @@ class SurrogateBaseStrategy(BaseStrategy):
     Once the budget of max_evals function evaluations have been assigned,
     no further evaluations are assigned to processors. The code returns
     once all evaluations are completed.
+
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem object
+    :type opt_prob: OptimizationProblem
+    :param exp_design: Experimental design object
+    :type exp_design: ExperimentalDesign
+    :param surrogate: Surrogate object
+    :type surrogate: Surrogate
+    :param asynchronous: Whether or not to use asynchrony (True/False)
+    :type asynchronous: bool
+    :param batch_size: Size of the batch (use 1 for serial, ignored if async)
+    :type batch_size: int
+    :param extra_points: Extra points to add to the experimental design
+    :type extra_points: numpy.array of size n x dim
+    :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
+    :type extra_vals: numpy.array of size n x 1
+    :param reset_surrogate: Whether or not to reset surrogate model
+    :type reset_surrogate: bool
     """
-
-    def __init__(
-        self, max_evals, opt_prob, exp_design=None, surrogate=None,
-        asynchronous=True, batch_size=None, extra=None, 
-        reset_surrogate=True):
-        """Skeleton for surrogate optimization.
-
-        Args:
-            max_evals: Maximum number of evaluations (or negative number of seconds)
-            opt_prob: Optimization problem object
-            exp_design: Experimental design object
-            surrogate: Surrogate model object
-            asynchronous: True if asynchronous, False if batch synchronous
-            batch_size: Size of each batch, not used if asynchronous == True
-            stopping_criterion: Stopping criterion
-            extra: Extra points (and values) to be added to the experimental design
-            reset_surrogate: Reset surrogate before optimizing
-        """
-
-        if not asynchronous and batch_size is None:
-            raise ValueError("You must specify batch size in synchronous mode (use 1 for serial)")
+    def __init__(self, max_evals, opt_prob, exp_design, surrogate,
+                 asynchronous=True, batch_size=None, extra_points=None,
+                 extra_vals=None, reset_surrogate=True):
         self.asynchronous = asynchronous
         self.batch_size = batch_size
 
+        # Save the objects
         self.opt_prob = opt_prob
-        if surrogate is None:
-            surrogate = RBFInterpolant(
-                dim=opt_prob.dim, kernel=CubicKernel(),
-                tail=LinearTail(opt_prob.dim))
+        self.exp_design = exp_design
         if reset_surrogate:
             surrogate.reset()
         self.surrogate = surrogate
-
-        # Default to using a Symmetric Latin Hypercube
-        if exp_design is None:
-            exp_design = SymmetricLatinHypercube(
-                dim=opt_prob.dim, num_pts=2*(opt_prob.dim+1))
-        self.exp_design = exp_design
 
         # Sampler state
         self.proposal_counter = 0
         self.terminate = False
         self.accepted_count = 0
         self.rejected_count = 0
-    
+
         # Initial design info
-        self.extra = extra
-        self.batch_queue = []   # Unassigned points in initial experiment
-        self.init_pending = 0   # Number of outstanding initial fevals
-        self.phase = 1          # 1 for initial, 2 for adaptive
+        self.extra_points = extra_points
+        self.extra_vals = extra_vals
+        self.batch_queue = []        # Unassigned points in initial experiment
+        self.init_pending = 0        # Number of outstanding initial fevals
+        self.phase = 1               # 1 for initial, 2 for adaptive
 
         # Budgeting state
         self.num_evals = 0             # Number of completed fevals
@@ -128,14 +136,29 @@ class SurrogateBaseStrategy(BaseStrategy):
         pass
 
     def check_input(self):
-        """Todo: Write this. """
-        pass
+        """Check the inputs to the optimization strategt. """
+        if not isinstance(self.surrogate, Surrogate):
+            raise ValueError("surrogate must implement Surrogate")
+        if not isinstance(self.exp_design, ExperimentalDesign):
+            raise ValueError("exp_design must implement ExperimentalDesign")
+        check_opt_prob(self.opt_prob)
+        if not self.asynchronous and self.batch_size is None:
+            raise ValueError("You must specify batch size in synchronous mode "
+                             "(use 1 for serial)")
+        if not isinstance(self.max_evals, int) and self.max_evals > 0 and \
+                self.max_evals >= self.exp_design.num_pts:
+            raise ValueError("max_evals must be an integer >= exp_des.num_pts")
 
     def save(self, fname):
-        """Save the state in a 3-step procedure
+        """Save the state of the strategy.
+
+        We do this in a 3-step procedure
             1) Save to temp file
             2) Move temp file to save file
             3) Remove temp file
+
+        :param fname: Filename
+        :type fname: string
         """
         temp_fname = "temp_" + fname
         with open(temp_fname, 'wb') as output:
@@ -144,11 +167,11 @@ class SurrogateBaseStrategy(BaseStrategy):
 
     def resume(self):
         """Resume a terminated run."""
-        if self.phase == 1:  # Put the points back in the queue if we are in the initial phase
+        if self.phase == 1:  # Put the points back in the queue in init phase
             self.init_pending = 0
             for x in self.Xpend:
                 self.batch_queue.append(np.copy(x))
-        
+
         # Remove everything that is pending
         self.pending_evals = 0
         self.Xpend = np.empty([0, self.opt_prob.dim])
@@ -157,6 +180,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         """Record a completed evaluation to the log.
 
         :param record: Record of the function evaluation
+        :type record: EvalRecord
         """
         xstr = np.array_str(
             record.params[0], max_line_width=np.inf,
@@ -175,24 +199,36 @@ class SurrogateBaseStrategy(BaseStrategy):
         start_sample = from_unit_box(
             start_sample, self.opt_prob.lb, self.opt_prob.ub)
         start_sample = round_vars(
-            start_sample, self.opt_prob.int_var, 
+            start_sample, self.opt_prob.int_var,
             self.opt_prob.lb, self.opt_prob.ub)
 
         for j in range(self.exp_design.num_pts):
             self.batch_queue.append(start_sample[j, :])
 
+        if self.extra_points is not None:
+            for i in range(self.extra_points.shape[0]):
+                if self.extra_vals is None or \
+                        np.all(np.isnan(self.extra_vals[i])):  # Unknown value
+                    self.batch_queue.append(self.extra_points[i, :])
+                else:  # Known value, save point and add to surrogate model
+                    x = np.copy(self.extra_points[i, :])
+                    self.X = np.vstack((self.X, x))
+                    self.fX = np.vstack((self.fX, self.extra_vals[i]))
+                    self.surrogate.add_points(x, self.extra_vals[i])
+
     def propose_action(self):
         """Propose an action.
 
-        NB: We allow workers to continue to the adaptive phase if the initial 
-        queue is empty. This implies that we need enough points in the experimental 
-        design for us to construct a surrogate.
+        NB: We allow workers to continue to the adaptive phase if
+        the initial queue is empty. This implies that we need enough
+        points in the experimental design for us to construct a
+        surrogate.
         """
-
         if self.terminate:  # Check if termination has been triggered
             if self.pending_evals == 0:
                 return Proposal('terminate')
-        elif self.num_evals + self.pending_evals >= self.max_evals or self.terminate:
+        elif self.num_evals + self.pending_evals >= self.max_evals or \
+                self.terminate:
             if self.pending_evals == 0:  # Only terminate if nothing is pending
                 return Proposal('terminate')
         elif self.batch_queue:  # Propose point from the batch_queue
@@ -202,9 +238,9 @@ class SurrogateBaseStrategy(BaseStrategy):
                 return self.adapt_proposal()
         else:  # Make new proposal in the adaptive phase
             self.phase = 2
-            if self.asynchronous:
+            if self.asynchronous:  # Always make proposal with asynchrony
                 self.generate_evals(num_pts=1)
-            elif self.pending_evals == 0:  # Only propose a batch if nothing is pending
+            elif self.pending_evals == 0:  # Make sure the entire batch is done
                 self.generate_evals(num_pts=self.batch_size)
 
             if self.terminate:  # Check if termination has been triggered
@@ -212,8 +248,8 @@ class SurrogateBaseStrategy(BaseStrategy):
                     return Proposal('terminate')
 
             # Launch evaluation (the others will be triggered later)
-            return self.adapt_proposal()  
-            
+            return self.adapt_proposal()
+
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
         proposal = Proposal('eval', x)
@@ -222,6 +258,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         return proposal
 
     def remove_pending(self, x):
+        """Delete a pending point from self.Xpend."""
         idx = np.where((self.Xpend == x).all(axis=1))[0]
         self.Xpend = np.delete(self.Xpend, idx, axis=0)
 
@@ -338,51 +375,43 @@ class SurrogateBaseStrategy(BaseStrategy):
     def on_adapt_aborted(self, record):
         """Handle aborted feval from sampling phase."""
         self.pending_evals -= 1
-        xx =  np.copy(record.params[0])
+        xx = np.copy(record.params[0])
         self.remove_pending(xx)
         self.fevals.append(record)
 
 
 class SRBFStrategy(SurrogateBaseStrategy):
-    """Parallel asynchronous SRBF optimization strategy.
+    """SRBF optimization strategy.
 
-    In the asynchronous version of SRBF, workers are given function
-    evaluations to start on as soon as they become available (unless
-    the initial experiment design has been assigned but not completed).
-    As evaluations are completed, different actions are taken depending
-    on how recent they are.  A "fresh" value is one that was assigned
-    since the last time the sampling radius was checked; an "old"
-    value is one that was assigned before the last check of the sampling
-    radius, but since the last restart; and an "ancient" value is one
-    that was assigned before the last restart.  Only fresh values are
-    used in adjusting the sampling radius.  Fresh or old values are
-    used in determing the best point found since restart (used for
-    the center point for sampling).  Any value can be incorporated into
-    the response surface.  Sample points are chosen based on a merit
-    function that depends not only on the response surface and the distance
-    from any previous sample points, but also on the distance from any
-    pending sample points.
-
-    Once the budget of maxeval function evaluations have been assigned,
-    no further evaluations are assigned to processors.  The code returns
-    once all evaluations are completed.
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem object
+    :type opt_prob: OptimizationProblem
+    :param exp_design: Experimental design object
+    :type exp_design: ExperimentalDesign
+    :param surrogate: Surrogate object
+    :type surrogate: Surrogate
+    :param asynchronous: Whether or not to use asynchrony (True/False)
+    :type asynchronous: bool
+    :param batch_size: Size of the batch (use 1 for serial, ignored if async)
+    :type batch_size: int
+    :param extra_points: Extra points to add to the experimental design
+    :type extra_points: numpy.array of size n x dim
+    :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
+    :type extra_vals: numpy.array of size n x 1
+    :param reset_surrogate: Whether or not to reset surrogate model
+    :type reset_surrogate: bool
+    :param weights: Weights for merit function, default = [0.3, 0.5, 0.8, 0.95]
+    :type weights: list of np.array
+    :param num_cand: Number of candidate points, default = 100*dim
+    :type num_cand: int
     """
+    def __init__(self, max_evals, opt_prob, exp_design=None, surrogate=None,
+                 asynchronous=True, batch_size=None, extra_points=None,
+                 extra_vals=None, reset_surrogate=True, weights=None,
+                 num_cand=None):
 
-    def __init__(
-        self, max_evals, opt_prob, exp_design=None, surrogate=None,
-        asynchronous=True, batch_size=None, extra=None, weights=None,
-        num_cand=None):
-        """Initialize the asynchronous SRBF optimization.
-
-        Args:
-            data: Problem parameter data structure
-            surrogate: Surrogate model object
-            maxeval: Function evaluation budget
-            design: Experimental design
-
-        """
-
-        self.fbest = np.inf      # Current best f
+        self.fbest = np.inf  # Current best function value
 
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
         if weights is None:
@@ -411,22 +440,29 @@ class SRBFStrategy(SurrogateBaseStrategy):
         self.failcount = 0       # Failure counter
 
         self.record_queue = []  # Completed records that haven't been processed
-        
-        super().__init__(
-            max_evals=max_evals, opt_prob=opt_prob, exp_design=exp_design, 
-            surrogate=surrogate, asynchronous=asynchronous, 
-            batch_size=batch_size, extra=extra)
+
+        super().__init__(max_evals=max_evals, opt_prob=opt_prob,
+                         exp_design=exp_design, surrogate=surrogate,
+                         asynchronous=asynchronous, batch_size=batch_size,
+                         extra_points=extra_points, extra_vals=extra_vals,
+                         reset_surrogate=reset_surrogate)
 
     def check_input(self):
-        pass
+        """Check inputs."""
+        assert isinstance(self.weights, list) or \
+            isinstance(self.weights, np.array)
+        for w in self.weights:
+            assert isinstance(w, float) and w >= 0.0 and w <= 1.0
+        super().check_input()
 
     def on_adapt_completed(self, record):
+        """Handle completed evaluation."""
         super().on_adapt_completed(record)
         self.record_queue.append(record)
 
         if self.asynchronous:  # Process immediately
             self.adjust_step()
-        elif (not self.batch_queue) and self.pending_evals == 0:  # Batch processed
+        elif (not self.batch_queue) and self.pending_evals == 0:  # Batch
             self.adjust_step()
 
     def get_weights(self, num_pts):
@@ -441,7 +477,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
         """Generate the next adaptive sample points."""
         weights = self.get_weights(num_pts=num_pts)
         new_points = candidate_srbf(
-            opt_prob=self.opt_prob, num_pts=num_pts, surrogate=self.surrogate, 
+            opt_prob=self.opt_prob, num_pts=num_pts, surrogate=self.surrogate,
             X=self.X, fX=self.fX, Xpend=self.Xpend, weights=weights,
             sampling_radius=self.sampling_radius, num_cand=self.num_cand)
 
@@ -454,11 +490,10 @@ class SRBFStrategy(SurrogateBaseStrategy):
         After succtol successful steps, we cut the sampling radius;
         after failtol failed steps, we double the sampling radius.
         """
-
         # Check if we succeeded at significant improvement
         fbest_new = min([record.value for record in self.record_queue])
-        if np.isinf(self.fbest) or \
-            fbest_new < self.fbest - 1e-3*math.fabs(self.fbest):  # Improvement
+        if fbest_new < self.fbest - 1e-3*math.fabs(self.fbest) or \
+                np.isinf(self.fbest):  # Improvement
             self.fbest = fbest_new
             self.status = max(1, self.status + 1)
             self.failcount = 0
@@ -473,14 +508,13 @@ class SRBFStrategy(SurrogateBaseStrategy):
             logger.info("Reducing sampling radius")
         if self.status >= self.succtol:
             self.status = 0
-            self.sampling_radius = min(
-                [2.0 * self.sampling_radius, 
-                self.sampling_radius_max])
+            self.sampling_radius = min([2.0 * self.sampling_radius,
+                                        self.sampling_radius_max])
             logger.info("Increasing sampling radius")
 
         # Check if we want to terminate
         if self.failcount >= self.maxfailtol or \
-            self.sampling_radius <= self.sampling_radius_min:
+                self.sampling_radius <= self.sampling_radius_min:
             self.terminate = True
 
         # Empty the queue
@@ -488,19 +522,43 @@ class SRBFStrategy(SurrogateBaseStrategy):
 
 
 class DYCORSStrategy(SRBFStrategy):
-    """DYCORS strategy implemented on top of SRBF."""
-    def __init__(
-        self, max_evals, opt_prob, exp_design=None, surrogate=None,
-        asynchronous=True, batch_size=None, extra=None, weights=None,
-        num_cand=None):
-        
+    """DYCORS optimization strategy.
+
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem object
+    :type opt_prob: OptimizationProblem
+    :param exp_design: Experimental design object
+    :type exp_design: ExperimentalDesign
+    :param surrogate: Surrogate object
+    :type surrogate: Surrogate
+    :param asynchronous: Whether or not to use asynchrony (True/False)
+    :type asynchronous: bool
+    :param batch_size: Size of the batch (use 1 for serial, ignored if async)
+    :type batch_size: int
+    :param extra_points: Extra points to add to the experimental design
+    :type extra_points: numpy.array of size n x dim
+    :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
+    :type extra_vals: numpy.array of size n x 1
+    :param reset_surrogate: Whether or not to reset surrogate model
+    :type reset_surrogate: bool
+    :param weights: Weights for merit function, default = [0.3, 0.5, 0.8, 0.95]
+    :type weights: list of np.array
+    :param num_cand: Number of candidate points, default = 100*dim
+    :type num_cand: int
+    """
+
+    def __init__(self, max_evals, opt_prob, exp_design=None, surrogate=None,
+                 asynchronous=True, batch_size=None, extra_points=None,
+                 extra_vals=None, weights=None, num_cand=None):
+
         self.num_exp = exp_design.num_pts  # We need this later
 
-        super().__init__(
-            max_evals=max_evals, opt_prob=opt_prob, exp_design=exp_design,
-            surrogate=surrogate, asynchronous=asynchronous,
-            batch_size=batch_size, extra=extra, weights=weights,
-            num_cand=num_cand)
+        super().__init__(max_evals=max_evals, opt_prob=opt_prob,
+                         exp_design=exp_design, surrogate=surrogate,
+                         asynchronous=asynchronous, batch_size=batch_size,
+                         extra_points=extra_points, extra_vals=extra_vals,
+                         weights=weights, num_cand=num_cand)
 
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
@@ -514,9 +572,9 @@ class DYCORSStrategy(SRBFStrategy):
 
         weights = self.get_weights(num_pts=num_pts)
         new_points = candidate_dycors(
-            opt_prob=self.opt_prob, num_pts=num_pts, surrogate=self.surrogate, 
-            X=self.X, fX=self.fX, Xpend=self.Xpend, weights=weights, 
-            num_cand=self.num_cand, sampling_radius=self.sampling_radius, 
+            opt_prob=self.opt_prob, num_pts=num_pts, surrogate=self.surrogate,
+            X=self.X, fX=self.fX, Xpend=self.Xpend, weights=weights,
+            num_cand=self.num_cand, sampling_radius=self.sampling_radius,
             prob_perturb=prob_perturb)
 
         for i in range(num_pts):
@@ -524,33 +582,50 @@ class DYCORSStrategy(SRBFStrategy):
 
 
 class ExpectedImprovementStrategy(SurrogateBaseStrategy):
-    """Expected improvement strategy."""
-    def __init__(
-        self, max_evals, opt_prob, exp_design=None, surrogate=None,
-        asynchronous=True, batch_size=None, extra=None,
-        optimizer=None, ei_tol=1e-6):
-        
-        self.optimizer = expected_improvement_ga  # For now
+    """Expected improvement strategy.
+
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem object
+    :type opt_prob: OptimizationProblem
+    :param exp_design: Experimental design object
+    :type exp_design: ExperimentalDesign
+    :param surrogate: Surrogate object
+    :type surrogate: Surrogate
+    :param asynchronous: Whether or not to use asynchrony (True/False)
+    :type asynchronous: bool
+    :param batch_size: Size of the batch (use 1 for serial, ignored if async)
+    :type batch_size: int
+    :param extra_points: Extra points to add to the experimental design
+    :type extra_points: numpy.array of size n x dim
+    :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
+    :type extra_vals: numpy.array of size n x 1
+    :param reset_surrogate: Whether or not to reset surrogate model
+    :type reset_surrogate: bool
+    :param ei_tol: Terminate of the largest EI falls below this threshold
+    :type ei_tol: float
+    """
+    def __init__(self, max_evals, opt_prob, exp_design=None,
+                 surrogate=None, asynchronous=True, batch_size=None,
+                 extra_points=None, extra_vals=None,
+                 reset_surrogate=True, ei_tol=1e-6):
+
         self.ei_tol = ei_tol
 
-        super().__init__(
-            max_evals=max_evals, opt_prob=opt_prob, exp_design=exp_design,
-            surrogate=surrogate, asynchronous=asynchronous,
-            batch_size=batch_size, extra=extra)
+        super().__init__(max_evals=max_evals, opt_prob=opt_prob,
+                         exp_design=exp_design, surrogate=surrogate,
+                         asynchronous=asynchronous, batch_size=batch_size,
+                         extra_points=extra_points, extra_vals=extra_vals)
 
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
         new_points = expected_improvement_ga(
-            num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate, 
-            X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=1e-3, 
+            num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
+            X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=1e-3,
             ei_tol=self.ei_tol)
-            
+
         if new_points is None:  # Not enough improvement
             self.terminate = True
         else:
             for i in range(num_pts):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
-
-
-class SOMIStrategy(SurrogateBaseStrategy):
-    pass

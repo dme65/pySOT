@@ -45,7 +45,7 @@ def example_mars():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=mars, asynchronous=True, batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))

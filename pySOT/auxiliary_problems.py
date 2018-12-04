@@ -1,14 +1,11 @@
 """
 .. module:: auxiliary_problems
-   :synopsis: Ways of finding the next point to evaluate in the adaptive phase
+   :synopsis: Find next points to sample
 
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>,
-                David Bindel <bindel@cornell.edu>
 
 :Module: auxiliary_problems
 :Author: David Eriksson <dme65@cornell.edu>,
-        David Bindel <bindel@cornell.edu>
-
 """
 
 import abc
@@ -17,14 +14,33 @@ import numpy as np
 import scipy.spatial as scpspatial
 import scipy.stats as stats
 from pySOT.utils import GeneticAlgorithm as GA
-from pySOT.utils import unit_rescale
+from pySOT.utils import unit_rescale, round_vars
 from scipy.optimize import minimize
 from scipy.stats import norm
 
 
-def weighted_distance_merit(
-    num_pts, surrogate, X, fX, cand, weights, Xpend=None, dtol=1e-3):
-    
+def weighted_distance_merit(num_pts, surrogate, X, fX, cand,
+                            weights, Xpend=None, dtol=1e-3):
+    """Compute the weighted distance merit function.
+
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param cand: Candidate points to select from, of size m x dim
+    :type cand: numpy.array
+    :param weights: num_pts weights in [0, 1] for merit function
+    :type weights: list or numpy.array
+    :param Xpend: Pending evaluation, of size k x dim
+    :type Xpend: numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    """
+
     # Distance
     dim = X.shape[1]
     if Xpend is None:  # cdist can't handle None arguments
@@ -55,9 +71,34 @@ def weighted_distance_merit(
     return new_points
 
 
-def candidate_srbf(
-    num_pts, opt_prob, surrogate, X, fX, weights, Xpend=None,
-    sampling_radius=0.2, subset=None, dtol=1e-3, num_cand=None):
+def candidate_srbf(num_pts, opt_prob, surrogate, X, fX, weights,
+                   Xpend=None, sampling_radius=0.2, subset=None,
+                   dtol=1e-3, num_cand=None):
+    """Select new evaluations using Stochastic RBF (SRBF).
+
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: object
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param weights: num_pts weights in [0, 1] for merit function
+    :type weights: list or numpy.array
+    :param Xpend: Pending evaluation, of size k x dim
+    :type Xpend: numpy.array
+    :param sampling_radius: Perturbation radius
+    :type sampling_radius: float
+    :param subset: Coordinates that should be perturbed, use None for all
+    :type subset: list or numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param num_cand: Number of candidate points
+    :type num_cand: int
+    """
 
     # Find best solution
     xbest = np.copy(X[np.argmin(fX), :]).ravel()
@@ -65,9 +106,9 @@ def candidate_srbf(
     # Fix default values
     if num_cand is None:
         num_cand = 100*opt_prob.dim
-    if subset is None: 
+    if subset is None:
         subset = np.arange(0, opt_prob.dim)
-    
+
     # Compute scale factors for each dimension and make sure they
     # are correct for integer variables (at least 1)
     scalefactors = sampling_radius * (opt_prob.ub - opt_prob.lb)
@@ -83,26 +124,55 @@ def candidate_srbf(
             a=(lower - xbest[i]) / sigma, b=(upper - xbest[i]) / sigma,
             loc=xbest[i], scale=sigma, size=num_cand)
 
+    # Round integer variables
+    cand = round_vars(cand, opt_prob.int_var, opt_prob.lb, opt_prob.ub)
+
     # Make selections
     return weighted_distance_merit(
-        num_pts=num_pts, surrogate=surrogate, X=X, fX=fX, 
+        num_pts=num_pts, surrogate=surrogate, X=X, fX=fX,
         Xpend=Xpend, cand=cand, dtol=dtol, weights=weights)
 
 
-def candidate_dycors(
-    num_pts, opt_prob, surrogate, X, fX, weights, prob_perturb, 
-    Xpend=None, sampling_radius=0.2, subset=None, dtol=1e-3, 
-    num_cand=None):
+def candidate_dycors(num_pts, opt_prob, surrogate, X, fX, weights,
+                     prob_perturb, Xpend=None, sampling_radius=0.2,
+                     subset=None, dtol=1e-3, num_cand=None):
+    """Select new evaluations using DYCORS.
 
-     # Find best solution
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: object
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param weights: num_pts weights in [0, 1] for merit function
+    :type weights: list or numpy.array
+    :param prob_perturb: Probability to perturb a given coordinate
+    :type prob_perturb: list or numpy.array
+    :param Xpend: Pending evaluations
+    :type Xpend: numpy.array
+    :param sampling_radius: Perturbation radius
+    :type sampling_radius: float
+    :param subset: Coordinates that should be perturbed, use None for all
+    :type subset: list or numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param num_cand: Number of candidate points
+    :type num_cand: int
+    """
+
+    # Find best solution
     xbest = np.copy(X[np.argmin(fX), :]).ravel()
 
     # Fix default values
     if num_cand is None:
         num_cand = 100*opt_prob.dim
-    if subset is None: 
+    if subset is None:
         subset = np.arange(0, opt_prob.dim)
-    
+
     # Compute scale factors for each dimension and make sure they
     # are correct for integer variables (at least 1)
     scalefactors = sampling_radius * (opt_prob.ub - opt_prob.lb)
@@ -111,7 +181,7 @@ def candidate_dycors(
         scalefactors[ind] = np.maximum(scalefactors[ind], 1.0)
 
     # Generate candidate points
-    if len(subset) == 1: # Fix when nlen is 1
+    if len(subset) == 1:  # Fix when nlen is 1
         ar = np.ones((num_cand, 1))
     else:
         ar = (np.random.rand(num_cand, len(subset)) < prob_perturb)
@@ -126,44 +196,84 @@ def candidate_dycors(
             a=(lower - xbest[i]) / sigma, b=(upper - xbest[i]) / sigma,
             loc=xbest[i], scale=sigma, size=len(ind))
 
+    # Round integer variables
+    cand = round_vars(cand, opt_prob.int_var, opt_prob.lb, opt_prob.ub)
+
     # Make selections
     return weighted_distance_merit(
-        num_pts=num_pts, surrogate=surrogate, X=X, fX=fX, 
+        num_pts=num_pts, surrogate=surrogate, X=X, fX=fX,
         Xpend=Xpend, cand=cand, dtol=dtol, weights=weights)
 
 
-def candidate_uniform(
-    num_pts, opt_prob, surrogate, X, fX, weights, Xpend=None, 
-    subset=None, dtol=1e-3, num_cand=None):
+def candidate_uniform(num_pts, opt_prob, surrogate, X, fX, weights,
+                      Xpend=None, subset=None, dtol=1e-3, num_cand=None):
+    """Select new evaluations from uniform candidate points.
 
-     # Find best solution
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: object
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param weights: num_pts weights in [0, 1] for merit function
+    :type weights: list or numpy.array
+    :param Xpend: Pending evaluations
+    :type Xpend: numpy.array
+    :param subset: Coordinates that should be perturbed, use None for all
+    :type subset: list or numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param num_cand: Number of candidate points
+    :type num_cand: int
+    """
+
+    # Find best solution
     xbest = np.copy(X[np.argmin(fX), :]).ravel()
 
-     # Fix default values   
+    # Fix default values
     if num_cand is None:
         num_cand = 100*opt_prob.dim
-    if subset is None: 
+    if subset is None:
         subset = np.arange(0, opt_prob.dim)
 
     # Generate uniformly random candidate points
     cand = np.multiply(np.ones((num_cand, opt_prob.dim)), xbest)
     cand[:, subset] = np.random.uniform(
-        opt_prob.lb[subset], opt_prob.ub[subset], 
+        opt_prob.lb[subset], opt_prob.ub[subset],
         (num_cand, len(subset)))
 
+    # Round integer variables
+    cand = round_vars(cand, opt_prob.int_var, opt_prob.lb, opt_prob.ub)
+
     # Make selections
-    return weighted_distance_merit(
-        num_pts=num_pts, surrogate=surrogate, X=X, fX=fX, 
-        Xpend=Xpend, cand=cand, dtol=dtol, weights=weights)
+    return weighted_distance_merit(num_pts=num_pts, surrogate=surrogate, X=X,
+                                   fX=fX, Xpend=Xpend, cand=cand, dtol=dtol,
+                                   weights=weights)
 
 
 def ei_merit(X, surrogate, fX, XX=None, dtol=0):
-    """Compute the expected improvement"""
+    """Compute the expected improvement merit function.
+
+    :param X: Points where to compute EI, of size n x dim
+    :type X: numpy.array
+    :param surrogate: Surrogate model object, must implement predict_std
+    :type surrogate: object
+    :param fX: Values at previously evaluated points, of size m x 1
+    :type fX: numpy.array
+    :param XX: Previously evaluated points, of size m x 1
+    :type XX: numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    """
     mu, sig = surrogate.predict(X), surrogate.predict_std(X)
     gamma = (np.min(fX) - mu) / sig
     beta = gamma * norm.cdf(gamma) + norm.pdf(gamma)
     ei = sig * beta
-    
+
     if dtol > 0:
         dists = scpspatial.distance.cdist(X, XX)
         dmerit = np.amin(np.asmatrix(dists), axis=1)
@@ -172,11 +282,30 @@ def ei_merit(X, surrogate, fX, XX=None, dtol=0):
     return ei
 
 
-def expected_improvement_ga(
-    num_pts, opt_prob, surrogate, X, fX,
-    Xpend=None, dtol=1e-3, ei_tol=1e-6):
-    """Just use a GA for now."""
-    
+def expected_improvement_ga(num_pts, opt_prob, surrogate, X, fX,
+                            Xpend=None, dtol=1e-3, ei_tol=1e-6):
+    """Maximize EI using a genetic algorithm.
+
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: object
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param Xpend: Pending evaluations
+    :type Xpend: numpy.array
+    :param subset: Coordinates that should be perturbed, use None for all
+    :type subset: list or numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param num_cand: Number of candidate points
+    :type num_cand: int
+    """
+
     if Xpend is None:  # cdist can't handle None arguments
         Xpend = np.empty([0, opt_prob.dim])
     XX = np.vstack((X, Xpend))
@@ -184,13 +313,15 @@ def expected_improvement_ga(
     new_points = np.zeros((num_pts, opt_prob.dim))
     for i in range(num_pts):
         def obj(Y):
+            """Round integer variables and compute negative EI."""
+            Y = round_vars(Y.copy(), opt_prob.int_var,
+                           opt_prob.lb, opt_prob.ub)
             ei = ei_merit(X=Y, surrogate=surrogate, fX=fX, XX=XX, dtol=dtol)
             return -ei  # Remember that we are minimizing!!!
 
-        ga = GA(
-            function=obj, dim=opt_prob.dim, lb=opt_prob.lb, 
-            ub=opt_prob.ub, int_var=opt_prob.int_var, 
-            pop_size=max([2*opt_prob.dim, 100]), num_gen=100)
+        ga = GA(function=obj, dim=opt_prob.dim, lb=opt_prob.lb,
+                ub=opt_prob.ub, int_var=opt_prob.int_var,
+                pop_size=max([2*opt_prob.dim, 100]), num_gen=100)
         x_best, f_min = ga.optimize()
 
         ei_max = -f_min
@@ -203,10 +334,30 @@ def expected_improvement_ga(
     return new_points
 
 
-def expected_improvement_uniform(
-    num_pts, opt_prob, surrogate, X, fX,
-    Xpend=None, dtol=1e-3, ei_tol=1e-6, num_cand=None):
-    """Pick the best from a set of uniform points."""
+def expected_improvement_uniform(num_pts, opt_prob, surrogate, X, fX,
+                                 Xpend=None, dtol=1e-3, ei_tol=1e-6,
+                                 num_cand=None):
+    """Maximize EI from a uniform set of points.
+
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: object
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param Xpend: Pending evaluations
+    :type Xpend: numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param ei_tol: Return None if we can't reach this threshold
+    :type ei_tol: float
+    :param num_cand: Number of candidate points
+    :type num_cand: int
+    """
     if num_cand is None:
         num_cand = 100*opt_prob.dim
     if Xpend is None:  # cdist can't handle None arguments
@@ -216,15 +367,19 @@ def expected_improvement_uniform(
     new_points = np.zeros((num_pts, opt_prob.dim))
     for i in range(num_pts):
 
-        # Fix default values   
+        # Fix default values
         if num_cand is None:
             num_cand = 100*opt_prob.dim
 
         # Generate uniformly random candidate points
         cand = np.random.uniform(
             opt_prob.lb, opt_prob.ub, (num_cand, opt_prob.dim))
-        ei = ei_merit(X=cand, surrogate=surrogate, fX=fX, XX=XX, dtol=dtol)
 
+        # Round integer variables
+        cand = round_vars(cand, opt_prob.int_var, opt_prob.lb, opt_prob.ub)
+
+        # Compute EI and find maximizer
+        ei = ei_merit(X=cand, surrogate=surrogate, fX=fX, XX=XX, dtol=dtol)
         jj = np.argmax(ei)
         ei_max = ei[jj]
 

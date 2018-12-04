@@ -22,6 +22,7 @@ print(ackley.info)
 
 fname = "checkpoint.pysot"
 
+
 def example_checkpoint_serial():
     if os.path.isfile(fname):
         os.remove(fname)
@@ -38,6 +39,7 @@ def example_checkpoint_serial():
     # Resume the run
     resume()
 
+
 def init():
     print("\nInitializing run...")
     rbf = RBFInterpolant(
@@ -50,7 +52,7 @@ def init():
     controller = SerialController(ackley.eval)
     controller.strategy = SRBFStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
-        surrogate=rbf, asynchronous=True, extra=None)
+        surrogate=rbf, asynchronous=True)
 
     print("Number of workers: 1")
     print("Maximum number of evaluations: {}".format(max_evals))
@@ -65,6 +67,7 @@ def init():
     print('Best solution found: {0}\n'.format(
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
+
 
 def resume():
     print("Resuming run...\n")

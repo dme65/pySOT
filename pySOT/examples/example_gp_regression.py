@@ -14,6 +14,7 @@ import numpy as np
 import os.path
 import logging
 
+
 def example_gp_regression():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
@@ -33,7 +34,7 @@ def example_gp_regression():
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=gp, asynchronous=True, batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))

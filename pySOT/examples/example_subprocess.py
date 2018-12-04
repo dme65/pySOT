@@ -58,16 +58,15 @@ def example_subprocess():
     max_evals = 200
 
     sphere = Sphere(dim=10)
-    rbf = RBFInterpolant(
-        dim=sphere.dim, kernel=CubicKernel(), 
-        tail=LinearTail(sphere.dim))
+    rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(),
+                         tail=LinearTail(sphere.dim))
     slhd = SymmetricLatinHypercube(
         dim=sphere.dim, num_pts=2*(sphere.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=sphere, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=sphere, exp_design=slhd,
         surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))

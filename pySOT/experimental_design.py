@@ -19,6 +19,11 @@ import itertools
 
 @six.add_metaclass(abc.ABCMeta)
 class ExperimentalDesign(object):
+    """Base class for experimental designs.
+
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in the experimental design
+    """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self):  # pragma: no cover
@@ -31,67 +36,65 @@ class ExperimentalDesign(object):
 
 
 class LatinHypercube(ExperimentalDesign):
-    """Latin Hypercube experimental design
+    """Latin Hypercube experimental design.
 
     :param dim: Number of dimensions
     :type dim: int
-    :param npts: Number of desired sampling points
-    :type npts: int
+    :param num_pts: Number of desired sampling points
+    :type num_pts: int
     :param criterion: Sampling criterion
-        - "center" or "c"
-            center the points within the sampling intervals
-        - "maximin" or "m"
-            maximize the minimum distance between points, but place the point in a randomized
-            location within its interval
-        - "centermaximin" or "cm"
-            same as "maximin", but
-            centered within the intervals
-        - "correlation" or "corr"
-            minimize the maximum correlation coefficient
-    :type criterion: string
-    """
 
-    def __init__(self, dim, num_pts, criterion='c'):
+       - "center" or "c"
+          Center the points within the sampling intervals
+       - "maximin" or "m"
+          Maximize the minimum distance between points, but place
+          the point in a randomized location within its interval
+       - "centermaximin" or "cm"
+          Same as "maximin", but centered within the intervals
+       - "correlation" or "corr"
+          Minimize the maximum correlation coefficient
+    :type criterion: string
+
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in the experimental design
+    :ivar criterion: Criterion for generating the design
+    """
+    def __init__(self, dim, num_pts, criterion="c"):
         self.dim = dim
         self.num_pts = num_pts
         self.criterion = criterion
 
     def generate_points(self):
-        """Generate a matrix with the initial sample points,
-        scaled to the unit hypercube
+        """Generate a Latin hypercube design in the unit hypercube.
 
-        :return: Latin hypercube design in  the unit cube of size npts x dim
+        :return: Latin hypercube design in unit hypercube of size num_pts x dim
         :rtype: numpy.array
         """
-
         return pydoe.lhs(self.dim, self.num_pts, self.criterion)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
-    """Symmetric Latin Hypercube experimental design
+    """Symmetric Latin hypercube experimental design.
 
     :param dim: Number of dimensions
     :type dim: int
     :param num_pts: Number of desired sampling points
     :type num_pts: int
 
-    :raises ValueError: If npts < 2*dim
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in the experimental design
     """
-
     def __init__(self, dim, num_pts):
         self.dim = dim
         self.num_pts = num_pts
-        if num_pts < 2*dim:
-            raise ValueError("We need npts >= 2*dim to make sure the SLHD has full rank")
 
-    def _slhd(self):
-        """Generate a matrix with the initial sample points,
-        scaled to the unit hypercube
+    def generate_points(self):
+        """Generate a symmetric Latin hypercube design in the unit hypercube.
 
-        :return: Symmetric Latin hypercube design in the unit cube of size npts x dim
+        :return: Symmetric Latin hypercube design in the unit hypercube
+            of size num_pts x dim
         :rtype: numpy.array
         """
-
         # Generate a one-dimensional array based on sample number
         points = np.zeros([self.num_pts, self.dim])
         points[:, 0] = np.arange(1, self.num_pts+1)
@@ -118,40 +121,31 @@ class SymmetricLatinHypercube(ExperimentalDesign):
 
         return points/self.num_pts
 
-    def generate_points(self):
-        """Generate a matrix with the initial sample points,
-        scaled to the unit hypercube
-
-        :return: Symmetric Latin hypercube design in the unit cube of size npts x dim
-        :rtype: numpy.array
-        """
-
-        return self._slhd()
-
 
 class TwoFactorial(ExperimentalDesign):
-    """Two-factorial experimental design
+    """Two-factorial experimental design.
 
     The two-factorial experimental design consists of the corners
     of the unit hypercube, and hence :math:`2^{dim}` points.
 
     :param dim: Number of dimensions
     :type dim: int
+
+    :ivar dim: Number of dimensions
+    :ivar num_pts: Number of points in the experimental design
+
     :raises ValueError: If dim >= 15
     """
-
     def __init__(self, dim):
         if dim >= 15:
-            raise ValueError("Not generating a design with 2^15 points or more, sorry.")
+            raise ValueError("Refusing to use >= 2^15 points.")
         self.dim = dim
         self.num_pts = 2 ** dim
 
     def generate_points(self):
-        """Generate a matrix with the initial sample points,
-        scaled to the unit hypercube
+        """Generate a two factorial design in the unit hypercube.
 
-        :return: Full-factorial design in the unit cube of size (2^dim) x dim
+        :return: Two factorial design in unit hypercube of size num_pts x dim
         :rtype: numpy.array
         """
-
         return np.array(list(itertools.product([0, 1], repeat=self.dim)))

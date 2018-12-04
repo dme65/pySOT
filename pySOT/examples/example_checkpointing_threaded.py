@@ -23,6 +23,7 @@ print(ackley.info)
 
 fname = "checkpoint.pysot"
 
+
 def example_checkpoint_threaded():
     if os.path.isfile(fname):
         os.remove(fname)

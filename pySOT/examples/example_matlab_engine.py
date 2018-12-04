@@ -56,7 +56,7 @@ def example_matlab_engine():
     # Use the serial controller (uses only one thread)
     controller = ThreadController()
     controller.strategy = SRBFStrategy(
-        max_evals=max_evals, opt_prob=ackley, exp_design=slhd, 
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=rbf, asynchronous=True, batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))
