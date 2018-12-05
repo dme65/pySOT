@@ -298,12 +298,10 @@ def expected_improvement_ga(num_pts, opt_prob, surrogate, X, fX,
     :type fX: numpy.array
     :param Xpend: Pending evaluations
     :type Xpend: numpy.array
-    :param subset: Coordinates that should be perturbed, use None for all
-    :type subset: list or numpy.array
     :param dtol: Minimum distance between evaluated and pending points
     :type dtol: float
-    :param num_cand: Number of candidate points
-    :type num_cand: int
+    :param ei_tol: Return None if we don't find an EI of at least this value
+    :type ei_tol: float
     """
 
     if Xpend is None:  # cdist can't handle None arguments
@@ -388,5 +386,83 @@ def expected_improvement_uniform(num_pts, opt_prob, surrogate, X, fX,
         new_points[i, :] = cand[jj, :].copy()
 
         XX = np.vstack((XX, cand[jj, :].copy()))
+
+    return new_points
+
+
+def lcb_merit(X, surrogate, fX, XX=None, dtol=0.0, kappa=2.0):
+    """Compute the expected improvement merit function.
+
+    :param X: Points where to compute EI, of size n x dim
+    :type X: numpy.array
+    :param surrogate: Surrogate model object, must implement predict_std
+    :type surrogate: object
+    :param fX: Values at previously evaluated points, of size m x 1
+    :type fX: numpy.array
+    :param XX: Previously evaluated points, of size m x 1
+    :type XX: numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param kappa: Constant in front of standard deviation
+        Default: 2.0
+    :type kappa: float
+    """
+    mu, sig = surrogate.predict(X), surrogate.predict_std(X)
+    lcb = mu - kappa * sig
+
+    if dtol > 0:
+        dists = scpspatial.distance.cdist(X, XX)
+        dmerit = np.amin(np.asmatrix(dists), axis=1)
+        lcb[dmerit < dtol] = 0.0
+
+    return ei
+
+
+def lower_confidence_bound_ga(num_pts, opt_prob, surrogate, X, fX,
+                              Xpend=None, kappa=2.0, dtol=1e-3,
+                              lcb_target=None):
+    """Maximize EI using a genetic algorithm.
+
+    :param num_pts: Number of points to generate
+    :type num_pts: int
+    :param opt_prob: Optimization problem
+    :type opt_prob: object
+    :param surrogate: Surrogate model object
+    :type surrogate: object
+    :param X: Previously evaluated points, of size n x dim
+    :type X: numpy.array
+    :param fX: Values at previously evaluated points, of size n x 1
+    :type fX: numpy.array
+    :param Xpend: Pending evaluations
+    :type Xpend: numpy.array
+    :param dtol: Minimum distance between evaluated and pending points
+    :type dtol: float
+    :param lcb_target: Return None if we don't find an LCB value <= lcb_target
+    :type lcb_target: float
+    """
+
+    if Xpend is None:  # cdist can't handle None arguments
+        Xpend = np.empty([0, opt_prob.dim])
+    XX = np.vstack((X, Xpend))
+
+    new_points = np.zeros((num_pts, opt_prob.dim))
+    for i in range(num_pts):
+        def obj(Y):
+            """Round integer variables and compute LCB."""
+            Y = round_vars(Y.copy(), opt_prob.int_var,
+                           opt_prob.lb, opt_prob.ub)
+            return lcb_merit(X=Y, surrogate=surrogate, fX=fX,
+                             XX=XX, dtol=dtol, kappa=kappa)
+
+        ga = GA(function=obj, dim=opt_prob.dim, lb=opt_prob.lb,
+                ub=opt_prob.ub, int_var=opt_prob.int_var,
+                pop_size=max([2*opt_prob.dim, 100]), num_gen=100)
+        x_best, f_min = ga.optimize()
+
+        if f_min < lcb_target:
+            return None  # Give up
+
+        new_points[i, :] = x_best
+        XX = np.vstack((XX, x_best))
 
     return new_points

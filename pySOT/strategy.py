@@ -23,7 +23,7 @@ from pySOT.auxiliary_problems import candidate_srbf, candidate_dycors
 from pySOT.auxiliary_problems import expected_improvement_ga
 from pySOT.experimental_design import ExperimentalDesign
 from pySOT.optimization_problems import OptimizationProblem
-from pySOT.surrogate import Surrogate
+from pySOT.surrogate import Surrogate, GPRegressor
 from pySOT.utils import from_unit_box, round_vars, check_opt_prob
 
 # Get module-level logger
@@ -602,14 +602,21 @@ class ExpectedImprovementStrategy(SurrogateBaseStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
-    :param ei_tol: Terminate of the largest EI falls below this threshold
+    :param ei_tol: Terminate if the largest EI falls below this threshold
+        Default: 1e-6 * (max(fX) -  min(fX))
     :type ei_tol: float
+    :param dtol: Minimum distance between new and pending evaluations
+        Default: 1e-3 * norm(ub - lb)
+    :type dtol: float
     """
     def __init__(self, max_evals, opt_prob, exp_design=None,
                  surrogate=None, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
-                 reset_surrogate=True, ei_tol=1e-6):
+                 reset_surrogate=True, ei_tol=None, dtol=None):
 
+        if dtol is None:
+            dtol = 1e-3 * np.linalg.norm(opt_prob.ub - opt_prob.lb)
+        self.dtol = dtol
         self.ei_tol = ei_tol
 
         super().__init__(max_evals=max_evals, opt_prob=opt_prob,
@@ -617,12 +624,92 @@ class ExpectedImprovementStrategy(SurrogateBaseStrategy):
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals)
 
+    def check_input(self):
+        super().check_input()
+        assert isinstance(self.surrogate, GPRegressor)
+
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
+        ei_tol = self.ei_tol
+        if ei_tol is None:
+            ei_tol = 1e-6 * (self.fX.max() - self.fX.min())
+
         new_points = expected_improvement_ga(
             num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
-            X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=1e-3,
-            ei_tol=self.ei_tol)
+            X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=self.dtol,
+            ei_tol=ei_tol)
+
+        if new_points is None:  # Not enough improvement
+            self.terminate = True
+        else:
+            for i in range(num_pts):
+                self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
+
+
+class LCBStrategy(SurrogateBaseStrategy):
+    """Lower confidence bound strategy.
+
+    Minimize mu(x) - kappa * sigma(x)
+
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem object
+    :type opt_prob: OptimizationProblem
+    :param exp_design: Experimental design object
+    :type exp_design: ExperimentalDesign
+    :param surrogate: Surrogate object
+    :type surrogate: Surrogate
+    :param asynchronous: Whether or not to use asynchrony (True/False)
+    :type asynchronous: bool
+    :param batch_size: Size of the batch (use 1 for serial, ignored if async)
+    :type batch_size: int
+    :param extra_points: Extra points to add to the experimental design
+    :type extra_points: numpy.array of size n x dim
+    :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
+    :type extra_vals: numpy.array of size n x 1
+    :param reset_surrogate: Whether or not to reset surrogate model
+    :type reset_surrogate: bool
+    :param kappa: Constant in front of sigma(x)
+    :type kappa: float
+    :param dtol: Minimum distance between new and pending evaluations
+        Default: 1e-3 * norm(ub - lb)
+    :type dtol: float
+    :param lcb_tol: Terminate if max(fX) - min(LCB(x)) < lcb_tol
+        Default: 1e-6 * (max(fX) -  min(fX))
+    :type lcb_tol: float
+    """
+    def __init__(self, max_evals, opt_prob, exp_design=None,
+                 surrogate=None, asynchronous=True, batch_size=None,
+                 extra_points=None, extra_vals=None,
+                 reset_surrogate=True, kappa=2.0, dtol=None,
+                 lcb_tol=None):
+
+        if dtol is None:
+            dtol = 1e-3 * np.linalg.norm(opt_prob.ub - opt_prob.lb)
+        self.dtol = dtol
+        self.lcb_tol = lcb_tol
+        self.kappa = kappa
+
+        super().__init__(max_evals=max_evals, opt_prob=opt_prob,
+                         exp_design=exp_design, surrogate=surrogate,
+                         asynchronous=asynchronous, batch_size=batch_size,
+                         extra_points=extra_points, extra_vals=extra_vals)
+
+    def check_input(self):
+        super().check_input()
+        assert isinstance(self.surrogate, GPRegressor)
+
+    def generate_evals(self, num_pts):
+        """Generate the next adaptive sample points."""
+        lcb_tol = self.lcb_tol
+        if lcb_tol is None:
+            lcb_tol = 1e-6 * (self.fX.max() - self.fX.min())
+        lcb_target = self.fX.max() - lcb_tol
+
+        new_points = lowest_confidence_bound_ga(
+            num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
+            X=self.X, fX=self.fX, Xpend=self.Xpend, kappa=self.kappa,
+            dtol=self.dtol, lcb_target=lcb_target)
 
         if new_points is None:  # Not enough improvement
             self.terminate = True
