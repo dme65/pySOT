@@ -1,6 +1,6 @@
 """
 .. module:: example_extra_vals
-  :synopsis: Example extra values
+  :synopsis: Example extra vals
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 

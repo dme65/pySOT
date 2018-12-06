@@ -76,6 +76,7 @@ class Surrogate(ABC):
 
         :param xx: xx must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Surrogate predictions, of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -87,6 +88,7 @@ class Surrogate(ABC):
 
         :param xx: xx must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Surrogate derivative predictions, of size num_pts x dim
         :rtype: numpy.ndarray
         """
@@ -107,6 +109,7 @@ class Kernel(ABC):
 
         :param dists: Array of size n x n with pairwise distances
         :type dists: numpy.ndarray
+
         :return: Array of size n x n with kernel values
         :rtype: numpy.ndarray
         """
@@ -118,6 +121,7 @@ class Kernel(ABC):
 
         :param dists: Array of size n x n with pairwise distances
         :type dists: numpy.ndarray
+
         :return: Array of size n x n with kernel derivatives
         :rtype: numpy.ndarray
         """
@@ -128,7 +132,7 @@ class Tail(ABC):
     """Base class for a polynomial tail.
 
     "ivar dim: Dimensionality of the original space
-    :ivar dim_tail: Dimensionality of the polynomial space
+    :ivar dim_tail: Dimensionality of the polynomial space \
         (number of basis functions)
     """
     def __init__(self):  # pragma: no cover
@@ -142,6 +146,7 @@ class Tail(ABC):
 
         :param X: Array of size num_pts x dim
         :type X: numpy.ndarray
+
         :return: Array of size num_pts x dim_tail
         :rtype: numpy.ndarray
         """
@@ -153,6 +158,7 @@ class Tail(ABC):
 
         :param x: Array of size 1 x dim or (dim,)
         :type x: numpy.ndarray
+
         :return: Array of size dim_tail x dim
         :rtype: numpy.ndarray
         """
@@ -175,6 +181,7 @@ class CubicKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
+
         :returns: a matrix where element :math:`(i,j)` is
             :math:`\\|x_i - x_j \\|^3`
         :rtype: numpy.array
@@ -186,6 +193,7 @@ class CubicKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
+
         :returns: a matrix where element :math:`(i,j)` is
             :math:`3 \\| x_i - x_j \\|^2`
         :rtype: numpy.array
@@ -209,6 +217,7 @@ class TPSKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
+
         :returns: a matrix where element :math:`(i,j)` is
             :math:`\\|x_i - x_j \\|^2 \\log (\\|x_i - x_j \\|)`
         :rtype: numpy.array
@@ -221,6 +230,7 @@ class TPSKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
+
         :returns: a matrix where element :math:`(i,j)` is
             :math:`\\|x_i - x_j \\|(1 + 2 \\log (\\|x_i - x_j \\|) )`
         :rtype: numpy.array
@@ -245,6 +255,7 @@ class LinearKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
+
         :returns: a matrix where element :math:`(i,j)` is
             :math:`\\|x_i - x_j \\|`
         :rtype: numpy.array
@@ -256,6 +267,7 @@ class LinearKernel(Kernel):
 
         :param dists: Distance input matrix
         :type dists: numpy.array
+
         :returns: a matrix where element :math:`(i,j)` is 1
         :rtype: numpy.array
         """
@@ -279,6 +291,7 @@ class LinearTail(Tail):
 
         :param X: Points to evaluate, of size num_pts x dim
         :type X: numpy.array
+
         :returns: A numpy.array of size num_pts x dim_tail
         :rtype: numpy.array
         """
@@ -292,6 +305,7 @@ class LinearTail(Tail):
 
         :param x: Point to evaluate, of size (1, dim) or (dim,)
         :type x: numpy.array
+
         :returns: A numpy.array of size dim_tail x dim
         :rtype: numpy.array
         """
@@ -317,6 +331,7 @@ class ConstantTail(Tail):
 
         :param X: Points to evaluate, of size num_pts x dim
         :type X: numpy.array
+
         :returns: A numpy.array of size num_pts x dim_tail(dim)
         :rtype: numpy.array
         """
@@ -330,6 +345,7 @@ class ConstantTail(Tail):
 
         :param x: Point to evaluate, of size (1, dim) or (dim,)
         :type x: numpy.array
+
         :returns: A numpy.array of size dim_tail x dim
         :rtype: numpy.array
         """
@@ -499,6 +515,7 @@ class RBFInterpolant(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Prediction of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -515,6 +532,7 @@ class RBFInterpolant(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.array
+
         :return: Derivative of the RBF interpolant at xx
         :rtype: numpy.array
         """
@@ -588,6 +606,7 @@ class GPRegressor(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Prediction of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -600,6 +619,7 @@ class GPRegressor(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Predicted standard deviation, of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -668,6 +688,7 @@ class MARSInterpolant(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Prediction of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -680,6 +701,7 @@ class MARSInterpolant(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.array
+
         :return: Derivative of the RBF interpolant at xx
         :rtype: numpy.array
         """
@@ -723,6 +745,7 @@ class PolyRegressor(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Prediction of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -801,6 +824,7 @@ class SurrogateCapped(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Prediction of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -811,6 +835,7 @@ class SurrogateCapped(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Predicted standard deviation, of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -821,6 +846,7 @@ class SurrogateCapped(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.array
+
         :return: Derivative of the RBF interpolant at xx
         :rtype: numpy.array
         """
@@ -888,6 +914,7 @@ class SurrogateUnitBox(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Prediction of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -899,6 +926,7 @@ class SurrogateUnitBox(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.ndarray
+
         :return: Predicted standard deviation, of size num_pts x 1
         :rtype: numpy.ndarray
         """
@@ -913,6 +941,7 @@ class SurrogateUnitBox(Surrogate):
 
         :param xx: Prediction points, must be of size num_pts x dim or (dim, )
         :type xx: numpy.array
+
         :return: Derivative of the RBF interpolant at xx
         :rtype: numpy.array
         """

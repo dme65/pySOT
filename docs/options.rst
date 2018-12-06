@@ -1,26 +1,21 @@
 Options
 =======
 
-Optimization problem
---------------------
+Strategy
+-----------------
 
-The optimization problem is its own object and must have certain attributes and methods
-in order to work with the framework. We start by giving an example of a mixed-integer
-optimization problem with constraints. The following attributes and methods must
-always be specified in the optimization problem class:
+We provide implementations of Stochastic RBF (SRBF), DYCORS, 
+Expected Improvement (EI), lower confidence bound (LCB) and random search (RS).
+EI can only be used in combination with GPRegressor since uncertainty predictions 
+are necessary. All strategies support running in serial, batch synchronous parallel,
+and asynchronous parallel. 
 
-- **Attributes**
-    * lb: Lower bounds for the variables.
-    * ub: Upper bounds for the variables.
-    * dim: Number of dimensions
-    * int_var: Specifies the integer variables. If no variables have
-      discrete, set to []
-    * cont_var: Specifies the continuous variables. If no variables
-      are continuous, set to []
-- **Required methods**
-    * eval: Takes one input in the form of an numpy.ndarray with
-      shape (1, dim), which corresponds to one point in dim dimensions. Returns the
-      value (a scalar) of the objective function at this point.
+New optimization strategies can be implemented by inheriting from SurrogateBaseStrategy 
+and implementing the abstract generate_evals method that proposes num_pts
+new sample points:
+
+- Required methods
+    * generate_evals(num_pts): Proposes num_pts new samples.
 
 Experimental design
 -------------------
@@ -149,18 +144,22 @@ The following surrogate models are supported:
 
     creates a polynomial regressor of degree 2.
 
-Strategy
------------------
+Optimization problem
+--------------------
 
-We provide implementations of Stochastic RBF (SRBF), DYCORS, 
-Expected Improvement (EI), and random search. The DYCORS algorithm is the bread-and-butter
-algorithm for problems with more than 5 dimensions, while SRBF is 
-recommended for problems with only a few dimensions. EI can only be
-used in combination with GPRegressor since uncertainty predictions are 
-necessary. All strategies support running in serial, batch synchronous parallel,
-and asynchronous parallel. A new optimization strategy can be implemented by 
-inheriting from SurrogateBaseStrategy and implementing the abstract generate_evals
-method that proposes new sample points:
+The optimization problem is its own object and must have certain attributes and methods
+in order to work with the framework. The following attributes and methods must
+always be specified in the optimization problem class:
 
-- Required methods
-    * generate_evals(num_pts): Proposes num_pts new samples.
+- **Attributes**
+    * lb: Lower bounds for the variables.
+    * ub: Upper bounds for the variables.
+    * dim: Number of dimensions
+    * int_var: Specifies the integer variables. If no variables have
+      discrete, set to []
+    * cont_var: Specifies the continuous variables. If no variables
+      are continuous, set to []
+- **Required methods**
+    * eval: Takes one input in the form of an numpy.ndarray with
+      shape (1, dim), which corresponds to one point in dim dimensions. Returns the
+      value (a scalar) of the objective function at this point.

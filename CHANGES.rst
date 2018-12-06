@@ -1,11 +1,13 @@
-v.0.2.0,  2018-12-xx
+v.0.2.0,  2018-12-06
+--------------------
 
 - Most of the pySOT codebase has been rewritten
+- We support asynchronous function evaluations
 - The strategy has been merged with the adaptive sampling
 - The penalty method strategy has been removed, but may be added back later
 - A CheckpointController has been added that enables resuming terminated runs
-- Python 2 support has been dropped, we now support Python 3.4 and newer versions
-- Expected improvement has been added
+- Python 2 support has been dropped, we now support Python 3.4 and later
+- Expected improvement (EI) and lower confidence bound (LCB) have been added
 
 v.0.1.36, 2017-07-20
 --------------------

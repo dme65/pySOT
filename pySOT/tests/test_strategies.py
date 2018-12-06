@@ -1,5 +1,5 @@
 from pySOT.strategy import SRBFStrategy, DYCORSStrategy, \
-    ExpectedImprovementStrategy, RandomSampling
+    EIStrategy, RandomSampling, LCBStrategy
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.surrogate import GPRegressor, \
     RBFInterpolant, CubicKernel, LinearTail
@@ -107,6 +107,9 @@ def test_srbf_async():
     check_strategy(controller)
 
 
+#######################################################################
+
+
 def test_dycors_serial():
     max_evals = 200
     rbf = RBFInterpolant(
@@ -127,11 +130,9 @@ def test_dycors_serial():
 
 def test_dycors_sync():
     max_evals = 200
-    rbf = RBFInterpolant(
-        dim=ackley.dim, kernel=CubicKernel(),
-        tail=LinearTail(ackley.dim))
-    slhd = SymmetricLatinHypercube(
-        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+                         tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
     # Create a strategy and a controller
     controller = ThreadController()
@@ -169,6 +170,9 @@ def test_dycors_async():
     check_strategy(controller)
 
 
+#######################################################################
+
+
 def test_ei_serial():
     max_evals = 50
     gp = GPRegressor(dim=ackley.dim)
@@ -177,7 +181,7 @@ def test_ei_serial():
 
     # Create a strategy and a controller
     controller = SerialController(ackley.eval)
-    controller.strategy = ExpectedImprovementStrategy(
+    controller.strategy = EIStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=gp, asynchronous=True)
     controller.run()
@@ -193,7 +197,7 @@ def test_ei_sync():
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = DYCORSStrategy(
+    controller.strategy = EIStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=gp, asynchronous=False, batch_size=num_threads)
 
@@ -213,7 +217,7 @@ def test_ei_async():
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = DYCORSStrategy(
+    controller.strategy = EIStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
         surrogate=gp, asynchronous=True, batch_size=None)
 
@@ -223,6 +227,68 @@ def test_ei_async():
     controller.run()
 
     check_strategy(controller)
+
+
+#######################################################################
+
+
+def test_lcb_serial():
+    max_evals = 50
+    gp = GPRegressor(dim=ackley.dim)
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+
+    # Create a strategy and a controller
+    controller = SerialController(ackley.eval)
+    controller.strategy = LCBStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=gp, asynchronous=True)
+    controller.run()
+
+    check_strategy(controller)
+
+
+def test_lcb_sync():
+    max_evals = 50
+    gp = GPRegressor(dim=ackley.dim)
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+
+    # Create a strategy and a controller
+    controller = ThreadController()
+    controller.strategy = LCBStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=gp, asynchronous=False, batch_size=num_threads)
+
+    for _ in range(num_threads):
+        worker = BasicWorkerThread(controller, ackley.eval)
+        controller.launch_worker(worker)
+    controller.run()
+
+    check_strategy(controller)
+
+
+def test_lcb_async():
+    max_evals = 50
+    gp = GPRegressor(dim=ackley.dim)
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+
+    # Create a strategy and a controller
+    controller = ThreadController()
+    controller.strategy = LCBStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=gp, asynchronous=True, batch_size=None)
+
+    for _ in range(num_threads):
+        worker = BasicWorkerThread(controller, ackley.eval)
+        controller.launch_worker(worker)
+    controller.run()
+
+    check_strategy(controller)
+
+
+#######################################################################
 
 
 def test_random_sampling():
@@ -246,9 +312,17 @@ if __name__ == '__main__':
     test_srbf_serial()
     test_srbf_sync()
     test_srbf_async()
+
     test_dycors_serial()
     test_dycors_sync()
     test_dycors_async()
+
     test_ei_serial()
     test_ei_sync()
     test_ei_async()
+
+    test_lcb_serial()
+    test_lcb_sync()
+    test_lcb_async()
+
+    test_random_sampling()

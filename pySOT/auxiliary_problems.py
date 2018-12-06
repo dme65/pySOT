@@ -39,8 +39,10 @@ def weighted_distance_merit(num_pts, surrogate, X, fX, cand,
     :type Xpend: numpy.array
     :param dtol: Minimum distance between evaluated and pending points
     :type dtol: float
-    """
 
+    :return: The num_pts new points chosen from the candidate points
+    :rtype: numpy.array of size num_pts x dim
+    """
     # Distance
     dim = X.shape[1]
     if Xpend is None:  # cdist can't handle None arguments
@@ -98,8 +100,10 @@ def candidate_srbf(num_pts, opt_prob, surrogate, X, fX, weights,
     :type dtol: float
     :param num_cand: Number of candidate points
     :type num_cand: int
-    """
 
+    :return: The num_pts new points to evaluate
+    :rtype: numpy.array of size num_pts x dim
+    """
     # Find best solution
     xbest = np.copy(X[np.argmin(fX), :]).ravel()
 
@@ -162,8 +166,10 @@ def candidate_dycors(num_pts, opt_prob, surrogate, X, fX, weights,
     :type dtol: float
     :param num_cand: Number of candidate points
     :type num_cand: int
-    """
 
+    :return: The num_pts new points to evaluate
+    :rtype: numpy.array of size num_pts x dim
+    """
     # Find best solution
     xbest = np.copy(X[np.argmin(fX), :]).ravel()
 
@@ -229,8 +235,10 @@ def candidate_uniform(num_pts, opt_prob, surrogate, X, fX, weights,
     :type dtol: float
     :param num_cand: Number of candidate points
     :type num_cand: int
-    """
 
+    :return: The num_pts new points to evaluate
+    :rtype: numpy.array of size num_pts x dim
+    """
     # Find best solution
     xbest = np.copy(X[np.argmin(fX), :]).ravel()
 
@@ -268,6 +276,9 @@ def ei_merit(X, surrogate, fX, XX=None, dtol=0):
     :type XX: numpy.array
     :param dtol: Minimum distance between evaluated and pending points
     :type dtol: float
+
+    :return: Evaluate the expected improvement for points X
+    :rtype: numpy.array of length X.shape[0]
     """
     mu, sig = surrogate.predict(X), surrogate.predict_std(X)
     gamma = (np.min(fX) - mu) / sig
@@ -302,8 +313,10 @@ def expected_improvement_ga(num_pts, opt_prob, surrogate, X, fX,
     :type dtol: float
     :param ei_tol: Return None if we don't find an EI of at least this value
     :type ei_tol: float
-    """
 
+    :return: num_pts new points to evaluate
+    :rtype: numpy.array of size num_pts x dim
+    """
     if Xpend is None:  # cdist can't handle None arguments
         Xpend = np.empty([0, opt_prob.dim])
     XX = np.vstack((X, Xpend))
@@ -355,6 +368,9 @@ def expected_improvement_uniform(num_pts, opt_prob, surrogate, X, fX,
     :type ei_tol: float
     :param num_cand: Number of candidate points
     :type num_cand: int
+
+    :return: num_pts new points to evaluate
+    :rtype: numpy.array of size num_pts x dim
     """
     if num_cand is None:
         num_cand = 100*opt_prob.dim
@@ -406,6 +422,9 @@ def lcb_merit(X, surrogate, fX, XX=None, dtol=0.0, kappa=2.0):
     :param kappa: Constant in front of standard deviation
         Default: 2.0
     :type kappa: float
+
+    :return: Evaluate the lower confidence bound for points X
+    :rtype: numpy.array of length X.shape[0]
     """
     mu, sig = surrogate.predict(X), surrogate.predict_std(X)
     lcb = mu - kappa * sig
@@ -413,9 +432,8 @@ def lcb_merit(X, surrogate, fX, XX=None, dtol=0.0, kappa=2.0):
     if dtol > 0:
         dists = scpspatial.distance.cdist(X, XX)
         dmerit = np.amin(np.asmatrix(dists), axis=1)
-        lcb[dmerit < dtol] = 0.0
-
-    return ei
+        lcb[dmerit < dtol] = np.inf
+    return lcb
 
 
 def lower_confidence_bound_ga(num_pts, opt_prob, surrogate, X, fX,
@@ -439,6 +457,9 @@ def lower_confidence_bound_ga(num_pts, opt_prob, surrogate, X, fX,
     :type dtol: float
     :param lcb_target: Return None if we don't find an LCB value <= lcb_target
     :type lcb_target: float
+
+    :return: num_pts new points to evaluate
+    :rtype: numpy.array of size num_pts x dim
     """
 
     if Xpend is None:  # cdist can't handle None arguments
@@ -459,7 +480,7 @@ def lower_confidence_bound_ga(num_pts, opt_prob, surrogate, X, fX,
                 pop_size=max([2*opt_prob.dim, 100]), num_gen=100)
         x_best, f_min = ga.optimize()
 
-        if f_min < lcb_target:
+        if f_min > lcb_target:
             return None  # Give up
 
         new_points[i, :] = x_best

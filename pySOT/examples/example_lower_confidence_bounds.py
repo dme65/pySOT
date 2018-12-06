@@ -1,11 +1,11 @@
 """
-.. module:: example_expected_improvement
-  :synopsis: Example Expected Improvement
+.. module:: example_lower_confidence_bounds
+  :synopsis: Example Lower Confidence Bounds
 .. moduleauthor:: David Eriksson <dme65@cornell.edu>
 """
 
 from pySOT.experimental_design import SymmetricLatinHypercube
-from pySOT.strategy import EIStrategy
+from pySOT.strategy import LCBStrategy
 from pySOT.surrogate import GPRegressor
 from pySOT.optimization_problems import Hartman6
 
@@ -15,13 +15,14 @@ import os.path
 import logging
 
 
-def example_expected_improvement():
+def example_lower_confidence_bounds():
     if not os.path.exists("./logfiles"):
         os.makedirs("logfiles")
-    if os.path.exists("./logfiles/example_simple.log"):
-        os.remove("./logfiles/example_simple.log")
-    logging.basicConfig(filename="./logfiles/example_simple.log",
-                        level=logging.INFO)
+    if os.path.exists("./logfiles/example_lower_confidence_bounds.log"):
+        os.remove("./logfiles/example_lower_confidence_bounds.log")
+    logging.basicConfig(
+        filename="./logfiles/example_lower_confidence_bounds.log",
+        level=logging.INFO)
 
     num_threads = 4
     max_evals = 100
@@ -33,7 +34,7 @@ def example_expected_improvement():
 
     # Create a strategy and a controller
     controller = ThreadController()
-    controller.strategy = EIStrategy(
+    controller.strategy = LCBStrategy(
         max_evals=max_evals, opt_prob=hart6, exp_design=slhd,
         surrogate=gp, asynchronous=True)
 
@@ -57,4 +58,4 @@ def example_expected_improvement():
                      precision=5, suppress_small=True)))
 
 if __name__ == '__main__':
-    example_expected_improvement()
+    example_lower_confidence_bounds()

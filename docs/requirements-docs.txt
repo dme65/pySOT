@@ -1,4 +1,4 @@
 sphinx >= 1.4.7
 six
-scikit-learn >= 0.18.1
+scikit-learn
 http://github.com/scikit-learn-contrib/py-earth/tarball/master#egg=py-earth-0.1.0

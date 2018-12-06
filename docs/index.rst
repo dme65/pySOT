@@ -23,8 +23,7 @@ any bugs, please feel free to either submit a bug report on GitHub (recommended)
 or to contact me at the email address: dme65@cornell.edu. Keep an eye on the
 GitHub repository for updates and changes to both the toolbox and the documentation.
 
-The toolbox is based on the following published papers: [1_], [2_], [3_], [4_],
-[5_], [6_].
+The toolbox is based on the following published papers: [1_], [2_], [3_]
 
 .. toctree::
    :maxdepth: 4
@@ -52,15 +51,3 @@ The toolbox is based on the following published papers: [1_], [2_], [3_], [4_],
 .. [3] Rommel G Regis and Christine A Shoemaker.
     Combining radial basis function surrogates and dynamic coordinate search in high-dimensional expensive black-box optimization.
     Engineering Optimization, 45(5): 529–555, 2013.
-
-.. [4] Juliane Muller and Robert Piche .
-    Mixture surrogate models based on Dempster-Shafer theory for global optimization problems.
-    Journal of Global Optimization, 51 (1):79–104, 2011.
-
-.. [5] Juliane Muller, Christine A Shoemaker, and Robert Piche
-    SO-MI: A surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems.
-    Computers & Operations Research, 40(5):1383– 1400, 2013.
-
-.. [6] Juliane Muller, Christine A Shoemaker, and Robert Piche
-    SO-I: a surrogate model algorithm for expensive nonlinear integer programming problems including global optimization applications.
-    Journal of Global Optimization, 59(4):865–889, 2014.

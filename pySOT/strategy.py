@@ -20,7 +20,8 @@ import time
 from poap.strategy import BaseStrategy, Proposal, RetryStrategy
 
 from pySOT.auxiliary_problems import candidate_srbf, candidate_dycors
-from pySOT.auxiliary_problems import expected_improvement_ga
+from pySOT.auxiliary_problems import expected_improvement_ga, \
+    lower_confidence_bound_ga
 from pySOT.experimental_design import ExperimentalDesign
 from pySOT.optimization_problems import OptimizationProblem
 from pySOT.surrogate import Surrogate, GPRegressor
@@ -34,6 +35,8 @@ class RandomSampling(BaseStrategy):
     """Random sampling strategy.
 
     We generate and evaluate a fixed number of points using all resources.
+    The optimization problem must implement OptimizationProblem and max_evals
+    must be a positive integer.
 
     :param max_evals: Evaluation budget
     :type max_evals: int
@@ -63,11 +66,47 @@ class RandomSampling(BaseStrategy):
 
 class SurrogateBaseStrategy(BaseStrategy):
     __metaclass__ = abc.ABCMeta
-    """Surrogate base strategy
+    """Surrogate base strategy.
 
-    Once the budget of max_evals function evaluations have been assigned,
-    no further evaluations are assigned to processors. The code returns
-    once all evaluations are completed.
+    This is a base strategy for surrogate optimization. This class is abstract
+    and inheriting classes must implement generate_evals(self, num_pts)
+    which proposes num_pts new evaluations. This strategy follows the general
+    idea of surrogate optimization:
+
+    1.  Generate an initial experimental design
+    2.  Evaluate the points in the experimental design
+    3.  Build a Surrogate model from the data
+    4.  Repeat until stopping criterion met
+    5.      Generate num_pts new points to evaluate
+    6.      Evaluate the new point(s)
+    7.      Update the surrogate model
+
+    The optimization problem, experimental design, and surrogate model
+    must implement an abstract class definition to make sure they are
+    compatible with the framework. More information about required
+    methods and attributes is explained in the pySOT documentation:
+        https://pysot.readthedocs.io/
+
+    We support function evaluations in serial, synchronous parallel, and
+    asynchronous parallel. Serial evaluations can be achieved by using the
+    SerialController in POAP and either run this strategy asynchronously
+    or synchronously with batch_size equal to 1. The main difference between
+    asynchronous and synchronous parallel is that we launch new function
+    evaluations as soon as a worker becomes available when using asynchronous
+    parallel, while we wait for the entire batch to finish when using
+    synchronous parallel. It is important that the experimental design
+    generates enough points to construct an initial surrogate model.
+
+    The user can supply additional points to add to the experimental design
+    using the extra_points and extra_vals inputs. This is of interest if
+    a good starting point is known. The surrogate model is reset by default
+    to make sure no old points are present in the surrogate model, but this
+    behavior can be modified using the reset_surrogate argument.
+
+    The strategy stops proposing new evaluations once the attribute
+    self.terminate has been set to True or when the evaluation budget has been
+    exceeded. We wait for pending evaluations to finish before the strategy
+    terminates.
 
     :param max_evals: Evaluation budget
     :type max_evals: int
@@ -79,7 +118,7 @@ class SurrogateBaseStrategy(BaseStrategy):
     :type surrogate: Surrogate
     :param asynchronous: Whether or not to use asynchrony (True/False)
     :type asynchronous: bool
-    :param batch_size: Size of the batch (use 1 for serial, ignored if async)
+    :param batch_size: Size of batch (use 1 for serial, ignored if async)
     :type batch_size: int
     :param extra_points: Extra points to add to the experimental design
     :type extra_points: numpy.array of size n x dim
@@ -381,7 +420,50 @@ class SurrogateBaseStrategy(BaseStrategy):
 
 
 class SRBFStrategy(SurrogateBaseStrategy):
-    """SRBF optimization strategy.
+    """Stochastic RBF (SRBF) optimization strategy.
+
+    This is an implementation of the SRBF strategy by Regis and Shoemaker:
+
+    Rommel G Regis and Christine A Shoemaker.
+    A stochastic radial basis function method for the \
+        global optimization of expensive functions.
+    INFORMS Journal on Computing, 19(4): 497–509, 2007.
+
+    Rommel G Regis and Christine A Shoemaker.
+    Parallel stochastic global optimization using radial basis functions.
+    INFORMS Journal on Computing, 21(3):411–426, 2009.
+
+    The main idea is to pick the new evaluations from a set of candidate
+    points where each candidate point is generated as an N(0, sigma^2)
+    distributed perturbation from the current best solution. The value of
+    sigma is modified based on progress and follows the same logic as in many
+    trust region methods; we increase sigma if we make a lot of progress
+    (the surrogate is accurate) and decrease sigma when we aren't able to
+    make progress (the surrogate model is inaccurate). More details about how
+    sigma is updated is given in the original papers.
+
+    After generating the candidate points we predict their objective function
+    value and compute the minimum distance to previously evaluated point. Let
+    the candidate points be denoted by C and let the function value predictions
+    be s(x_i) and the distance values be d(x_i), both rescaled through a linear
+    transformation to the interval [0,1]. This is done to put the values on the
+    same scale. The next point selected for evaluation is the candidate point
+    x that minimizes the weighted-distance merit function:
+
+    merit(x) := w * s(x) + (1 - w) * (1 - d(x))
+
+    where 0 <= w <= 1. That is, we want a small function value prediction and a
+    large minimum distance from previously evalauted points. The weight w is
+    commonly cycled between a few values to achieve both exploitation and
+    exploration. When w is close to zero we do pure exploration while w close
+    to 1 corresponds to explotation.
+
+    This strategy has two additional arguments than the base class:
+
+    weights:  Specify a list of weights to cycle through
+              Default = [0.3, 0.5, 0.8, 0.95]
+    num_cand: Number of candidate to use when generating new evaluations
+              Default = 100 * dim
 
     :param max_evals: Evaluation budget
     :type max_evals: int
@@ -406,7 +488,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
     :param num_cand: Number of candidate points, default = 100*dim
     :type num_cand: int
     """
-    def __init__(self, max_evals, opt_prob, exp_design=None, surrogate=None,
+    def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
                  extra_vals=None, reset_surrogate=True, weights=None,
                  num_cand=None):
@@ -524,6 +606,20 @@ class SRBFStrategy(SurrogateBaseStrategy):
 class DYCORSStrategy(SRBFStrategy):
     """DYCORS optimization strategy.
 
+    This is an implementation of the DYCORS strategy by Regis and Shoemaker:
+
+    Rommel G Regis and Christine A Shoemaker.
+    Combining radial basis function surrogates and dynamic coordinate \
+        search in high-dimensional expensive black-box optimization.
+    Engineering Optimization, 45(5): 529–555, 2013.
+
+    This is an extension of the SRBF strategy that changes how the candidate
+    points are generated. The main idea is that many objective functions depend
+    only on a few directions so it may be advantageous to perturb only a few
+    directions. In particular, we use a perturbation probability to perturb a
+    given coordinate and decrease this probability after each function
+    evaluation so fewer coordinates are perturbed later in the optimization.
+
     :param max_evals: Evaluation budget
     :type max_evals: int
     :param opt_prob: Optimization problem object
@@ -547,8 +643,7 @@ class DYCORSStrategy(SRBFStrategy):
     :param num_cand: Number of candidate points, default = 100*dim
     :type num_cand: int
     """
-
-    def __init__(self, max_evals, opt_prob, exp_design=None, surrogate=None,
+    def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
                  extra_vals=None, weights=None, num_cand=None):
 
@@ -581,8 +676,30 @@ class DYCORSStrategy(SRBFStrategy):
             self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
 
 
-class ExpectedImprovementStrategy(SurrogateBaseStrategy):
-    """Expected improvement strategy.
+class EIStrategy(SurrogateBaseStrategy):
+    """Expected Improvement strategy.
+
+    This is an implementation of Expected Improvement (EI), arguably the most
+    popular acquisition function in Bayesian optimization. Under a Gaussian
+    process (GP) prior, the expected value of the improvement:
+
+    I(x) := max(f_best - f(x), 0)
+    EI[x] := E[I(x)]
+
+    can be computed analytically, where f_best is the best observed function
+    value.EI is one-step optimal in the sense that selecting the maximizer of
+    EI is the optimal action if we have exactly one function value remaining
+    and must return a solution with a known function value.
+
+    When using parallelism, we constrain each new evaluation to be a distance
+    dtol away from previous and pending evaluations to avoid that the same
+    point is being evaluated multiple times. We use a default value of
+    dtol = 1e-3 * norm(ub - lb), but note that this value has not been
+    tuned carefully and may be far from optimal.
+
+    The optimization strategy terminates when the evaluatio budget has been
+    exceeded or when the EI of the next point falls below some threshold,
+    where the default threshold is 1e-6 * (max(fX) -  min(fX)).
 
     :param max_evals: Evaluation budget
     :type max_evals: int
@@ -609,8 +726,8 @@ class ExpectedImprovementStrategy(SurrogateBaseStrategy):
         Default: 1e-3 * norm(ub - lb)
     :type dtol: float
     """
-    def __init__(self, max_evals, opt_prob, exp_design=None,
-                 surrogate=None, asynchronous=True, batch_size=None,
+    def __init__(self, max_evals, opt_prob, exp_design,
+                 surrogate, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
                  reset_surrogate=True, ei_tol=None, dtol=None):
 
@@ -649,7 +766,25 @@ class ExpectedImprovementStrategy(SurrogateBaseStrategy):
 class LCBStrategy(SurrogateBaseStrategy):
     """Lower confidence bound strategy.
 
-    Minimize mu(x) - kappa * sigma(x)
+    This is an implementation of Lower Confidence Bound (LCB), a
+    popular acquisition function in Bayesian optimization. The main idea
+    is to minimize:
+
+    LCB(x) := E[x] - kappa * sqrt(V[x])
+
+    where E[x] is the predicted function value, V[x] is the predicted
+    variance, and kappa is a constant that balances exploration and
+    exploitation. We use a default value of kappa = 2.
+
+    When using parallelism, we constrain each new evaluation to be a distance
+    dtol away from previous and pending evaluations to avoid that the same
+    point is being evaluated multiple times. We use a default value of
+    dtol = 1e-3 * norm(ub - lb), but note that this value has not been
+    tuned carefully and may be far from optimal.
+
+    The optimization strategy terminates when the evaluatio budget has been
+    exceeded or when the LCB of the next point falls below some threshold,
+    where the default threshold is 1e-6 * (max(fX) -  min(fX)).
 
     :param max_evals: Evaluation budget
     :type max_evals: int
@@ -678,8 +813,8 @@ class LCBStrategy(SurrogateBaseStrategy):
         Default: 1e-6 * (max(fX) -  min(fX))
     :type lcb_tol: float
     """
-    def __init__(self, max_evals, opt_prob, exp_design=None,
-                 surrogate=None, asynchronous=True, batch_size=None,
+    def __init__(self, max_evals, opt_prob, exp_design,
+                 surrogate, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
                  reset_surrogate=True, kappa=2.0, dtol=None,
                  lcb_tol=None):
@@ -704,9 +839,9 @@ class LCBStrategy(SurrogateBaseStrategy):
         lcb_tol = self.lcb_tol
         if lcb_tol is None:
             lcb_tol = 1e-6 * (self.fX.max() - self.fX.min())
-        lcb_target = self.fX.max() - lcb_tol
+        lcb_target = self.fX.min() - lcb_tol
 
-        new_points = lowest_confidence_bound_ga(
+        new_points = lower_confidence_bound_ga(
             num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
             X=self.X, fX=self.fX, Xpend=self.Xpend, kappa=self.kappa,
             dtol=self.dtol, lcb_target=lcb_target)
