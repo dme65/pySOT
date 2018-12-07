@@ -407,9 +407,9 @@ def expected_improvement_uniform(num_pts, opt_prob, surrogate, X, fX,
 
 
 def lcb_merit(X, surrogate, fX, XX=None, dtol=0.0, kappa=2.0):
-    """Compute the expected improvement merit function.
+    """Compute the lcb merit function.
 
-    :param X: Points where to compute EI, of size n x dim
+    :param X: Points where to compute LCB, of size n x dim
     :type X: numpy.array
     :param surrogate: Surrogate model object, must implement predict_std
     :type surrogate: object
@@ -439,7 +439,7 @@ def lcb_merit(X, surrogate, fX, XX=None, dtol=0.0, kappa=2.0):
 def lower_confidence_bound_ga(num_pts, opt_prob, surrogate, X, fX,
                               Xpend=None, kappa=2.0, dtol=1e-3,
                               lcb_target=None):
-    """Maximize EI using a genetic algorithm.
+    """Minimize the LCB using a genetic algorithm.
 
     :param num_pts: Number of points to generate
     :type num_pts: int

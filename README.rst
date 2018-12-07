@@ -1,20 +1,23 @@
 |Travis| |codecov| |ReadTheDocs| |Downloads| |DOI|
 
-pySOT: Surrogate Optimization Toolbox
--------------------------------------
+pySOT: Python Surrogate Optimization Toolbox
+--------------------------------------------
 
-pySOT is an asynchronous parallel optimization toolbox for global
-deterministic optimization problems. The main purpose of the toolbox is
-optmizing computationally expensive black-box objective
-functions with continuous and/or integer variables given a limited number of
-function evaluations. pySOT supports synchronous and asynchronous parallel
-function evaluations, both using threads and MPI. This functionality is provided 
-by the event-driven POAP (https://github.com/dbindel/POAP) framework.
+The Python Surrogate Optimization Toolbox (pySOT) is an asynchronous parallel
+optimization toolbox for computationally expensive global optimization problems. 
+pySOT is built on top of the Plumbing for Optimization with Asynchronous Parallelism (POAP),
+which is an event-driven framework for building and combining asynchronous optimization
+strategies. POAP has support for both threads and MPI. 
+
+pySOT implements many popular surrogate optimization algorithms such as the
+Stochastic RBF (SRBF) and DYCORS methods by Regis and Shoemaker. We also support
+Expected Improvement (EI) and Lower Confidence Bounds (LCB), which are popular in Bayesian
+optimization. All optimization algorithms can be used in serial, synchronous parallel, and
+asynchronous parallel and we support both continuous and integer variables.
 
 The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
 
 Documentation: http://pysot.readthedocs.io/
-
 
 Installation
 ------------
@@ -24,8 +27,12 @@ Installation instructions are available at: http://pysot.readthedocs.io/en/lates
 Examples
 --------
 
-Several pySOT examples can be found at:
-https://github.com/dme65/pySOT/tree/master/pySOT/test
+Several pySOT examples and notebooks can be found at:
+
+https://github.com/dme65/pySOT/tree/master/pySOT/examples
+
+https://github.com/dme65/pySOT/tree/master/pySOT/notebooks
+
 
 News
 ----
