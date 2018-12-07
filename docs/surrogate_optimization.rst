@@ -3,24 +3,25 @@ Surrogate optimization
 
 Surrogate optimization algorithms generally consist of four components:
 
-1. **Optimization problem:** All of the available information about the
+1. **Strategy:** Algorithm for choosing new evaluations after the experimental 
+   design has been evaluated.
+2. **Experimental design:** Generates an initial set of points for building
+   the initial surrogate model
+3. **Surrogate model:** Approximates the underlying objective function.
+   Common choices are RBFs, GPs, MARS, etc.
+4. **Optimization problem:** All of the available information about the
    optimization problem, e.g., dimensionality, variable types, objective
    function, etc.
-2. **Surrogate model:** Approximates the underlying objective function.
-   Common choices are RBFs, Kriging, MARS, etc.
-3. **Experimental design:** Generates an initial set of points for building
-   the initial surrogate model
-4. **Strategy:** Method for choosing evaluations after the experimental 
-   design has been evaluated.
+
 
 The surrogate model (or response surfaces) is used to approximate an underlying
 function that has been evaluated for a set of points. During the optimization
 phase information from the surrogate model is used in order to guide the search
 for improved solutions, which has the advantage of not needing as many function
-evaluations to find a good solution. Most surrogate model algorithms consist of
-the same steps as shown in the algorithm below.
+evaluations to find a good solution.
 
-The general framework for a Surrogate Optimization algorithm is the following:
+The general framework for a Surrogate Optimization algorithm is illustrated
+in the algorithm below:
 
 **Inputs:** Optimization problem, Experimental design, Optimization strategy,
 Surrogate model, Stopping criterion

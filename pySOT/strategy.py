@@ -722,7 +722,7 @@ class EIStrategy(SurrogateBaseStrategy):
     :param ei_tol: Terminate if the largest EI falls below this threshold
         Default: 1e-6 * (max(fX) -  min(fX))
     :type ei_tol: float
-    :param dtol: Minimum distance between new and pending evaluations
+    :param dtol: Minimum distance between new and pending/finished evaluations
         Default: 1e-3 * norm(ub - lb)
     :type dtol: float
     """
@@ -804,12 +804,12 @@ class LCBStrategy(SurrogateBaseStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
-    :param kappa: Constant in front of sigma(x)
+    :param kappa: Constant in the LCB merit function
     :type kappa: float
     :param dtol: Minimum distance between new and pending evaluations
         Default: 1e-3 * norm(ub - lb)
     :type dtol: float
-    :param lcb_tol: Terminate if max(fX) - min(LCB(x)) < lcb_tol
+    :param lcb_tol: Terminate if min(fX) - min(LCB(x)) < lcb_tol
         Default: 1e-6 * (max(fX) -  min(fX))
     :type lcb_tol: float
     """

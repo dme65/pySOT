@@ -362,7 +362,7 @@ class RBFInterpolant(Surrogate):
 
     .. math::
 
-        f(x) = \\sum_j c_j \\phi(\\|x-x_j\\|) + \\sum_j \\lambda_j p_j(x)
+        s(x) = \\sum_j c_j \\phi(\\|x-x_j\\|) + \\sum_j \\lambda_j p_j(x)
 
     where the functions :math:`p_j(x)` are low-degree polynomials.
     The fitting equations are
@@ -378,6 +378,11 @@ class RBFInterpolant(Surrogate):
     SurrogateUnitBox wrapper or manually scaling the domain to the unit
     hypercube to avoid issues with the domain scaling.
 
+    We add k new points to the RBFInterpolant in :math:`O(kn^2)` flops by
+    updating the LU factorization of the old RBF system. This is better
+    than computing the RBF coefficients from scratch, which costs
+    :math:`O(n^3)` flops.
+
     :param dim: Number of dimensions
     :type dim: int
     :param kernel: RBF kernel object
@@ -385,7 +390,7 @@ class RBFInterpolant(Surrogate):
     :param tail: RBF polynomial tail object
     :type tail: Tail
     :param eta: Regularization parameter
-    :type eta: float or
+    :type eta: float
 
     :ivar dim: Number of dimensions
     :ivar num_pts: Number of points in surrogate model
@@ -712,12 +717,12 @@ class MARSInterpolant(Surrogate):
 
 
 class PolyRegressor(Surrogate):
-    """Polynomial regression with cross-terms
+    """Multi-variate polynomial regression with cross-terms
 
     :param dim: Number of dimensions
     :type dim: int
     :param degree: Polynomial degree
-    :type dim: int
+    :type degree: int
 
     :ivar dim: Number of dimensions
     :ivar num_pts: Number of points in surrogate model
