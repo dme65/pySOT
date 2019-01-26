@@ -343,7 +343,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.pending_evals -= 1
 
         xx, fx = np.copy(record.params[0]), record.value
-        self.X = np.vstack((self.X, np.asmatrix(xx)))
+        self.X = np.vstack((self.X, np.atleast_2d(xx)))
         self.fX = np.vstack((self.fX, fx))
 
         self.surrogate.add_points(xx, fx)
@@ -403,7 +403,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.pending_evals -= 1
 
         xx, fx = np.copy(record.params[0]), record.value
-        self.X = np.vstack((self.X, np.asmatrix(xx)))
+        self.X = np.vstack((self.X, np.atleast_2d(xx)))
         self.fX = np.vstack((self.fX, fx))
         self.surrogate.add_points(xx, fx)
         self.remove_pending(xx)

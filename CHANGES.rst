@@ -1,3 +1,7 @@
+v.0.2.1,  2018-01-26
+--------------------
+- Removing numpy.asmatrix calls, since this is now deprecated
+
 v.0.2.0,  2018-12-06
 --------------------
 

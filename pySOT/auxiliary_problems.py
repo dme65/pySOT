@@ -48,7 +48,7 @@ def weighted_distance_merit(num_pts, surrogate, X, fX, cand,
     if Xpend is None:  # cdist can't handle None arguments
         Xpend = np.empty([0, dim])
     dists = scpspatial.distance.cdist(cand, np.vstack((X, Xpend)))
-    dmerit = np.amin(np.asmatrix(dists), axis=1)
+    dmerit = np.amin(dists, axis=1, keepdims=True)
 
     # Values
     fvals = surrogate.predict(cand)
@@ -287,7 +287,7 @@ def ei_merit(X, surrogate, fX, XX=None, dtol=0):
 
     if dtol > 0:
         dists = scpspatial.distance.cdist(X, XX)
-        dmerit = np.amin(np.asmatrix(dists), axis=1)
+        dmerit = np.amin(dists, axis=1, keepdims=True)
         ei[dmerit < dtol] = 0.0
 
     return ei
@@ -431,7 +431,7 @@ def lcb_merit(X, surrogate, fX, XX=None, dtol=0.0, kappa=2.0):
 
     if dtol > 0:
         dists = scpspatial.distance.cdist(X, XX)
-        dmerit = np.amin(np.asmatrix(dists), axis=1)
+        dmerit = np.amin(dists, axis=1, keepdims=True)
         lcb[dmerit < dtol] = np.inf
     return lcb
 
