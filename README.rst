@@ -4,10 +4,10 @@ pySOT: Python Surrogate Optimization Toolbox
 --------------------------------------------
 
 The Python Surrogate Optimization Toolbox (pySOT) is an asynchronous parallel
-optimization toolbox for computationally expensive global optimization problems. 
+optimization toolbox for computationally expensive global optimization problems.
 pySOT is built on top of the Plumbing for Optimization with Asynchronous Parallelism (POAP),
 which is an event-driven framework for building and combining asynchronous optimization
-strategies. POAP has support for both threads and MPI. 
+strategies. POAP has support for both threads and MPI.
 
 pySOT implements many popular surrogate optimization algorithms such as the
 Stochastic RBF (SRBF) and DYCORS methods by Regis and Shoemaker. We also support
