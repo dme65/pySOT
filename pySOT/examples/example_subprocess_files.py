@@ -11,7 +11,6 @@ from pySOT.optimization_problems import Sphere
 
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
-import sys
 import os.path
 import logging
 from subprocess import Popen, PIPE
@@ -19,6 +18,7 @@ from subprocess import Popen, PIPE
 
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
+
 
 # Find path of the executable
 path = os.path.dirname(os.path.abspath(__file__)) + "/sphere_ext_files"

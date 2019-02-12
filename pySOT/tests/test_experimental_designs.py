@@ -35,6 +35,7 @@ def test_full_factorial():
     with pytest.raises(ValueError):  # This should raise an exception
         TwoFactorial(20)
 
+
 if __name__ == '__main__':
     test_full_factorial()
     test_lhd()

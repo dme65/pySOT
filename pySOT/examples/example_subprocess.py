@@ -11,7 +11,6 @@ from pySOT.optimization_problems import Sphere
 
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
-import sys
 import os.path
 import logging
 from subprocess import Popen, PIPE

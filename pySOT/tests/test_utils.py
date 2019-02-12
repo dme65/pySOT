@@ -10,13 +10,15 @@ def test_unit_box_map():
 
     X1 = to_unit_box(X, lb, ub)
     np.testing.assert_equal(X.shape, X1.shape)
-    np.testing.assert_almost_equal(X1, to_unit_box(X, np.atleast_2d(lb), np.atleast_2d(ub)))
+    np.testing.assert_almost_equal(
+        X1, to_unit_box(X, np.atleast_2d(lb), np.atleast_2d(ub)))
     assert(X.max() <= 1.0 and X.min() >= 0)
 
     # Try to map back to what we started with
     X2 = from_unit_box(X1, lb, ub)
     np.testing.assert_equal(X.shape, X2.shape)
-    np.testing.assert_almost_equal(X2, from_unit_box(X1, np.atleast_2d(lb), np.atleast_2d(ub)))
+    np.testing.assert_almost_equal(
+        X2, from_unit_box(X1, np.atleast_2d(lb), np.atleast_2d(ub)))
     np.testing.assert_almost_equal(X2, X)
 
 
@@ -60,14 +62,17 @@ def test_ga():
         return -20.0*np.exp(-0.2*np.sqrt(np.sum(x**2, axis=1)/dim)) - \
             np.exp(np.sum(np.cos(2.0*np.pi*x), axis=1)/dim) + 20 + np.exp(1)
 
-    ga = GeneticAlgorithm(obj_function, dim, -15*np.ones(dim), 20*np.ones(dim),
-                          pop_size=100, num_gen=100, start="SLHD")
+    ga = GeneticAlgorithm(
+        obj_function, dim, -15*np.ones(dim), 20*np.ones(dim),
+        pop_size=100, num_gen=100, start="SLHD")
     x_best, f_best = ga.optimize()
 
-    ga = GeneticAlgorithm(obj_function, dim, -15*np.ones(dim), 20*np.ones(dim), np.array([0]),
-                          pop_size=100, num_gen=100, start="SLHD")
+    ga = GeneticAlgorithm(
+        obj_function, dim, -15*np.ones(dim), 20*np.ones(dim), np.array([0]),
+        pop_size=100, num_gen=100, start="SLHD")
     x_best, f_best = ga.optimize()
     np.testing.assert_almost_equal(x_best[0], np.round(x_best[0]))
+
 
 if __name__ == '__main__':
     test_ga()

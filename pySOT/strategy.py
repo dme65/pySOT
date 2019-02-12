@@ -16,7 +16,6 @@ import logging
 import math
 import numpy as np
 import os
-import time
 from poap.strategy import BaseStrategy, Proposal, RetryStrategy
 
 from pySOT.auxiliary_problems import candidate_srbf, candidate_dycors
@@ -25,7 +24,7 @@ from pySOT.auxiliary_problems import expected_improvement_ga, \
 from pySOT.experimental_design import ExperimentalDesign
 from pySOT.optimization_problems import OptimizationProblem
 from pySOT.surrogate import Surrogate, GPRegressor
-from pySOT.utils import from_unit_box, round_vars, check_opt_prob
+from pySOT.utils import check_opt_prob
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
@@ -180,6 +179,8 @@ class SurrogateBaseStrategy(BaseStrategy):
             raise ValueError("surrogate must implement Surrogate")
         if not isinstance(self.exp_design, ExperimentalDesign):
             raise ValueError("exp_design must implement ExperimentalDesign")
+        if not isinstance(self.opt_prob, OptimizationProblem):
+            raise ValueError("opt_prob must implement OptimizationProblem")
         check_opt_prob(self.opt_prob)
         if not self.asynchronous and self.batch_size is None:
             raise ValueError("You must specify batch size in synchronous mode "
@@ -232,8 +233,9 @@ class SurrogateBaseStrategy(BaseStrategy):
         logger.info("=== Start ===")
         self.surrogate.reset()
 
-        start_sample = self.exp_design.generate_points(lb=self.opt_prob.lb,
-            ub=self.opt_prob.ub, int_var=self.opt_prob.int_var)
+        start_sample = self.exp_design.generate_points(
+            lb=self.opt_prob.lb, ub=self.opt_prob.ub,
+            int_var=self.opt_prob.int_var)
         assert start_sample.shape[1] == self.opt_prob.dim, \
             "Dimension mismatch between problem and experimental design"
         # start_sample = from_unit_box(

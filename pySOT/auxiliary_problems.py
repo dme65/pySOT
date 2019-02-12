@@ -8,14 +8,11 @@
 :Author: David Eriksson <dme65@cornell.edu>,
 """
 
-import abc
-import math
 import numpy as np
 import scipy.spatial as scpspatial
 import scipy.stats as stats
 from pySOT.utils import GeneticAlgorithm as GA
 from pySOT.utils import unit_rescale, round_vars
-from scipy.optimize import minimize
 from scipy.stats import norm
 
 

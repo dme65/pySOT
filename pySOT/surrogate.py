@@ -18,7 +18,7 @@ from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
-from pySOT.utils import to_unit_box, from_unit_box
+from pySOT.utils import to_unit_box
 import warnings
 
 
@@ -495,7 +495,7 @@ class RBFInterpolant(Surrogate):
                 try:  # Compute Cholesky factorization of the Schur complement
                     C = scplinalg.cholesky(
                         a=Phinew - np.dot(L21, U12), lower=True)
-                except:  # Compute a new LU factorization if the Cholesky fails
+                finally:  # Compute a new LU factorization if Cholesky fails
                     self.c = None
                     return self._fit()
 
@@ -683,10 +683,10 @@ class MARSInterpolant(Surrogate):
 
     def _fit(self):
         """Compute new coefficients if the MARS interpolant is not updated."""
-        warnings.simplefilter("ignore")  # Surpress deprecation warnings
-        if self.updated is False:
-            self.model.fit(self.X, self.fX)
-            self.updated = True
+        with warnings.simplefilter("ignore"):  # Surpress deprecation warnings
+            if self.updated is False:
+                self.model.fit(self.X, self.fX)
+                self.updated = True
 
     def predict(self, xx):
         """Evaluate the MARS interpolant at the points xx

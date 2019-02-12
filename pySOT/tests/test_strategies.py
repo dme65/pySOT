@@ -5,10 +5,9 @@ from pySOT.surrogate import GPRegressor, \
     RBFInterpolant, CubicKernel, LinearTail
 from pySOT.optimization_problems import Ackley
 
-from poap.controller import Monitor, SerialController, \
+from poap.controller import SerialController, \
     ThreadController, BasicWorkerThread
 import numpy as np
-import pytest
 
 num_threads = 4
 ackley = Ackley(dim=10)

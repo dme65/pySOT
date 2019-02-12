@@ -8,7 +8,6 @@
 :Author: David Eriksson <dme65@cornell.edu>
 """
 
-import pySOT.experimental_design as exp_des
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
 
@@ -166,7 +165,7 @@ def progress_plot(controller, title="", interactive=False):  # pragma: no cover
     try:
         import matplotlib.pyplot as plt
         plotting_on = True
-    except:
+    finally:
         plotting_on = False
         pass
 
@@ -274,12 +273,14 @@ class GeneticAlgorithm:
                 raise ValueError("Initial population is outside the domain")
             population = self.start
         elif self.start == "SLHD":
-            exp_des = exp_des.SymmetricLatinHypercube(
+            from pySOT.experimental_design import SymmetricLatinHypercube
+            exp_des = SymmetricLatinHypercube(
                 self.nvariables, self.nindividuals)
             population = self.lower_boundary + exp_des.generate_points() * \
                 (self.upper_boundary - self.lower_boundary)
         elif self.start == "LHD":
-            exp_des = exp_des.LatinHypercube(self.nvariables, self.nindividuals)
+            from pySOT.experimental_design import LatinHypercube
+            exp_des = LatinHypercube(self.nvariables, self.nindividuals)
             population = self.lower_boundary + exp_des.generate_points() * \
                 (self.upper_boundary - self.lower_boundary)
         elif self.start == "Random":

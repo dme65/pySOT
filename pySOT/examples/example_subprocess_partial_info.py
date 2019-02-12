@@ -10,7 +10,6 @@ from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
 
 from poap.controller import ThreadController, ProcessWorkerThread
 import numpy as np
-import sys
 import os.path
 import logging
 from pySOT.optimization_problems import OptimizationProblem
@@ -19,6 +18,7 @@ from subprocess import Popen, PIPE
 
 def array2str(x):
     return ",".join(np.char.mod('%f', x))
+
 
 # Find path of the executable
 path = os.path.dirname(os.path.abspath(__file__)) + "/sumfun_ext"

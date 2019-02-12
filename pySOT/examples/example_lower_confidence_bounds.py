@@ -57,5 +57,6 @@ def example_lower_confidence_bounds():
         np.array_str(result.params[0], max_line_width=np.inf,
                      precision=5, suppress_small=True)))
 
+
 if __name__ == '__main__':
     example_lower_confidence_bounds()

@@ -77,9 +77,11 @@ def test_linear_tail():
     assert(tail.degree == 1)
     assert(tail.dim_tail == dim + 1)
     X = np.random.rand(10, dim)
-    np.testing.assert_allclose(tail.eval(X), np.hstack((np.ones((10, 1)), X)))
+    np.testing.assert_allclose(
+        tail.eval(X), np.hstack((np.ones((10, 1)), X)))
     x = X[0, :]
-    np.testing.assert_allclose(tail.deriv(x), np.hstack((np.zeros((dim, 1)), np.eye(dim))))
+    np.testing.assert_allclose(
+        tail.deriv(x), np.hstack((np.zeros((dim, 1)), np.eye(dim))))
 
 
 def test_constant_tail():
@@ -235,11 +237,13 @@ def test_capped():
     rbf2.add_points(x, fX_capped)
 
     assert(np.max(np.abs(rbf1.predict(xx) - rbf2.predict(xx))) < 1e-10)
-    assert(np.max(np.abs(rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
+    assert (np.max(np.abs(
+        rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
 
     rbf1.reset()
     assert(rbf1.num_pts == 0 and rbf1.dim == 1)
     assert(rbf1.X.size == 0 and rbf1.fX.size == 0)
+
 
 def test_unit_box():
     ackley = Ackley(dim=1)
@@ -250,8 +254,8 @@ def test_unit_box():
     xx = np.expand_dims(np.linspace(0, 1, 100), axis=1)
 
     # RBF with internal scaling to unit hypercube
-    rbf1 = SurrogateUnitBox(
-        RBFInterpolant(dim=1, eta=1e-6), lb=np.array([0.0]), ub=np.array([1.0]))
+    rbf1 = SurrogateUnitBox(RBFInterpolant(
+        dim=1, eta=1e-6), lb=np.array([0.0]), ub=np.array([1.0]))
     rbf1.add_points(x, fX)
 
     # Normal RBF
@@ -259,7 +263,8 @@ def test_unit_box():
     rbf2.add_points(x, fX)
 
     assert(np.max(np.abs(rbf1.predict(xx) - rbf2.predict(xx))) < 1e-10)
-    assert(np.max(np.abs(rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
+    assert (np.max(np.abs(
+        rbf1.predict_deriv(x[0, :]) - rbf2.predict_deriv(x[0, :]))) < 1e-10)
     assert(np.max(np.abs(rbf1.X - rbf2.X)) < 1e-10)
     assert(np.max(np.abs(rbf1.fX - rbf2.fX)) < 1e-10)
 

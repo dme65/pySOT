@@ -15,7 +15,7 @@ import pyDOE2 as pydoe
 import abc
 import six
 import itertools
-import pySOT.utils as utils
+from pySOT.utils import from_unit_box, round_vars
 from numpy.linalg import matrix_rank as rank
 from scipy.spatial.distance import cdist
 
@@ -37,21 +37,23 @@ class ExperimentalDesign(object):
     def generate_points(self):  # pragma: no cover
         pass
 
+
 def _expdes_dist(gen, iterations, lb, ub, int_var):
     X = None
     best_score = 0
     for _ in range(iterations):
         cand = gen()  # Generate a new design
         if all([x is not None for x in [lb, ub, int_var]]):  # Map and round
-            cand = utils.round_vars(utils.from_unit_box(cand, lb, ub), int_var, lb, ub)
+            cand = round_vars(from_unit_box(cand, lb, ub), int_var, lb, ub)
 
-        dist = cdist(cand, cand)
-        np.fill_diagonal(dist, np.inf)  # Since these are zero
-        score = dist.min().min()
+        dists = cdist(cand, cand)
+        np.fill_diagonal(dists, np.inf)  # Since these are zero
+        score = dists.min().min()
 
         if score > best_score and rank(cand) == cand.shape[1]:
             best_score = score
             X = cand.copy()
+
     if X is None:
         raise ValueError("No valid design found, increase num_pts?")
     return X

@@ -1,5 +1,4 @@
-from pySOT.auxiliary_problems import weighted_distance_merit, ei_merit, \
-    candidate_dycors, candidate_srbf, candidate_uniform, \
+from pySOT.auxiliary_problems import candidate_srbf, candidate_uniform, \
     expected_improvement_ga, expected_improvement_uniform
 from pySOT.surrogate import GPRegressor
 from pySOT.optimization_problems import Ackley

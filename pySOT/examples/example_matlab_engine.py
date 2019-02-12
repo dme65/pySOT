@@ -30,7 +30,7 @@ class MatlabWorker(ProcessWorkerThread):
             if np.isnan(val):
                 raise ValueError()
             self.finish_success(record, val)
-        except:
+        finally:
             logging.info("WARNING: Incorrect output or crashed evaluation")
             self.finish_cancelled(record)
 
