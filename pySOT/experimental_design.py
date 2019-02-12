@@ -15,6 +15,8 @@ import pyDOE2 as pydoe
 import abc
 import six
 import itertools
+from pySOT.utils import from_unit_box, round_vars
+from numpy.linalg import matrix_rank as rank
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -33,6 +35,21 @@ class ExperimentalDesign(object):
     @abc.abstractmethod
     def generate_points(self):  # pragma: no cover
         pass
+
+def _expdes_corr(gen, iterations, lb, ub, int_var):
+    X = None
+    best_score = np.inf
+    for _ in range(iterations):
+        cand = gen()  # Generate a new design
+        if all([x is not None for x in [lb, ub, int_var]]):  # Map and round
+            cand = round_vars(from_unit_box(cand, lb, ub), int_var, lb, ub)
+
+        R = np.corrcoef(cand)
+        if np.max(np.abs(R[R != 1])) < best_score and rank(cand) == cand.shape[1]:
+            best_score = np.max(np.abs(R - np.eye(R.shape[0])))
+            X = cand.copy()
+
+    return X
 
 
 class LatinHypercube(ExperimentalDesign):
@@ -59,18 +76,21 @@ class LatinHypercube(ExperimentalDesign):
     :ivar num_pts: Number of points in the experimental design
     :ivar criterion: Criterion for generating the design
     """
-    def __init__(self, dim, num_pts, criterion="c"):
+    def __init__(self, dim, num_pts, criterion="c", iterations=1000):
         self.dim = dim
         self.num_pts = num_pts
         self.criterion = criterion
+        self.iterations = iterations
 
-    def generate_points(self):
+    def generate_points(self, lb=None, ub=None, int_var=None):
         """Generate a Latin hypercube design in the unit hypercube.
 
         :return: Latin hypercube design in unit hypercube of size num_pts x dim
         :rtype: numpy.array
         """
-        return pydoe.lhs(self.dim, self.num_pts, self.criterion)
+        def wrapper():
+            return pydoe.lhs(self.dim, self.num_pts, self.criterion, iterations=1)
+        return _expdes_corr(wrapper, self.iterations, lb, ub, int_var)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
@@ -84,11 +104,18 @@ class SymmetricLatinHypercube(ExperimentalDesign):
     :ivar dim: Number of dimensions
     :ivar num_pts: Number of points in the experimental design
     """
-    def __init__(self, dim, num_pts):
+    def __init__(self, dim, num_pts, iterations=1000):
         self.dim = dim
         self.num_pts = num_pts
+        self.iterations = iterations
 
-    def generate_points(self):
+    def generate_points(self, lb=None, ub=None, int_var=None):
+        def wrapper():
+            return self._slhd()
+        return _expdes_corr(wrapper, self.iterations, lb, ub, int_var)
+
+
+    def _slhd(self):
         """Generate a symmetric Latin hypercube design in the unit hypercube.
 
         :return: Symmetric Latin hypercube design in the unit hypercube
@@ -142,10 +169,13 @@ class TwoFactorial(ExperimentalDesign):
         self.dim = dim
         self.num_pts = 2 ** dim
 
-    def generate_points(self):
+    def generate_points(self, lb=None, ub=None, int_var=None):
         """Generate a two factorial design in the unit hypercube.
 
         :return: Two factorial design in unit hypercube of size num_pts x dim
         :rtype: numpy.array
         """
-        return np.array(list(itertools.product([0, 1], repeat=self.dim)))
+        X = np.array(list(itertools.product([0, 1], repeat=self.dim)))
+        if all([x is not None for x in [lb, ub, int_var]]):  # Map and round
+            X = round_vars(from_unit_box(X, lb, ub), int_var, lb, ub)
+        return X
