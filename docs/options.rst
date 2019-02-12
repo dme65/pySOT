@@ -4,13 +4,13 @@ Options
 Strategy
 -----------------
 
-We provide implementations of Stochastic RBF (SRBF), DYCORS, 
+We provide implementations of Stochastic RBF (SRBF), DYCORS,
 Expected Improvement (EI), lower confidence bound (LCB) and random search (RS).
-EI can only be used in combination with GPRegressor since uncertainty predictions 
+EI can only be used in combination with GPRegressor since uncertainty predictions
 are necessary. All strategies support running in serial, batch synchronous parallel,
-and asynchronous parallel. 
+and asynchronous parallel.
 
-New optimization strategies can be implemented by inheriting from SurrogateBaseStrategy 
+New optimization strategies can be implemented by inheriting from SurrogateBaseStrategy
 and implementing the abstract generate_evals method that proposes num_pts
 new sample points:
 
@@ -49,7 +49,7 @@ same scale. The next point selected for evaluation is the candidate point
 x that minimizes the weighted-distance merit function:
 
 .. math::
-    
+
     \text{merit}(x) := w s(x) + (1 - w) (1 - d(x))
 
 where :math:`0 \leq w \leq 1`. That is, we want a small function value prediction and a
@@ -77,7 +77,7 @@ DYCORStrategy
 This is an implementation of the DYCORS strategy by Regis and Shoemaker:
 
 | Rommel G Regis and Christine A Shoemaker.
-| Combining radial basis function surrogates and dynamic coordinate search in 
+| Combining radial basis function surrogates and dynamic coordinate search in
   high-dimensional expensive black-box optimization.
 | Engineering Optimization, 45(5): 529–555, 2013.
 
@@ -183,9 +183,10 @@ and method:
     * dim: Dimensionality
     * num_pts: Number of points in the design
 - Required methods
-    * generate_points(): Returns an experimental design of size num_pts x dim where
+    * generate_points(lb, ub, int_var): Returns an experimental design of size num_pts x dim where
       num_pts is the number of points in the initial design, which was specified
-      when the object was created.
+      when the object was created. You can supply lb, ub, and int_var to have the design mapped
+      before it's scored instead of having the rounding take place in the strategy.
 
 The following experimental designs are supported:
 
@@ -197,6 +198,7 @@ A Latin hypercube design
 - Parameters:
     * dim: Number of dimensions (int).
     * num_pts: Number of desired sampling points (int).
+    * iterations: Number of designs to generate and choose the best from (int)
 
 Example:
 
@@ -215,6 +217,7 @@ A symmetric Latin hypercube design
 - Parameters:
     * dim: Number of dimensions (int).
     * num_pts: Number of desired sampling points (int). Use 2*dim + 1 to make sure the design has full rank.
+    * iterations: Number of designs to generate and choose the best from (int)
 
 Example:
 
@@ -287,7 +290,7 @@ SurrogateUnitBox wrapper or manually scaling the domain to the unit
 hypercube to avoid issues with the domain scaling.
 
 We add k new points to the RBFInterpolant in :math:`O(kn^2)` flops by
-updating the LU factorization of the old RBF system. This is better than 
+updating the LU factorization of the old RBF system. This is better than
 computing the RBF coefficients from scratch, which costs :math:`O(n^3)` flops.
 
 - Parameters:

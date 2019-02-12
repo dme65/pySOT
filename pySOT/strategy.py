@@ -233,16 +233,12 @@ class SurrogateBaseStrategy(BaseStrategy):
         logger.info("=== Start ===")
         self.surrogate.reset()
 
+        # NB: Experimental designs can now handle the mapping
         start_sample = self.exp_design.generate_points(
             lb=self.opt_prob.lb, ub=self.opt_prob.ub,
             int_var=self.opt_prob.int_var)
         assert start_sample.shape[1] == self.opt_prob.dim, \
             "Dimension mismatch between problem and experimental design"
-        # start_sample = from_unit_box(
-        #     start_sample, self.opt_prob.lb, self.opt_prob.ub)
-        # start_sample = round_vars(
-        #     start_sample, self.opt_prob.int_var,
-        #     self.opt_prob.lb, self.opt_prob.ub)
 
         for j in range(self.exp_design.num_pts):
             self.batch_queue.append(start_sample[j, :])
