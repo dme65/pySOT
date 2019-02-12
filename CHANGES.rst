@@ -1,4 +1,9 @@
-v.0.2.1,  2018-01-26
+v.0.2.2,  2019-02-12
+--------------------
+- Experimental designs can now map and round to domains
+- Support for generating multiple experimental designs and picking the best
+
+v.0.2.1,  2019-01-26
 --------------------
 - Removing numpy.asmatrix calls, since this is now deprecated
 
