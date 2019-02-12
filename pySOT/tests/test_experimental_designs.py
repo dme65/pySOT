@@ -5,7 +5,7 @@ import pytest
 
 
 def test_lhd():
-    lhd = LatinHypercube(dim=4, num_pts=10, criterion='c')
+    lhd = LatinHypercube(dim=4, num_pts=10)
     X = lhd.generate_points()
     assert (isinstance(lhd, ExperimentalDesign))
     assert (np.all(X.shape == (10, 4)))

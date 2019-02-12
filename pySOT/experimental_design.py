@@ -15,8 +15,9 @@ import pyDOE2 as pydoe
 import abc
 import six
 import itertools
-from pySOT.utils import from_unit_box, round_vars
+import pySOT.utils as utils
 from numpy.linalg import matrix_rank as rank
+from scipy.spatial.distance import cdist
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -36,19 +37,23 @@ class ExperimentalDesign(object):
     def generate_points(self):  # pragma: no cover
         pass
 
-def _expdes_corr(gen, iterations, lb, ub, int_var):
+def _expdes_dist(gen, iterations, lb, ub, int_var):
     X = None
-    best_score = np.inf
+    best_score = 0
     for _ in range(iterations):
         cand = gen()  # Generate a new design
         if all([x is not None for x in [lb, ub, int_var]]):  # Map and round
-            cand = round_vars(from_unit_box(cand, lb, ub), int_var, lb, ub)
+            cand = utils.round_vars(utils.from_unit_box(cand, lb, ub), int_var, lb, ub)
 
-        R = np.corrcoef(cand)
-        if np.max(np.abs(R[R != 1])) < best_score and rank(cand) == cand.shape[1]:
-            best_score = np.max(np.abs(R - np.eye(R.shape[0])))
+        dist = cdist(cand, cand)
+        np.fill_diagonal(dist, np.inf)  # Since these are zero
+        score = dist.min().min()
+
+        if score > best_score and rank(cand) == cand.shape[1]:
+            best_score = score
             X = cand.copy()
-
+    if X is None:
+        raise ValueError("No valid design found, increase num_pts?")
     return X
 
 
@@ -59,27 +64,13 @@ class LatinHypercube(ExperimentalDesign):
     :type dim: int
     :param num_pts: Number of desired sampling points
     :type num_pts: int
-    :param criterion: Sampling criterion
-
-       - "center" or "c"
-          Center the points within the sampling intervals
-       - "maximin" or "m"
-          Maximize the minimum distance between points, but place
-          the point in a randomized location within its interval
-       - "centermaximin" or "cm"
-          Same as "maximin", but centered within the intervals
-       - "correlation" or "corr"
-          Minimize the maximum correlation coefficient
-    :type criterion: string
 
     :ivar dim: Number of dimensions
     :ivar num_pts: Number of points in the experimental design
-    :ivar criterion: Criterion for generating the design
     """
-    def __init__(self, dim, num_pts, criterion="c", iterations=1000):
+    def __init__(self, dim, num_pts, iterations=100):
         self.dim = dim
         self.num_pts = num_pts
-        self.criterion = criterion
         self.iterations = iterations
 
     def generate_points(self, lb=None, ub=None, int_var=None):
@@ -89,8 +80,8 @@ class LatinHypercube(ExperimentalDesign):
         :rtype: numpy.array
         """
         def wrapper():
-            return pydoe.lhs(self.dim, self.num_pts, self.criterion, iterations=1)
-        return _expdes_corr(wrapper, self.iterations, lb, ub, int_var)
+            return pydoe.lhs(self.dim, self.num_pts, iterations=1)
+        return _expdes_dist(wrapper, self.iterations, lb, ub, int_var)
 
 
 class SymmetricLatinHypercube(ExperimentalDesign):
@@ -104,7 +95,7 @@ class SymmetricLatinHypercube(ExperimentalDesign):
     :ivar dim: Number of dimensions
     :ivar num_pts: Number of points in the experimental design
     """
-    def __init__(self, dim, num_pts, iterations=1000):
+    def __init__(self, dim, num_pts, iterations=100):
         self.dim = dim
         self.num_pts = num_pts
         self.iterations = iterations
@@ -112,8 +103,7 @@ class SymmetricLatinHypercube(ExperimentalDesign):
     def generate_points(self, lb=None, ub=None, int_var=None):
         def wrapper():
             return self._slhd()
-        return _expdes_corr(wrapper, self.iterations, lb, ub, int_var)
-
+        return _expdes_dist(wrapper, self.iterations, lb, ub, int_var)
 
     def _slhd(self):
         """Generate a symmetric Latin hypercube design in the unit hypercube.

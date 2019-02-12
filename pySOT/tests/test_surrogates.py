@@ -69,7 +69,7 @@ def test_linear_tail():
     assert(isinstance(tail, Tail))
 
     x = np.array([2])
-    np.testing.assert_allclose(tail.eval(x), np.array([[1, x]]))
+    np.testing.assert_allclose(tail.eval(x), np.array([[1, x.item()]]))
     np.testing.assert_allclose(tail.deriv(x), np.array([[0, 1]]))
 
     dim = 3
