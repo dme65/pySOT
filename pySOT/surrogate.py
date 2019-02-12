@@ -683,7 +683,8 @@ class MARSInterpolant(Surrogate):
 
     def _fit(self):
         """Compute new coefficients if the MARS interpolant is not updated."""
-        with warnings.simplefilter("ignore"):  # Surpress deprecation warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # Surpress deprecation warnings
             if self.updated is False:
                 self.model.fit(self.X, self.fX)
                 self.updated = True
