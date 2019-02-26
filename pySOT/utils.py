@@ -175,7 +175,7 @@ def progress_plot(controller, title="", interactive=False):  # pragma: no cover
 
     # Extract function values from the controller, ignoring crashed evaluations
     fvals = np.array(
-        [o.value for o in controller.fevals if o.value is not None])
+        [o.value for o in controller.strategy.fevals if o.value is not None])
 
     plt.figure()
     if interactive:
