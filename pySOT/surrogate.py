@@ -56,6 +56,9 @@ class Surrogate(ABC):
         :param fx: The function values of the point to add
         :type fx: numpy.array or float
         """
+
+        print("**** fx: "+str(fx))
+
         xx = np.atleast_2d(xx)
         if isinstance(fx, float):
             fx = np.array([fx])
