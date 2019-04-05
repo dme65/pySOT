@@ -19,6 +19,12 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from pySOT.utils import to_unit_box
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+import pickle
+
 import warnings
 
 
@@ -56,9 +62,6 @@ class Surrogate(ABC):
         :param fx: The function values of the point to add
         :type fx: numpy.array or float
         """
-
-        print("**** fx: "+str(fx))
-
         xx = np.atleast_2d(xx)
         if isinstance(fx, float):
             fx = np.array([fx])
@@ -608,6 +611,29 @@ class GPRegressor(Surrogate):
         if not self.updated:
             self.model.fit(self.X, self.fX)
             self.updated = True
+            try:
+                y_pred, sigma = self.model.predict(self.X,return_std=True)
+
+                fig = plt.figure()
+                ax = fig.gca(projection='3d')
+
+                # Plot the surface.
+                surf = ax.plot_surface(self.X[:,0], self.X[:,1], self.fX, cmap=cm.coolwarm,
+                                       linewidth=0, antialiased=False)
+
+                # Customize the z axis.
+                ax.set_zlim(-1.01, 1.01)
+                ax.zaxis.set_major_locator(LinearLocator(10))
+                ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+                # Add a color bar which maps values to colors.
+                fig.colorbar(surf, shrink=0.5, aspect=5)
+
+                pickle.dump(fig, open('FigureObject.fig.pickle', 'wb')) # This is for Python 3 - py2 may need `file` instead of `open`$
+                print(" === Dumped interactive plot ===")
+            except Exception as err:
+                print(" COULD NOT PLOT FOR GOD S SAKE")
+
 
     def predict(self, xx):
         """Evaluate the GP regressor at the points xx.
