@@ -696,7 +696,7 @@ class EIStrategy(SurrogateBaseStrategy):
     dtol = 1e-3 * norm(ub - lb), but note that this value has not been
     tuned carefully and may be far from optimal.
 
-    The optimization strategy terminates when the evaluatio budget has been
+    The optimization strategy terminates when the evaluation budget has been
     exceeded or when the EI of the next point falls below some threshold,
     where the default threshold is 1e-6 * (max(fX) -  min(fX)).
 
