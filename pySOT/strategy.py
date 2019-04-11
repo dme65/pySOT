@@ -877,7 +877,7 @@ class SopRecord():
     :type rank: int
     :param sigma: Candidate search radius
     :type sigma: float
-        """
+    """
     def __init__(self, x, fx, nfail, ntabu, rank, sigma):
         self.x = x
         self.fx = fx
@@ -899,7 +899,7 @@ class SopCenter():
     :type index: int
     :param new_point: decision vector value of new point generated
     :type new_point: numpy array
-        """
+    """
     def __init__(self, xc, index):
         self.xc = xc
         self.index = index
@@ -969,7 +969,7 @@ class SOPStrategy(SurrogateBaseStrategy):
     :type reset_surrogate: bool
     :param num_cand: Number of candidate points, default = 100*dim
     :type num_cand: int
-        """
+    """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate, ncenters=4,
                  asynchronous=True, batch_size=None, extra_points=None,
                  extra_vals=None, reset_surrogate=True, num_cand=None):
