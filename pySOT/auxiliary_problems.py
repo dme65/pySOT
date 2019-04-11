@@ -484,3 +484,47 @@ def lower_confidence_bound_ga(num_pts, opt_prob, surrogate, X, fX,
         XX = np.vstack((XX, x_best))
 
     return new_points
+
+
+def candidate_sop(opt_prob,surrogate,X,fX,xbest,sampling_radius,
+                  prob_perturb,Xpend=None,num_cand=None,subset=None,dtol=1e-3):
+
+    # Fix default values
+    if num_cand is None:
+        num_cand = 100*opt_prob.dim
+    if subset is None:
+        subset = np.arange(0, opt_prob.dim)
+
+    # Compute scale factors for each dimension and make sure they
+    # are correct for integer variables (at least 1)
+    scalefactors = sampling_radius * (opt_prob.ub - opt_prob.lb)
+    ind = np.intersect1d(opt_prob.int_var, subset)
+    if len(ind) > 0:
+        scalefactors[ind] = np.maximum(scalefactors[ind], 1.0)
+
+    # Generate candidate points
+    if len(subset) == 1:  # Fix when nlen is 1
+        ar = np.ones((num_cand, 1))
+    else:
+        ar = (np.random.rand(num_cand, len(subset)) < prob_perturb)
+        ind = np.where(np.sum(ar, axis=1) == 0)[0]
+        ar[ind, np.random.randint(0, len(subset) - 1, size=len(ind))] = 1
+
+    cand = np.multiply(np.ones((num_cand, opt_prob.dim)), xbest)
+    for i in subset:
+        lower, upper, sigma = opt_prob.lb[i], opt_prob.ub[i], scalefactors[i]
+        ind = np.where(ar[:, i] == 1)[0]
+        cand[ind, subset[i]] = stats.truncnorm.rvs(
+            a=(lower - xbest[i]) / sigma, b=(upper - xbest[i]) / sigma,
+            loc=xbest[i], scale=sigma, size=len(ind))
+
+    # Round integer variables
+    cand = round_vars(cand, opt_prob.int_var, opt_prob.lb, opt_prob.ub)
+
+    weights = [1.0]
+    num_pts = 1
+
+    # Make selections
+    return weighted_distance_merit(
+        num_pts=num_pts, surrogate=surrogate, X=X, fX=fX,
+        Xpend=Xpend, cand=cand, dtol=dtol, weights=weights)
