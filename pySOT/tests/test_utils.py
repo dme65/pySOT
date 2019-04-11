@@ -1,6 +1,8 @@
 import numpy as np
 from pySOT.utils import unit_rescale, from_unit_box, \
-    to_unit_box, round_vars, GeneticAlgorithm
+    to_unit_box, round_vars, GeneticAlgorithm,\
+    nd_sorting, ND_Front, taboo_region, \
+    dynamic_taboo_region
 
 
 def test_unit_box_map():
@@ -73,9 +75,86 @@ def test_ga():
     x_best, f_best = ga.optimize()
     np.testing.assert_almost_equal(x_best[0], np.round(x_best[0]))
 
+POSITIVE_INFINITY = float("inf")
+
+def test_nd_front():
+    npts = 100
+    nobj = 2
+    F = np.random.rand(nobj, npts)
+    (nd_index, d_index) = ND_Front(F)
+
+    #check sum of indices equals the number of pts
+    assert(len(nd_index)+len(d_index) == npts)
+
+    #check if all index refereces to non-dom and dom pts are unique
+    assert(len(nd_index) == len(set(nd_index)))
+    assert(len(d_index) == len(set(d_index)))
+
+    #check if a better point is added to set it dominates all others
+    new_p = np.asarray([-0.1,-0.5])
+    F_new = np.vstack((F.transpose(),new_p))
+    (nd_index, d_index) = ND_Front(F_new.transpose())
+    assert(len(nd_index) == 1 and nd_index[0] == npts)
+
+    #check if a worst point is added to set it is dominated
+    (nd_index, d_index) = ND_Front(F)
+    new_p = np.asarray([1.1,1.4])
+    npts_nd = len(nd_index)
+    F_new = np.vstack((F[:,nd_index].transpose(),new_p))
+    (nd_index, d_index) = ND_Front(F_new.transpose())
+    assert(len(d_index) == 1 and d_index[0] == npts_nd)
+
+def test_nd_sorting():
+    npts = 100
+    nmax = npts
+    nobj = 2
+    F = np.random.rand(nobj, npts)
+    ranks = nd_sorting(F, nmax)
+    # make sure that every point has a rank
+    assert(len(ranks) == npts)
+    #make sure that number of ranks = maximum rank
+    assert(len(set(ranks)) == int(max(ranks)))
+
+    #check if nmax < npts, then atleast nmax points are ranked
+    npts = 200
+    nmax = 150
+    nobj = 2
+    F = np.random.rand(nobj, npts)
+    ranks = nd_sorting(F, nmax)
+    assert(list(ranks).count(POSITIVE_INFINITY) <= npts - nmax )
+
+def test_radius_rules():
+    dim = 2
+    nc = 32
+    sigma = 0.2
+    X_c = np.zeros((nc,dim+5))
+    X_c[:,0:dim] = np.random.rand(nc, dim)
+    X = np.random.rand(1,dim)
+    d_thresh = 0.7
+
+    # ensure that radius rule functions return a 0 or 1
+    flag = dynamic_taboo_region(X, X_c, sigma, dim, nc, d_thresh)
+    assert(flag == 0 or flag == 1)
+    flag = taboo_region(X, X_c, sigma, dim, nc)
+    assert(flag == 0 or flag == 1)
+
+    #ensure that flag is 1 if d_thresh = 0
+    d_thresh = 0.0
+    flag = dynamic_taboo_region(X, X_c, sigma, dim, nc, d_thresh)
+    assert(flag == 1)
+
+    #ensure that flag is 1 if X is in X_c (i.e., point is Tabu via radius rule)
+    d_thresh = 0.7
+    X = X_c[15,0:dim]
+    flag = dynamic_taboo_region(X, X_c, sigma, dim, nc, d_thresh)
+    assert(flag == 0)
+
 
 if __name__ == '__main__':
     test_ga()
     test_round_vars()
     test_unit_box_map()
     test_unit_rescale()
+    test_nd_front()
+    test_nd_sorting()
+    test_radius_rules()
