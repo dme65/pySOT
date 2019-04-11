@@ -1169,7 +1169,7 @@ class SOPStrategy(SurrogateBaseStrategy):
         self.F_ranked = np.copy(F)
 
     def create_center_list(self):
-        """This method for creating the list of centers"
+        """This method for creating the list of centers
 
         This function is only called during the first iteration of phase 2,
         i.e. the adaptive phase, to create the list of center points. Centers
