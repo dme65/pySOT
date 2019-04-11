@@ -552,8 +552,7 @@ def dynamic_taboo_region(X, X_c, sigma, dim, nc, d_thresh):
     :type dim: int
     :param nc: number of centers (i.e., rows) in X_c
     :type nc: int
-    :param d_thresh: An adaptive multiplier that allows points
-    close to each other to be selected as center points, simultaneously
+    :param d_thresh: An adaptive multiplier that allows points close to each other to be selected as center points, simultaneously
     :type d_thresh: float
     :return: A flag with value = 0 if X is within a distance sigma*d_thresh of any point in X_c and 1 otherwise
     :rtype: Bool
