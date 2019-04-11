@@ -1,3 +1,7 @@
+v.0.2.3,  2019-04-11
+--------------------
+- Added the Surrogate Optimization with Pareto Selection (SOP) algorithm / strategy
+
 v.0.2.2,  2019-02-12
 --------------------
 - Experimental designs can now map and round to domains

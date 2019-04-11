@@ -935,7 +935,7 @@ class SOPStrategy(SurrogateBaseStrategy):
     i.e., an N(0, sigma^2) distributed perturbation of a subset of decision
     variables. A separate value of sigma is maintained for each center
     point, where sigma is decreased if no progress is registered in the
-     bi-objective objective value and distance criterion trade-off. One point
+    bi-objective objective value and distance criterion trade-off. One point
     is selected for expensive evaluation from each set of candidate points,
     based on the surrogate approximation only. Hence the merit function is
     s(x), where s(x) is the surrogate prediction.

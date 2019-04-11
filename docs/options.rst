@@ -90,6 +90,38 @@ evaluation so fewer coordinates are perturbed later in the optimization.
 
 The parameters are the same as in the SRBF strategy.
 
+SOPStrategy
+^^^^^^^^^^^^
+
+This is an implementation of the SOP strategy by Krityakierne, Akhtar and Shoemaker:
+
+| Tipaluck Krityakierne, Taimoor Akhtar and Christine A. Shoemaker.
+| SOP: parallel surrogate global optimization with Pareto center selection
+  for computationally expensive single objective problems.
+| Journal of Global Optimization, 66(3): 417–437, 2016.
+
+The core idea of SOP is to maintain a ranked archive of all previously evaluated points,
+as per non-dominated sorting between two objectives, i.e., i) Objective function value(minimize)
+and ii) Minimum distance from other evaluated points(maximize). A sub-archive of center points
+is subsequently maintained via selection from the ranked evaluated points. The number of points
+in the sub-archive of centers should be equal to (or greater than) the number of parallel threads.
+Candidate points are generated around each ‘center point’ via the DYCORS sampling strategy, i.e.,
+an N(0, sigma^2) distributed perturbation of a subset of decision variables. A separate value of
+sigma is maintained for each center point, where  sigma is decreased if no progress is registered
+in the bi-objective objective value and distance criterion trade-off. One point is selected for
+expensive evaluation from each set of candidate points, based on the surrogate approximation only.
+Hence the merit function is s(x), where s(x) is the surrogate prediction.
+
+Exploration and exploitation are simultaneously achieved (in parallel) via the bi-objective ranking
+of previously evaluated points, and subsequent selection of these points as centers of DYCORS perturbations.
+Exploitation is achieved when the point with best objective value is the perturbation center, and the
+candidate around it with best surrogate value is selected as the new evaluation point. Exploration is
+achieved when the point with the maximum distance (max-min) from other evaluated points is selected as
+the perturbation center.
+
+Parameters are the same as in SRBF strategy, but exclude weights, and include the following:
+ - ncenters: Number of center points for candidate search where one point is selected for evaluation per, each center.
+
 EIStrategy
 ^^^^^^^^^^
 
