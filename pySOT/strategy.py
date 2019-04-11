@@ -865,18 +865,18 @@ class SopRecord():
     non-domination rank and search radius. Failure count, tabu count, rank and sigma
     are updated after a new function evaluation is completed.
 
-        :param x: Decision variable
-        :type x: numpy array
-        :param fx: objective function value
-        :type fx: float
-        :param nfail: Count of failures
-        :type nfail: int
-        :param ntabu: Elapsed tabu evaluations
-        :type ntabu: int
-        :param rank: Non-domination rank
-        :type rank: int
-        :param sigma: Candidate search radius
-        :type sigma: float
+    :param x: Decision variable
+    :type x: numpy array
+    :param fx: objective function value
+    :type fx: float
+    :param nfail: Count of failures
+    :type nfail: int
+    :param ntabu: Elapsed tabu evaluations
+    :type ntabu: int
+    :param rank: Non-domination rank
+    :type rank: int
+    :param sigma: Candidate search radius
+    :type sigma: float
         """
     def __init__(self, x, fx, nfail, ntabu, rank, sigma):
         self.x = x
@@ -893,12 +893,12 @@ class SopCenter():
     SOP center, and correspondingly, its location in the list of evaluated SOPRecords,
     the new point it generates and location of new point in list of evaluated records.
 
-        :param xc: decision vector value of center
-        :type xc: numpy array
-        :param index: index location in list of evaluated points
-        :type index: int
-        :param new_point: decision vector value of new point generated
-        :type new_point: numpy array
+    :param xc: decision vector value of center
+    :type xc: numpy array
+    :param index: index location in list of evaluated points
+    :type index: int
+    :param new_point: decision vector value of new point generated
+    :type new_point: numpy array
         """
     def __init__(self, xc, index):
         self.xc = xc
@@ -947,28 +947,28 @@ class SOPStrategy(SurrogateBaseStrategy):
     num_cand: Number of candidate to use when generating new evaluations
               Default = 100 * dim
 
-        :param max_evals: Evaluation budget
-        :type max_evals: int
-        :param opt_prob: Optimization problem object
-        :type opt_prob: OptimizationProblem
-        :param exp_design: Experimental design object
-        :type exp_design: ExperimentalDesign
-        :param surrogate: Surrogate object
-        :type surrogate: Surrogate
-        :param ncenters: Number of center points
-        :type ncenters:  int
-        :param asynchronous: Whether or not to use asynchrony (True/False)
-        :type asynchronous: bool
-        :param batch_size: Size of the batch (Make sure batch_size<=ncenters for synch)
-        :type batch_size: int
-        :param extra_points: Extra points to add to the experimental design
-        :type extra_points: numpy.array of size n x dim
-        :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
-        :type extra_vals: numpy.array of size n x 1
-        :param reset_surrogate: Whether or not to reset surrogate model
-        :type reset_surrogate: bool
-        :param num_cand: Number of candidate points, default = 100*dim
-        :type num_cand: int
+    :param max_evals: Evaluation budget
+    :type max_evals: int
+    :param opt_prob: Optimization problem object
+    :type opt_prob: OptimizationProblem
+    :param exp_design: Experimental design object
+    :type exp_design: ExperimentalDesign
+    :param surrogate: Surrogate object
+    :type surrogate: Surrogate
+    :param ncenters: Number of center points
+    :type ncenters:  int
+    :param asynchronous: Whether or not to use asynchrony (True/False)
+    :type asynchronous: bool
+    :param batch_size: Size of the batch (Make sure batch_size<=ncenters for synch)
+    :type batch_size: int
+    :param extra_points: Extra points to add to the experimental design
+    :type extra_points: numpy.array of size n x dim
+    :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
+    :type extra_vals: numpy.array of size n x 1
+    :param reset_surrogate: Whether or not to reset surrogate model
+    :type reset_surrogate: bool
+    :param num_cand: Number of candidate points, default = 100*dim
+    :type num_cand: int
         """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate, ncenters=4,
                  asynchronous=True, batch_size=None, extra_points=None,
