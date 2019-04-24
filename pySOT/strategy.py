@@ -15,6 +15,7 @@ import dill
 import logging
 import math
 import numpy as np
+import scipy.spatial as scp
 import os
 from poap.strategy import BaseStrategy, Proposal, RetryStrategy
 
@@ -24,7 +25,8 @@ from pySOT.auxiliary_problems import expected_improvement_ga, \
 from pySOT.experimental_design import ExperimentalDesign
 from pySOT.optimization_problems import OptimizationProblem
 from pySOT.surrogate import Surrogate, GPRegressor
-from pySOT.utils import check_opt_prob
+from pySOT.utils import check_opt_prob, nd_sorting,\
+    check_radius_rule, SopRecord, SopCenter
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
@@ -852,67 +854,6 @@ class LCBStrategy(SurrogateBaseStrategy):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
 
 
-POSITIVE_INFINITY = float("inf")
-import scipy.spatial as scp
-from pySOT.utils import nd_sorting, taboo_region, dynamic_taboo_region
-from pySOT.auxiliary_problems import candidate_sop
-
-class SopRecord():
-    """A custom record that stores memory attributes of a SOP-related record
-
-    A multi-attribute record that stores the evaluation point and corresponding
-    attributes including objective function value, failure count, elapsed tabu count,
-    non-domination rank and search radius. Failure count, tabu count, rank and sigma
-    are updated after a new function evaluation is completed.
-
-    :param x: Decision variable
-    :type x: numpy array
-    :param fx: objective function value
-    :type fx: float
-    :param nfail: Count of failures
-    :type nfail: int
-    :param ntabu: Elapsed tabu evaluations
-    :type ntabu: int
-    :param rank: Non-domination rank
-    :type rank: int
-    :param sigma: Candidate search radius
-    :type sigma: float
-    """
-    def __init__(self, x, fx, nfail, ntabu, rank, sigma):
-        self.x = x
-        self.fx = fx
-        self.nfail = nfail
-        self.ntabu = ntabu
-        self.rank = rank
-        self.sigma = sigma
-
-class SopCenter():
-    """ A custom reference record that stores information for a SOP center
-
-    A multi-attribute reference record that stores the decision vector value of a
-    SOP center, and correspondingly, its location in the list of evaluated SOPRecords,
-    the new point it generates and location of new point in list of evaluated records.
-
-    :param xc: decision vector value of center
-    :type xc: numpy array
-    :param index: index location in list of evaluated points
-    :type index: int
-    :param new_point: decision vector value of new point generated
-    :type new_point: numpy array
-    """
-    def __init__(self, xc, index):
-        self.xc = xc
-        self.index = index
-        self.new_point = None
-        self.new_index = None
-
-    def add_newpoint(self, new_point):
-        self.new_point = new_point
-
-    def add_index(self, new_index):
-        self.new_index = new_index
-
-
 class SOPStrategy(SurrogateBaseStrategy):
     """Surrogate Optimization with Pareto Selection Strategy
 
@@ -942,7 +883,7 @@ class SOPStrategy(SurrogateBaseStrategy):
 
     This strategy has two additional arguments than the base class:
 
-    ncenters: Specify number of centers (should be greater than number of threads)
+    ncenters: Specify no. of centers (should be greater than no. of threads)
               Default = 4
     num_cand: Number of candidate to use when generating new evaluations
               Default = 100 * dim
@@ -959,7 +900,7 @@ class SOPStrategy(SurrogateBaseStrategy):
     :type ncenters:  int
     :param asynchronous: Whether or not to use asynchrony (True/False)
     :type asynchronous: bool
-    :param batch_size: Size of the batch (Make sure batch_size<=ncenters for synch)
+    :param batch_size: Size of batch (Make sure batch_size<=ncenters for sync)
     :type batch_size: int
     :param extra_points: Extra points to add to the experimental design
     :type extra_points: numpy.array of size n x dim
@@ -986,9 +927,9 @@ class SOPStrategy(SurrogateBaseStrategy):
         self.record_queue = []  # Completed records that haven't been processed
         self.num_exp = exp_design.num_pts  # We need this later
         self.ncenters = ncenters
-        self.evals = [] # List that stores all evaluated points as SOPRecord instances
-        self.centers = [] #List that stores all current center points is SOPCenter instances
-        self.F_ranked = None # The evaluated points stored as numpy array with info of rank and tabu status
+        self.evals = []  # List of all eval points stored as SOPRecord
+        self.centers = []  # List of current center points as SOPCenter
+        self.F_ranked = None  # Evaluated points stored as numpy array
         self.d_thresh = 1.0
 
         super().__init__(max_evals=max_evals, opt_prob=opt_prob,
@@ -1004,13 +945,15 @@ class SOPStrategy(SurrogateBaseStrategy):
             raise ValueError("ncenters should be an integer greater than 3")
         if not self.asynchronous:
             if not self.ncenters >= self.batch_size:
-                raise ValueError("Batch size should be less than or equal to ncenters")
+                raise ValueError("Batch size should be less than or equal"
+                                 " to ncenters")
 
     def on_initial_completed(self, record):
         """Handle completed evaluation in initial phase"""
         super().on_initial_completed(record)
 
-        srec = SopRecord(np.copy(record.params[0]),record.value,0,0,0,self.sampling_radius)
+        srec = SopRecord(np.copy(record.params[0]), record.value,
+                         self.sampling_radius)
         self.evals.append(srec)
 
     def on_adapt_completed(self, record):
@@ -1020,12 +963,15 @@ class SOPStrategy(SurrogateBaseStrategy):
 
         # Initiate a new SOP Record for new completed evaluation
         center_index = None
-        srec = SopRecord(np.copy(record.params[0]),record.value,0,0,0,self.sampling_radius)
+        srec = SopRecord(np.copy(record.params[0]), record.value,
+                         self.sampling_radius)
         self.evals.append(srec)
+
         ncenters = len(self.centers)
-        for i in range(ncenters): #Update the location of new point in its corresponding center
-            if np.array_equal(np.copy(record.params[0]),self.centers[i].new_point):
-                self.centers[i].add_index(self.num_evals - 1)
+        for i in range(ncenters):  # Update location of new point in center
+            if np.array_equal(np.copy(record.params[0]),
+                              self.centers[i].new_point):
+                self.centers[i].new_index = self.num_evals - 1
                 center_index = i
                 break
 
@@ -1038,11 +984,9 @@ class SOPStrategy(SurrogateBaseStrategy):
         """Generate the next adaptive sample points."""
 
         # Update the list of center points
-        if self.F_ranked is None: # If this is the first entry into adaptive phase
+        if self.F_ranked is None:  # If this is the start of adaptive phase
             self.update_ranks()
-            self.create_center_list()
-        else:
-            self.update_center_list()
+        self.update_center_list()
 
         # Compute dycors perturbation probability
         num_evals = len(self.X) + len(self.Xpend) - self.num_exp + 1.0
@@ -1054,25 +998,30 @@ class SOPStrategy(SurrogateBaseStrategy):
         prob_perturb = max(prob_perturb, min_prob)
 
         # Perturb each center to propose one new eval per center
-        new_points = np.zeros((num_pts,self.opt_prob.dim))
+        new_points = np.zeros((num_pts, self.opt_prob.dim))
+        weights = [1.0]
         for i in range(num_pts):
-            # Deduce index of next available center (that is not being processed)
+            # Deduce index of next available center
             center_index = 0
             for center in self.centers:
                 if center.new_point is None:
                     break
-                center_index+=1
+                center_index += 1
             # Select new point by candidate search around center
             X_c = self.centers[center_index].xc
-            sampling_radius = self.evals[self.centers[center_index].index].sigma
-            new_points[i,:] = candidate_sop(
-            opt_prob=self.opt_prob, surrogate=self.surrogate,
-            X=self.X, fX=self.fX, xbest=X_c, sampling_radius=sampling_radius,
-            num_cand=self.num_cand, Xpend=self.Xpend, prob_perturb=prob_perturb)
+            sampling_radius =\
+                self.evals[self.centers[center_index].index].sigma
+            new_points[i, :] =\
+                candidate_dycors(num_pts=1, opt_prob=self.opt_prob,
+                                 surrogate=self.surrogate, X=self.X,
+                                 fX=self.fX, weights=weights,
+                                 sampling_radius=sampling_radius,
+                                 num_cand=self.num_cand, Xpend=self.Xpend,
+                                 prob_perturb=prob_perturb, xbest=X_c)
 
-            self.centers[center_index].add_newpoint(new_points[i,:])
+            self.centers[center_index].new_point = new_points[i, :]
 
-        #submit the new points
+        # submit the new points
         for i in range(num_pts):
             self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
 
@@ -1084,63 +1033,62 @@ class SOPStrategy(SurrogateBaseStrategy):
 
         """
 
-        if index is None: #Batch mode - update memory for all centers
+        if index is None:  # Batch mode - update memory for all centers
             indices = range(self.ncenters)
-        else: #asynchronous mode
+        else:  # asynchronous mode
             indices = [index]
 
         # Re-evaluate bi-objective ranks after adding new point(s)
-        #NOTE: Re-evaluation needed because minimum distance is updated
-        #for all points
+        # NOTE: Re-evaluation needed because minimum distance is updated
+        # for all points
         nevals = self.num_evals
         self.update_ranks()
 
-        # Step 2 --- Adjust memory attributes of center point associated with new eval.
-        # by checking if we succeeded at improving the distance-objective tradeoff
+        # Step 2 -- Adjust memory attributes of center point associated
+        # with new eval by checking if we succeeded at improving the
+        # distance-objective tradeoff
         for i in indices:
             cp = self.centers[i]
             center_index = cp.index
             check = 0
             new_index = cp.new_index
-            rank = self.F_ranked[new_index,self.opt_prob.dim+3]
-            if rank == 1: # new point is in the non-dominated front (success)
-                check = 1
-            if check == 0: # If no success increase failure count for center
-                self.evals[center_index].nfail += 1
-                self.evals[center_index].sigma = self.evals[center_index].sigma/2
+            rank = self.F_ranked[new_index, self.opt_prob.dim+3]
+            if rank == 1:  # new point is in the non-dominated front
+                check = 1  # success
+            if check == 0:  # If no success increase failure count
+                self.evals[center_index].increment_failure_count()
+                self.evals[center_index].reduce_sigma()
 
-        # Step 3 --- Update tabu list, i.e., i) include a center in tabu list if
-        # its failure count is more than n_fail and ii) remove a center from tabu
-        # list if it has been in the tabu list for more than n_tenure iterations
-        for i in range(nevals): # check if points are to be removed from tabu list
+        # Step 3 --- Update tabu list, i.e., i) include a center in
+        # tabu list if its failure count is more than n_fail and ii)
+        # remove a center from tabu list if it has been in the tabu
+        # list for more than n_tenure iterations
+        for i in range(nevals):  # check if pts are to be removed from tabu
             if self.evals[i].ntabu > 0:
-                if self.evals[i].ntabu < 5: # NOTE: Tabu tenure is 5
-                    self.evals[i].ntabu += 1
+                if self.evals[i].ntabu < 5:  # NOTE: Tabu tenure is 5
+                    self.evals[i].increment_tabu_tenure()
                 else:
-                    self.evals[i].ntabu = 0
-                    self.evals[i].nfail = 0
-                    self.evals[i].sigma = self.sampling_radius
-        for i in indices: #add a point to Tabu list if failures > fail_thresh
+                    self.evals[i].reset(self.sampling_radius)
+
+        for i in indices:  # add a point to Tabu list if failures > fail_thresh
             cp = self.centers[i]
             index = cp.index
-            if self.evals[index].nfail > 3: # NOTE: max failure count is 4
-                self.evals[index].ntabu = 1
-                self.evals[index].nfail = 0
-                self.evals[index].sigma = self.sampling_radius
+            if self.evals[index].nfail > 3:  # NOTE: max failure count is 4
+                self.evals[index].make_tabu(self.sampling_radius)
 
-        self.update_F() #make sure that failure count etc are updated in ranked F
+        self.update_F()  # make sure that memory is updated in ranked F
 
     def update_F(self):
         """Update F_ranked numpy array"""
         nevals = self.num_evals
-        F = np.zeros((nevals,self.opt_prob.dim+5))
-        for i in range(nevals):
-            F[i,0:self.opt_prob.dim] = (self.evals[i].x - self.opt_prob.lb)\
-                                       / (self.opt_prob.ub - self.opt_prob.lb)
-            F[i, self.opt_prob.dim] = self.evals[i].fx
-            F[i, self.opt_prob.dim+2] = self.evals[i].ntabu
-            F[i, self.opt_prob.dim+3] = self.evals[i].rank
-            F[i, self.opt_prob.dim+4] = self.evals[i].nfail
+        F = np.zeros((nevals, self.opt_prob.dim+5))
+        F[:, 0:self.opt_prob.dim] = [(val.x - self.opt_prob.lb) /
+                                     (self.opt_prob.ub - self.opt_prob.lb)
+                                     for val in self.evals]
+        F[:, self.opt_prob.dim] = [val.fx for val in self.evals]
+        F[:, self.opt_prob.dim+2] = [val.ntabu for val in self.evals]
+        F[:, self.opt_prob.dim+3] = [val.rank for val in self.evals]
+        F[:, self.opt_prob.dim+4] = [val.nfail for val in self.evals]
         self.F_ranked = np.copy(F)
 
     def update_ranks(self):
@@ -1151,122 +1099,72 @@ class SOPStrategy(SurrogateBaseStrategy):
 
         """
         nevals = self.num_evals
-        F = np.zeros((nevals,self.opt_prob.dim+5))
+        self.update_F()
+        F = np.copy(self.F_ranked)
+        dists = scp.distance.cdist(F[:, 0:self.opt_prob.dim],
+                                   F[:, 0:self.opt_prob.dim])
         for i in range(nevals):
-            F[i,0:self.opt_prob.dim] = (self.evals[i].x - self.opt_prob.lb) / (self.opt_prob.ub - self.opt_prob.lb)
-            F[i, self.opt_prob.dim] = self.evals[i].fx
-            F[i, self.opt_prob.dim+2] = self.evals[i].ntabu
-            F[i, self.opt_prob.dim+3] = self.evals[i].rank
-            F[i, self.opt_prob.dim+4] = self.evals[i].nfail
-        dists = scp.distance.cdist(F[:,0:self.opt_prob.dim], F[:,0:self.opt_prob.dim])
-        for i in range(nevals):
-            a = dists[i,:]
+            a = dists[i, :]
             F[i, self.opt_prob.dim+1] = -1.0*np.min(a[np.nonzero(a)])
 
-        nmax = 100 #The maximum number of points that may be selected as centers
-        ranks = nd_sorting(F[:,self.opt_prob.dim:self.opt_prob.dim+2].transpose(), nmax) #Perform ND Sorting
-        F[:,self.opt_prob.dim+3] = ranks.transpose()
+        nmax = 100  # Maximum number of points that may be selected as centers
+        ranks = nd_sorting(F[:, self.opt_prob.dim:self.opt_prob.dim+2]
+                           .transpose(), nmax)  # Perform ND Sorting
+        F[:, self.opt_prob.dim+3] = ranks.transpose()
         self.F_ranked = np.copy(F)
-
-    def create_center_list(self):
-        """This method for creating the list of centers
-
-        This function is only called during the first iteration of phase 2,
-        i.e. the adaptive phase, to create the list of center points. Centers
-        are selected from all evaluated points, after they are sorted according
-        to i) ND rank and ii) Objective function value (Tabu points are pushed
-        to the end in selection order).
-
-        """
-
-        nevals = self.num_evals
-        F = np.copy(self.F_ranked)
-        self.d_thresh = 1.0 - float(nevals - self.num_exp)/float(self.max_evals - self.num_exp)
-        # Rank evaluated points according to 1)Tabu Status, 2)ND Rank and 3)Objective Function Value
-        ind = np.lexsort((F[:,self.opt_prob.dim], F[:,self.opt_prob.dim+3], F[:,self.opt_prob.dim+2]))
-        # Put xbest at the top of sorted points (ind_new), regardless of tabu status
-        min_index = np.argmin(F[:,self.opt_prob.dim])
-        if min_index == ind[0]:
-            ind_new = np.copy(ind)
-        else:
-            ind_new = np.copy(ind)
-            ind_new[0] = min_index
-            check = 0
-            i = 1
-            while check == 0:
-                ind_new[i] = ind[i-1]
-                if ind[i]==min_index:
-                    check = 1
-                i = i + 1
-
-        # Pick points from all evaluated points indexed by the center_index array as center points
-        center_count = self.ncenters
-        center_index = -1*np.ones((center_count,), dtype=np.int)
-        center_index[0] = ind_new[0]
-        check = 1
-        i = 1
-        while check < center_count:
-            if i < nevals:
-                flag = dynamic_taboo_region(F[ind_new[i],0:self.opt_prob.dim],F[center_index,:],
-                                            self.sampling_radius,self.opt_prob.dim,check,
-                                            self.d_thresh) #Radius Rule
-                if flag == 1:
-                    center_index[check] = ind_new[i]
-                    check = check + 1
-                i = i + 1
-            else:
-                check_prev = check
-                while check < center_count:
-                    center_index[check] = center_index[np.remainder(check,check_prev)]
-                    check = check + 1
-
-        # Initialize the center point list
-        for index in center_index:
-            crec = SopCenter(self.evals[index].x, index)
-            self.centers.append(crec)
 
     def update_center_list(self):
         """This method for Updating the list of centers"
 
-        This function updates the list of center points after new points have been
-        evaluated. In a synchronous setting where batch_size = number of centers,
-        the set of old centers is simply replaced by new centers. Otherwise, only
-        the center point that was just processed, is replaced by a new center.
-        Centers are selected from all evaluated points, after they are sorted according
-        to i) ND rank and ii) Objective function value (Tabu points are pushed
-        to the end in selection order).
+        This function updates the list of center points after new points
+        have been evaluated. In a synchronous setting where batch_size
+        = number of centers, the set of old centers is simply replaced
+        by new centers. Otherwise, only the center point that was just
+        processed, is replaced by a new center. Centers are selected from
+        all evaluated points, after they are sorted according to i) ND rank
+        and ii) Objective function value (Tabu points are pushed to the end
+        in selection order).
 
         """
         nevals = self.num_evals
         F = np.copy(self.F_ranked)
-        self.d_thresh = 1.0 - float(nevals - self.num_exp)/float(self.max_evals - self.num_exp)
-        # Step 1 - Remove center points around which new points have been proposed and evaluated
-        finished_centers = []
-        for i in range(len(self.centers)):
-            if self.centers[i].new_index is not None:
-                finished_centers.append(i)
-            else: # If a center is being processed, tag it as tabu only for current selection
-                F[self.centers[i].index,self.opt_prob.dim+2] = 2
-        for index in reversed(finished_centers):
-            self.centers.pop(index)
+        self.d_thresh = 1.0 - float(nevals - self.num_exp)\
+            / float(self.max_evals - self.num_exp)
 
-        #Step 2 - Sort all evaluated points according to i) tabu status, ii) rank, iii) obj value
-        ind = np.lexsort((F[:,self.opt_prob.dim], F[:,self.opt_prob.dim+3], F[:,self.opt_prob.dim+2]))
-        min_index = np.argmin(F[:,self.opt_prob.dim])
-        if min_index == ind[0] or F[min_index,self.opt_prob.dim+2] == 2:
+        # Step 1 - Remove center points around which new points have been
+        # proposed and evaluated
+        if len(self.centers) > 0:
+            finished_centers = []
+            for i in range(len(self.centers)):
+                if self.centers[i].new_index is not None:
+                    finished_centers.append(i)
+                else:  # If a center is being processed, tag it as tabu
+                    F[self.centers[i].index, self.opt_prob.dim+2] = 2
+            for index in reversed(finished_centers):
+                self.centers.pop(index)
+
+        # Step 2 - Sort all evaluated points according to
+        # i) tabu status, ii) rank, iii) obj value
+        ind = np.lexsort((F[:, self.opt_prob.dim],
+                          F[:, self.opt_prob.dim+3],
+                          F[:, self.opt_prob.dim+2]))
+        min_index = np.argmin(F[:, self.opt_prob.dim])
+        if min_index == ind[0] or F[min_index, self.opt_prob.dim+2] == 2:
             ind_new = np.copy(ind)
-        else: #Put xbest at the top of sorted points (ind_new), regardless of tabu status unless it is being processed
+        else:  # Put xbest at the top of sorted points (ind_new),
+            # regardless of tabu status unless it is being processed
             ind_new = np.copy(ind)
             ind_new[0] = min_index
             check = 0
             i = 1
             while check == 0:
                 ind_new[i] = ind[i-1]
-                if ind[i]==min_index:
+                if ind[i] == min_index:
                     check = 1
                 i = i + 1
 
-        # Append new points to list of centers until length of centers is not equal to number of centers
+        # Append new points to list of centers until length of centers is not
+        # equal to number of centers
         num_pending_centers = len(self.centers)
         center_count = self.ncenters - num_pending_centers
         if center_count > 0:
@@ -1276,9 +1174,11 @@ class SOPStrategy(SurrogateBaseStrategy):
             i = 1
             while check < center_count:
                 if i < nevals:
-                    flag = dynamic_taboo_region(F[ind_new[i],0:self.opt_prob.dim],F[center_index,:],
-                                                self.sampling_radius,self.opt_prob.dim,
-                                                check,self.d_thresh) #Radius Rule
+                    flag = check_radius_rule(
+                        F[ind_new[i], 0:self.opt_prob.dim],
+                        F[center_index, :], self.sampling_radius,
+                        self.opt_prob.dim, check,
+                        d_thresh=self.d_thresh)  # Radius Rule
                     if flag == 1:
                         center_index[check] = ind_new[i]
                         check = check + 1
@@ -1286,11 +1186,10 @@ class SOPStrategy(SurrogateBaseStrategy):
                 else:
                     check_prev = check
                     while check < center_count:
-                        center_index[check] = center_index[np.remainder(check,check_prev)]
+                        center_index[check] = \
+                            center_index[np.remainder(check, check_prev)]
                         check = check + 1
             # Initialize the center point list
             for index in center_index:
                 crec = SopCenter(self.evals[index].x, index)
                 self.centers.append(crec)
-
-

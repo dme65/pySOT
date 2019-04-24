@@ -10,6 +10,9 @@
 
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
+import scipy.spatial as scp
+
+POSITIVE_INFINITY = float("inf")
 
 
 def to_unit_box(x, lb, ub):
@@ -391,19 +394,22 @@ class GeneticAlgorithm:
 
         return best_individual, best_value
 
-POSITIVE_INFINITY = float("inf")
 
 def domination(fA, fB, M):
-    """Returns True if a fA dominates fB
+    """Returns True if fA dominates fB
 
     :param fA: Vector A of objective functions
+    :type fA: numy array of length M
     :param fB: Vector B of objective functions
+    :type fB: numpy array of length M
     :param M: Number of objective functions in A and B
-    :return: Boolean
+    :type M: int
+    :return: Boolean check for domination
+    :rtype: Bool
     """
 
     d = False
-    for i in range(0,M):
+    for i in range(0, M):
         if fA[i] > fB[i]:
             d = False
             break
@@ -415,8 +421,9 @@ def domination(fA, fB, M):
 def ND_Add(F, df_index, ndf_index):
     """Check if last row of F is dominated or non-dominated
 
-    Updates the index vectors of domination and non-domination after adding the last
-    row of the 2-D array F into the set of points being evaluated for non-domination
+    Updates the index vectors of domination and non-domination after adding
+    the lastrow of the 2-D array F into the set of points being evaluated
+    for non-domination
 
     :param F: 2D numpy array of objective function vectors
     :type F: numpy array
@@ -429,52 +436,55 @@ def ND_Add(F, df_index, ndf_index):
     """
 
     # Initialize and assume new point is non-dominated (nd)
-    (M, l) = F.shape
-    l = int(l - 1)
+    (M, N) = F.shape
+    N = int(N - 1)
     ndf_count = len(ndf_index)
-    ndf_index.append(l)
+    ndf_index.append(N)
     ndf_count += 1
     j = 1
 
     # Traverse through F to update indices of dominated and nd points
     while j < ndf_count:
-        if domination(F[:,l],F[:,ndf_index[j-1]],M):
+        if domination(F[:, N], F[:, ndf_index[j-1]], M):
             df_index.append(ndf_index[j-1])
             ndf_index.remove(ndf_index[j-1])
             ndf_count -= 1
-        elif domination(F[:,ndf_index[j-1]],F[:,l],M):
-            df_index.append(l)
-            ndf_index.remove(l)
+        elif domination(F[:, ndf_index[j-1]], F[:, N], M):
+            df_index.append(N)
+            ndf_index.remove(N)
             ndf_count -= 1
             break
         else:
             j += 1
     return (ndf_index, df_index)
 
+
 def ND_Front(F):
     """ Find indices of dominated and nd points in F
 
-    :param F: 2D array (MxN) containing a set of N vectors of M objectives each
+    :param F: 2D array (MxN) containing a set of N vectors of M objectives
     :type F: 2D numpy array
     :return: 1) ndf_index --> indices of nd points in F,
              2) df_index --> indices of dominated points in F
     :rtype: lists of integers
     """
 
-    (M, l) = F.shape
+    (M, N) = F.shape
     df_index = []
     ndf_index = [int(0)]
-    for i in range(1, l):
-        (ndf_index, df_index) = ND_Add(F[:,0:i+1], df_index, ndf_index)
+    for i in range(1, N):
+        (ndf_index, df_index) = ND_Add(F[:, 0:i+1], df_index, ndf_index)
     return (ndf_index, df_index)
+
 
 def nd_sorting(F, nmax):
     """ Computes the non-domination rank of each row vector in F
 
-    This function sorts the objective functions vectors according to non-domination rank.
-    If F is too large, sorting is only done for the first nmax points
+    This function sorts the objective functions vectors according to
+    non-domination rank. If F is too large, sorting is only done for
+    the first nmax points
 
-    :param F: F: 2D array (MxN) containing a set of N vectors of M objectives each
+    :param F: 2D array (MxN) containing a set of N vectors of M objectives
     :type F: numpy array
     :param nmax: maximum number of points ranked via nd_sorting
     :type nmax: int
@@ -482,34 +492,34 @@ def nd_sorting(F, nmax):
     :rtype: list of size N
     """
 
-    (M, l) = F.shape
-    nd_ranks = np.ones((l,), dtype=np.int)*POSITIVE_INFINITY
-    P = np.ones((l,), dtype=np.int)
-    for i in range(0,l):
+    (M, N) = F.shape
+    nd_ranks = np.ones((N, ), dtype=np.int)*POSITIVE_INFINITY
+    P = np.ones((N, ), dtype=np.int)
+    for i in range(0, N):
         P[i] = i
-    i=1
+    i = 1
     count = 0
     while count < nmax and len(P) > 0:
-        (ndf_index, df_index) = ND_Front(F[:,P])
-        for j in range(0,len(ndf_index)):
+        (ndf_index, df_index) = ND_Front(F[:, P])
+        for j in range(0, len(ndf_index)):
             nd_ranks[P[ndf_index[j]]] = i
         count = count + len(ndf_index)
-        P_new = np.ones((len(df_index),), dtype=np.int)
-        for j in range(0,len(df_index)):
+        P_new = np.ones((len(df_index), ), dtype=np.int)
+        for j in range(0, len(df_index)):
             P_new[j] = P[df_index[j]]
         P = P_new
         i = i+1
     return nd_ranks
 
-import scipy.spatial as scp
 
-def taboo_region(X, X_c, sigma, dim, nc):
-    """ Checks if a vector X is within a threshold distance of any row-vector in the 2D array X_c
+def check_radius_rule(X, X_c, sigma, dim, nc, d_thresh=1.0):
+    """ Function that implements the Radius Rule of SOP
 
-    This function implements the radius-rule for SOP algorithm by checking if a new potential center
-    is within a threshold radius of previously selected centers or not.
+    This function implements the radius-rule (MODIFIED) for SOP algorithm
+    by checking if a new potential center is within a threshold radius of
+    previously selected centers or not.
 
-    :param X: A vector / point being considered to be selected as a center
+    :param X: A vector/point being considered to be selected as a center
     :type X: numpy 1D array
     :param X_c: Set of already selected centers
     :type X_c: 2D numpy array
@@ -519,53 +529,131 @@ def taboo_region(X, X_c, sigma, dim, nc):
     :type dim: int
     :param nc: number of centers (i.e., rows) in X_c
     :type nc: int
-    :return: A flag with value = 0 if X is within a distance sigma of any point in X_c
-             and 1 otherwise
-    :rtype: Bool
-    """
-
-    flag = 1
-    for i in range(nc):
-        if X_c[i,dim+4] == 0:
-            sigma_new = sigma
-        else:
-            sigma_new = np.power(1/2,X_c[i,dim+4])*sigma
-        d = scp.distance.euclidean(X,X_c[i,0:dim])
-        if d < sigma_new:
-            flag = 0
-            break
-    return flag
-
-def dynamic_taboo_region(X, X_c, sigma, dim, nc, d_thresh):
-    """ Checks if a vector X is within a threshold distance of any row-vector in the 2D array X_c
-
-    This function implements the radius-rule (MODIFIED) for SOP algorithm by checking if a new potential center
-    is within a threshold radius of previously selected centers or not.
-
-    :param X: A vector / point being considered to be selected as a center
-    :type X: numpy 1D array
-    :param X_c: Set of already selected centers
-    :type X_c: 2D numpy array
-    :param sigma: Candidate search radius
-    :type sigma: Float
-    :param dim: number of decision variables in X
-    :type dim: int
-    :param nc: number of centers (i.e., rows) in X_c
-    :type nc: int
-    :param d_thresh: An adaptive multiplier that allows points close to each other to be selected as center points, simultaneously
+    :param d_thresh: An adaptive multiplier that allows points close to each
+        other to be selected as center points, simultaneously
     :type d_thresh: float
-    :return: A flag with value = 0 if X is within a distance sigma*d_thresh of any point in X_c and 1 otherwise
+    :return: A flag with value = 0 if X is within a distance sigma*d_thresh
+        of any point in X_c and 1 otherwise
     :rtype: Bool
     """
 
     flag = 1
     for i in range(nc):
-        if X_c[i,dim+4] == 0:
+        if X_c[i, dim+4] == 0:
             sigma_new = sigma
         else:
-            sigma_new = np.power(1/2,X_c[i,dim+4])*sigma
-        d = scp.distance.euclidean(X,X_c[i,0:dim])
+            sigma_new = np.power(1/2, X_c[i, dim+4])*sigma
+        d = scp.distance.euclidean(X, X_c[i, 0:dim])
         if d < sigma_new*d_thresh/np.sqrt(len(X)):
             flag = 0
             break
     return flag
+
+
+class SopRecord():
+    """A custom record that stores memory attributes of a SOP-related record
+
+    A multi-attribute record that stores the evaluation point and corresponding
+    attributes including objective function value, failure count, elapsed tabu
+    count, non-domination rank and search radius. Failure count, tabu count,
+    rank and sigma are updated after a new function evaluation is completed.
+
+    :param x: Decision variable
+    :type x: numpy array
+    :param fx: objective function value
+    :type fx: float
+    :param sigma: Candidate search radius
+    :type sigma: float
+    """
+    def __init__(self, x, fx, sigma):
+        self.x = x
+        self.fx = fx
+        self.rank = POSITIVE_INFINITY  # To-Do: Update ranks in future
+        self._nfail = 0  # Count of failures(int)
+        self._ntabu = 0  # Elapsed tabu tenure
+        self._sigma = sigma
+
+    @property
+    def sigma(self):
+        """Get value of radius / sigma"""
+        return self._sigma
+
+    @property
+    def nfail(self):
+        """Get failure count"""
+        return self._nfail
+
+    @property
+    def ntabu(self):
+        """Get elapsed tabu tenure count"""
+        return self._ntabu
+
+    def reduce_sigma(self):
+        """Reduce sigma / search radius"""
+        self._sigma = self._sigma/2.0
+
+    def increment_failure_count(self):
+        """Increase failure count"""
+        self._nfail += 1
+
+    def make_tabu(self, sigma):
+        """Make this point tabu"""
+        self._nfail = 0
+        self._ntabu = 1
+        self._sigma = sigma
+
+    def increment_tabu_tenure(self):
+        """Increment the elapsed tabu tenure"""
+        self._ntabu += 1
+
+    def reset(self, sigma):
+        """Reset memory attributes"""
+        self._nfail = 0
+        self._ntabu = 0
+        self._sigma = sigma
+
+
+class SopCenter():
+    """ A custom reference record that stores information for a SOP center
+
+    A multi-attribute reference record that stores the decision vector value
+    of a SOP center, and correspondingly, its location in the list of evaluated
+    SOPRecords, the new point it generates and location of new point in list of
+    evaluated records.
+
+    :param xc: decision vector value of center
+    :type xc: numpy array
+    :param index: index location in list of evaluated points
+    :type index: int
+    """
+    def __init__(self, xc, index):
+        self.xc = xc
+        self.index = index
+        self._new_point = None  # New point proposed for eval around xc
+        self._new_index = None  # Location of new point in list of evals
+
+    @property
+    def new_point(self):
+        """Get new proposed point"""
+        return self._new_point
+
+    @new_point.setter
+    def new_point(self, value):
+        """Set new point, raise error if array length is diff from self.xc"""
+        if len(value) != len(self.xc):
+            raise ValueError('Dimension mismatch between center and new point')
+        else:
+            self._new_point = value
+
+    @property
+    def new_index(self):
+        """Get location / index of new point"""
+        return self._new_index
+
+    @new_index.setter
+    def new_index(self, value):
+        """Set location of new point, raise error if not integer"""
+        if not isinstance(value, int):
+            raise ValueError('Index location is not an integer')
+        else:
+            self._new_index = value

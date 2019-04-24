@@ -91,7 +91,7 @@ evaluation so fewer coordinates are perturbed later in the optimization.
 The parameters are the same as in the SRBF strategy.
 
 SOPStrategy
-^^^^^^^^^^^^
+^^^^^^^^^^^
 
 This is an implementation of the SOP strategy by Krityakierne, Akhtar and Shoemaker:
 

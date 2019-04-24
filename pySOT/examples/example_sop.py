@@ -24,7 +24,7 @@ def example_sop():
     logging.basicConfig(filename="./logfiles/example_simple.log",
                         level=logging.INFO)
 
-    print("\nNumber of threads: 4")
+    print("\nNumber of threads: 8")
     print("Maximum number of evaluations: 500")
     print("Sampling method: CandidateDYCORS")
     print("Experimental design: Symmetric Latin Hypercube")
@@ -44,7 +44,8 @@ def example_sop():
     controller = ThreadController()
     controller.strategy = SOPStrategy(
         max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
-        surrogate=rbf, asynchronous=False, ncenters=num_threads, batch_size=num_threads)
+        surrogate=rbf, asynchronous=False, ncenters=num_threads,
+        batch_size=num_threads)
 
     print("Number of threads: {}".format(num_threads))
     print("Maximum number of evaluations: {}".format(max_evals))
