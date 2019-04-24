@@ -608,11 +608,20 @@ class GPRegressor(Surrogate):
 
     def _fit(self):
         """Compute new coefficients if the GP is not updated."""
+        print(" ------------------------------------------------------------------------",end='\r')
+        print(" ** [GR] fitting the gaussian regressor (card(X) = {})...".format(len(self.X)),end='\r')
+        #print(self.X)
+        #print(self.fX)
+
         if not self.updated:
             self.model.fit(self.X, self.fX)
             self.updated = True
             try:
                 y_pred, sigma = self.model.predict(self.X,return_std=True)
+                print(y,pred)
+                print(sigma)
+                exit()
+
 
                 fig = plt.figure()
                 ax = fig.gca(projection='3d')
@@ -629,10 +638,12 @@ class GPRegressor(Surrogate):
                 # Add a color bar which maps values to colors.
                 fig.colorbar(surf, shrink=0.5, aspect=5)
 
-                pickle.dump(fig, open('FigureObject.fig.pickle', 'wb')) # This is for Python 3 - py2 may need `file` instead of `open`$
-                print(" === Dumped interactive plot ===")
+                fig.show()
+                input()
+                #pickle.dump(fig, open('FigureObject.fig.pickle', 'wb')) # This is for Python 3 - py2 may need `file` instead of `open`$
+                #print(" === Dumped interactive plot ===")
             except Exception as err:
-                print(" COULD NOT PLOT FOR GOD S SAKE")
+                print(" ** Not printting GR on _fit")
 
 
     def predict(self, xx):

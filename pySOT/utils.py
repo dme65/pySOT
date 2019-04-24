@@ -10,6 +10,11 @@
 
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+import pickle
 
 
 def to_unit_box(x, lb, ub):
@@ -303,6 +308,7 @@ class GeneticAlgorithm:
                 population[ind, i] -= 1
 
         #  Evaluate all individuals
+        print(" ** Evaluating (EI) for population individuals (SLHD)")
         function_values = self.function(population)
         if len(function_values.shape) == 2:
             function_values = np.squeeze(np.asarray(function_values))
@@ -315,8 +321,12 @@ class GeneticAlgorithm:
         if len(self.integer_variables) > 0:
             population = new_population
 
+        all_x= np.zeros(0)
+        all_y= np.zeros(0)
+        all_z= np.zeros(0)
         # Main loop
         for _ in range(self.ngenerations):
+            print(" ** ((Generation {}/{}))".format(_+1,self.ngenerations),end="\r")
             # Do tournament selection to select the parents
             competitors = np.random.randint(
                 0, self.nindividuals,
@@ -377,8 +387,27 @@ class GeneticAlgorithm:
 
             #  Evaluate all individuals
             function_values = self.function(population)
+
             if len(function_values.shape) == 2:
                 function_values = np.squeeze(np.asarray(function_values))
+
+
+            all_x = np.concatenate((all_x,population[:,0]),axis=None)
+            all_y = np.concatenate((all_y,population[:,1]),axis=None)
+            all_z = np.concatenate((all_z,-function_values),axis=None)
+
+            """
+            fig=  plt.figure()
+            ax= fig.add_subplot(111,projection='3d')
+            ax.scatter(all_x,all_y,c='b',marker='o')
+            ax.set_xlabel('g1')
+            ax.set_ylabel('g2')
+            ax.set_zlabel('EI(g1,g2)')
+            plt.title("EI(g1,g2) for points used in the GA")
+            plt.savefig("plots/GA_gen_{}".format(_))
+            plt.close()
+            """
+
 
             # Save the best individual
             ind = np.argmin(function_values)
@@ -389,4 +418,17 @@ class GeneticAlgorithm:
             if len(self.integer_variables) > 0:
                 population = new_population
 
+        fig=  plt.figure()
+        ax= fig.add_subplot(111,projection='3d')
+        ax.scatter(all_x,all_y,all_z,c='b',marker='o')
+        ax.set_xlabel('g1')
+        ax.set_ylabel('g2')
+        ax.set_zlabel('EI(g1,g2)')
+        plt.title("EI(g1,g2) for points used in the GA")
+        #plt.show()
+        plt.savefig("Last")
+        plt.close()
+
+        print(" ** Best value for current GA =  {}".format(-best_value))
+        print(" ** Best individual = {}".format(best_individual))
         return best_individual, best_value

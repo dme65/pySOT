@@ -277,6 +277,7 @@ def ei_merit(X, surrogate, fX, XX=None, dtol=0):
     :return: Evaluate the expected improvement for points X
     :rtype: numpy.array of length X.shape[0]
     """
+
     mu, sig = surrogate.predict(X), surrogate.predict_std(X)
     gamma = (np.min(fX) - mu) / sig
     beta = gamma * norm.cdf(gamma) + norm.pdf(gamma)
@@ -286,6 +287,10 @@ def ei_merit(X, surrogate, fX, XX=None, dtol=0):
         dists = scpspatial.distance.cdist(X, XX)
         dmerit = np.amin(dists, axis=1, keepdims=True)
         ei[dmerit < dtol] = 0.0
+
+    for _ in range(len(ei)):
+        if X[_][1] > X[_][0] + 0.15: # TOLERENCE
+            ei[_] = -0.05
 
     return ei
 

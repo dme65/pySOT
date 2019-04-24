@@ -237,6 +237,13 @@ class SurrogateBaseStrategy(BaseStrategy):
         start_sample = self.exp_design.generate_points(
             lb=self.opt_prob.lb, ub=self.opt_prob.ub,
             int_var=self.opt_prob.int_var)
+
+        print("----------------------------------------------------------")
+        print("Initial sample is: ({} pts)".format(self.exp_design.num_pts))
+        print(start_sample)
+        print("----------------------------------------------------------")
+        input(" Press enter to evaluate these points: ")
+
         assert start_sample.shape[1] == self.opt_prob.dim, \
             "Dimension mismatch between problem and experimental design"
 
@@ -750,6 +757,7 @@ class EIStrategy(SurrogateBaseStrategy):
         if ei_tol is None:
             ei_tol = 1e-6 * (self.fX.max() - self.fX.min())
 
+        print(" ** Running GA to maximize EI ... ")
         new_points = expected_improvement_ga(
             num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
             X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=self.dtol,
@@ -758,6 +766,13 @@ class EIStrategy(SurrogateBaseStrategy):
         if new_points is None:  # Not enough improvement
             self.terminate = True
         else:
+            print("-----------------------------------------------------------")
+            print(" --> Next suggested points are:")
+            print(new_points)
+            print(" ** currently {} evals -- #".format(self.num_evals))
+            print(" ** currently {} accepted -- #".format(self.accepted_count))
+            print(" ** currently {} rejected -- #".format(self.rejected_count))
+            print("-----------------------------------------------------------")
             for i in range(num_pts):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
 
