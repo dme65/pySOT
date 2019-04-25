@@ -1,7 +1,7 @@
 import numpy as np
 from pySOT.utils import unit_rescale, from_unit_box, \
     to_unit_box, round_vars, GeneticAlgorithm,\
-    nd_sorting, ND_Front, check_radius_rule, POSITIVE_INFINITY
+    nd_sorting, nd_front, check_radius_rule, POSITIVE_INFINITY
 
 
 def test_unit_box_map():
@@ -79,7 +79,7 @@ def test_nd_front():
     npts = 100
     nobj = 2
     F = np.random.rand(nobj, npts)
-    (nd_index, d_index) = ND_Front(F)
+    (nd_index, d_index) = nd_front(F)
 
     # check sum of indices equals the number of pts
     assert(len(nd_index)+len(d_index) == npts)
@@ -91,15 +91,15 @@ def test_nd_front():
     # check if a better point is added to set it dominates all others
     new_p = np.asarray([-0.1, -0.5])
     F_new = np.vstack((F.transpose(), new_p))
-    (nd_index, d_index) = ND_Front(F_new.transpose())
+    (nd_index, d_index) = nd_front(F_new.transpose())
     assert(len(nd_index) == 1 and nd_index[0] == npts)
 
     # check if a worst point is added to set it is dominated
-    (nd_index, d_index) = ND_Front(F)
+    (nd_index, d_index) = nd_front(F)
     new_p = np.asarray([1.1, 1.4])
     npts_nd = len(nd_index)
     F_new = np.vstack((F[:, nd_index].transpose(), new_p))
-    (nd_index, d_index) = ND_Front(F_new.transpose())
+    (nd_index, d_index) = nd_front(F_new.transpose())
     assert(len(d_index) == 1 and d_index[0] == npts_nd)
 
 

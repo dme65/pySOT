@@ -26,7 +26,7 @@ from pySOT.experimental_design import ExperimentalDesign
 from pySOT.optimization_problems import OptimizationProblem
 from pySOT.surrogate import Surrogate, GPRegressor
 from pySOT.utils import check_opt_prob, nd_sorting,\
-    check_radius_rule, SopRecord, SopCenter
+    check_radius_rule, POSITIVE_INFINITY
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
@@ -854,6 +854,115 @@ class LCBStrategy(SurrogateBaseStrategy):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
 
 
+class _SopRecord():
+    """A custom record that stores memory attributes of a SOP-related record
+
+    A multi-attribute record that stores the evaluation point and corresponding
+    attributes including objective function value, failure count, elapsed tabu
+    count, non-domination rank and search radius. Failure count, tabu count,
+    rank and sigma are updated after a new function evaluation is completed.
+
+    :param x: Decision variable
+    :type x: numpy array
+    :param fx: objective function value
+    :type fx: float
+    :param sigma: Candidate search radius
+    :type sigma: float
+    """
+    def __init__(self, x, fx, sigma):
+        self.x = x
+        self.fx = fx
+        self.rank = POSITIVE_INFINITY  # To-Do: Update ranks in future
+        self._nfail = 0  # Count of failures(int)
+        self._ntabu = 0  # Elapsed tabu tenure
+        self._sigma = sigma
+
+    @property
+    def sigma(self):
+        """Get value of radius / sigma"""
+        return self._sigma
+
+    @property
+    def nfail(self):
+        """Get failure count"""
+        return self._nfail
+
+    @property
+    def ntabu(self):
+        """Get elapsed tabu tenure count"""
+        return self._ntabu
+
+    def reduce_sigma(self):
+        """Reduce sigma / search radius"""
+        self._sigma = self._sigma/2.0
+
+    def increment_failure_count(self):
+        """Increase failure count"""
+        self._nfail += 1
+
+    def make_tabu(self, sigma):
+        """Make this point tabu"""
+        self._nfail = 0
+        self._ntabu = 1
+        self._sigma = sigma
+
+    def increment_tabu_tenure(self):
+        """Increment the elapsed tabu tenure"""
+        self._ntabu += 1
+
+    def reset(self, sigma):
+        """Reset memory attributes"""
+        self._nfail = 0
+        self._ntabu = 0
+        self._sigma = sigma
+
+
+class _SopCenter():
+    """ A custom reference record that stores information for a SOP center
+
+    A multi-attribute reference record that stores the decision vector value
+    of a SOP center, and correspondingly, its location in the list of evaluated
+    SOP Records, the new point it generates and location of new point in list
+    of evaluated records.
+
+    :param xc: decision vector value of center
+    :type xc: numpy array
+    :param index: index location in list of evaluated points
+    :type index: int
+    """
+    def __init__(self, xc, index):
+        self.xc = xc
+        self.index = index
+        self._new_point = None  # New point proposed for eval around xc
+        self._new_index = None  # Location of new point in list of evals
+
+    @property
+    def new_point(self):
+        """Get new proposed point"""
+        return self._new_point
+
+    @new_point.setter
+    def new_point(self, value):
+        """Set new point, raise error if array length is diff from self.xc"""
+        if len(value) != len(self.xc):
+            raise ValueError('Dimension mismatch between center and new point')
+        else:
+            self._new_point = value
+
+    @property
+    def new_index(self):
+        """Get location / index of new point"""
+        return self._new_index
+
+    @new_index.setter
+    def new_index(self, value):
+        """Set location of new point, raise error if not integer"""
+        if not isinstance(value, int):
+            raise ValueError('Index location is not an integer')
+        else:
+            self._new_index = value
+
+
 class SOPStrategy(SurrogateBaseStrategy):
     """Surrogate Optimization with Pareto Selection Strategy
 
@@ -927,8 +1036,8 @@ class SOPStrategy(SurrogateBaseStrategy):
         self.record_queue = []  # Completed records that haven't been processed
         self.num_exp = exp_design.num_pts  # We need this later
         self.ncenters = ncenters
-        self.evals = []  # List of all eval points stored as SOPRecord
-        self.centers = []  # List of current center points as SOPCenter
+        self.evals = []  # List of all eval points stored as _SOPRecord
+        self.centers = []  # List of current center points as _SOPCenter
         self.F_ranked = None  # Evaluated points stored as numpy array
         self.d_thresh = 1.0
 
@@ -952,8 +1061,8 @@ class SOPStrategy(SurrogateBaseStrategy):
         """Handle completed evaluation in initial phase"""
         super().on_initial_completed(record)
 
-        srec = SopRecord(np.copy(record.params[0]), record.value,
-                         self.sampling_radius)
+        srec = _SopRecord(np.copy(record.params[0]), record.value,
+                          self.sampling_radius)
         self.evals.append(srec)
 
     def on_adapt_completed(self, record):
@@ -963,8 +1072,8 @@ class SOPStrategy(SurrogateBaseStrategy):
 
         # Initiate a new SOP Record for new completed evaluation
         center_index = None
-        srec = SopRecord(np.copy(record.params[0]), record.value,
-                         self.sampling_radius)
+        srec = _SopRecord(np.copy(record.params[0]), record.value,
+                          self.sampling_radius)
         self.evals.append(srec)
 
         ncenters = len(self.centers)
@@ -1028,7 +1137,7 @@ class SOPStrategy(SurrogateBaseStrategy):
     def adjust_memory(self, index=None):
         """Update the memory attributes of evaluated points
 
-        For each evaluated point (stored as SOPRecord instance) update its
+        For each evaluated point (stored as _SOPRecord instance) update
         i) Failure count, ii) Tabu status and iii) Sampling radius.
 
         """
@@ -1191,5 +1300,5 @@ class SOPStrategy(SurrogateBaseStrategy):
                         check = check + 1
             # Initialize the center point list
             for index in center_index:
-                crec = SopCenter(self.evals[index].x, index)
+                crec = _SopCenter(self.evals[index].x, index)
                 self.centers.append(crec)

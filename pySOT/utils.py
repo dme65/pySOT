@@ -395,30 +395,21 @@ class GeneticAlgorithm:
         return best_individual, best_value
 
 
-def domination(fA, fB, M):
+def domination(fA, fB):
     """Returns True if fA dominates fB
 
     :param fA: Vector A of objective functions
     :type fA: numy array of length M
     :param fB: Vector B of objective functions
     :type fB: numpy array of length M
-    :param M: Number of objective functions in A and B
-    :type M: int
     :return: Boolean check for domination
     :rtype: Bool
     """
 
-    d = False
-    for i in range(0, M):
-        if fA[i] > fB[i]:
-            d = False
-            break
-        elif fA[i] < fB[i]:
-            d = True
-    return d
+    return np.all(np.less(fA, fB))
 
 
-def ND_Add(F, df_index, ndf_index):
+def nd_add(F, df_index, ndf_index):
     """Check if last row of F is dominated or non-dominated
 
     Updates the index vectors of domination and non-domination after adding
@@ -445,11 +436,11 @@ def ND_Add(F, df_index, ndf_index):
 
     # Traverse through F to update indices of dominated and nd points
     while j < ndf_count:
-        if domination(F[:, N], F[:, ndf_index[j-1]], M):
+        if domination(F[:, N], F[:, ndf_index[j-1]]):
             df_index.append(ndf_index[j-1])
             ndf_index.remove(ndf_index[j-1])
             ndf_count -= 1
-        elif domination(F[:, ndf_index[j-1]], F[:, N], M):
+        elif domination(F[:, ndf_index[j-1]], F[:, N]):
             df_index.append(N)
             ndf_index.remove(N)
             ndf_count -= 1
@@ -459,7 +450,7 @@ def ND_Add(F, df_index, ndf_index):
     return (ndf_index, df_index)
 
 
-def ND_Front(F):
+def nd_front(F):
     """ Find indices of dominated and nd points in F
 
     :param F: 2D array (MxN) containing a set of N vectors of M objectives
@@ -473,7 +464,7 @@ def ND_Front(F):
     df_index = []
     ndf_index = [int(0)]
     for i in range(1, N):
-        (ndf_index, df_index) = ND_Add(F[:, 0:i+1], df_index, ndf_index)
+        (ndf_index, df_index) = nd_add(F[:, 0:i+1], df_index, ndf_index)
     return (ndf_index, df_index)
 
 
@@ -500,7 +491,7 @@ def nd_sorting(F, nmax):
     i = 1
     count = 0
     while count < nmax and len(P) > 0:
-        (ndf_index, df_index) = ND_Front(F[:, P])
+        (ndf_index, df_index) = nd_front(F[:, P])
         for j in range(0, len(ndf_index)):
             nd_ranks[P[ndf_index[j]]] = i
         count = count + len(ndf_index)
@@ -548,112 +539,3 @@ def check_radius_rule(X, X_c, sigma, dim, nc, d_thresh=1.0):
             flag = 0
             break
     return flag
-
-
-class SopRecord():
-    """A custom record that stores memory attributes of a SOP-related record
-
-    A multi-attribute record that stores the evaluation point and corresponding
-    attributes including objective function value, failure count, elapsed tabu
-    count, non-domination rank and search radius. Failure count, tabu count,
-    rank and sigma are updated after a new function evaluation is completed.
-
-    :param x: Decision variable
-    :type x: numpy array
-    :param fx: objective function value
-    :type fx: float
-    :param sigma: Candidate search radius
-    :type sigma: float
-    """
-    def __init__(self, x, fx, sigma):
-        self.x = x
-        self.fx = fx
-        self.rank = POSITIVE_INFINITY  # To-Do: Update ranks in future
-        self._nfail = 0  # Count of failures(int)
-        self._ntabu = 0  # Elapsed tabu tenure
-        self._sigma = sigma
-
-    @property
-    def sigma(self):
-        """Get value of radius / sigma"""
-        return self._sigma
-
-    @property
-    def nfail(self):
-        """Get failure count"""
-        return self._nfail
-
-    @property
-    def ntabu(self):
-        """Get elapsed tabu tenure count"""
-        return self._ntabu
-
-    def reduce_sigma(self):
-        """Reduce sigma / search radius"""
-        self._sigma = self._sigma/2.0
-
-    def increment_failure_count(self):
-        """Increase failure count"""
-        self._nfail += 1
-
-    def make_tabu(self, sigma):
-        """Make this point tabu"""
-        self._nfail = 0
-        self._ntabu = 1
-        self._sigma = sigma
-
-    def increment_tabu_tenure(self):
-        """Increment the elapsed tabu tenure"""
-        self._ntabu += 1
-
-    def reset(self, sigma):
-        """Reset memory attributes"""
-        self._nfail = 0
-        self._ntabu = 0
-        self._sigma = sigma
-
-
-class SopCenter():
-    """ A custom reference record that stores information for a SOP center
-
-    A multi-attribute reference record that stores the decision vector value
-    of a SOP center, and correspondingly, its location in the list of evaluated
-    SOPRecords, the new point it generates and location of new point in list of
-    evaluated records.
-
-    :param xc: decision vector value of center
-    :type xc: numpy array
-    :param index: index location in list of evaluated points
-    :type index: int
-    """
-    def __init__(self, xc, index):
-        self.xc = xc
-        self.index = index
-        self._new_point = None  # New point proposed for eval around xc
-        self._new_index = None  # Location of new point in list of evals
-
-    @property
-    def new_point(self):
-        """Get new proposed point"""
-        return self._new_point
-
-    @new_point.setter
-    def new_point(self, value):
-        """Set new point, raise error if array length is diff from self.xc"""
-        if len(value) != len(self.xc):
-            raise ValueError('Dimension mismatch between center and new point')
-        else:
-            self._new_point = value
-
-    @property
-    def new_index(self):
-        """Get location / index of new point"""
-        return self._new_index
-
-    @new_index.setter
-    def new_index(self, value):
-        """Set location of new point, raise error if not integer"""
-        if not isinstance(value, int):
-            raise ValueError('Index location is not an integer')
-        else:
-            self._new_index = value
