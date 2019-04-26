@@ -22,7 +22,7 @@ install:
 
   # Install mpi4py with mpich
   - conda install -n test-environment -q numpy scipy pip
-  - conda install -n test-environment -q --channel mpi4py mpich mpi4py
+  - conda install -n test-environment -q --channel conda-forge mpich mpi4py
 
   # Install py-earth and code coverage
   - pip install --upgrade pip

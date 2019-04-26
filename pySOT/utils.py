@@ -10,6 +10,9 @@
 
 from pySOT.optimization_problems import OptimizationProblem
 import numpy as np
+import scipy.spatial as scp
+
+POSITIVE_INFINITY = float("inf")
 
 
 def to_unit_box(x, lb, ub):
@@ -390,3 +393,149 @@ class GeneticAlgorithm:
                 population = new_population
 
         return best_individual, best_value
+
+
+def domination(fA, fB):
+    """Returns True if fA dominates fB
+
+    :param fA: Vector A of objective functions
+    :type fA: numy array of length M
+    :param fB: Vector B of objective functions
+    :type fB: numpy array of length M
+    :return: Boolean check for domination
+    :rtype: Bool
+    """
+
+    return np.all(np.less(fA, fB))
+
+
+def nd_add(F, df_index, ndf_index):
+    """Check if last row of F is dominated or non-dominated
+
+    Updates the index vectors of domination and non-domination after adding
+    the lastrow of the 2-D array F into the set of points being evaluated
+    for non-domination
+
+    :param F: 2D numpy array of objective function vectors
+    :type F: numpy array
+    :param df_index: Index array (int) of dominated vectors of F
+    :type df_index: list of integers
+    :param ndf_index: Index array (int) of non-dominated vectors of F
+    :type ndf_index: list of integers
+    :return: updated df_index and ndf_index
+    :rtype: lists of integers
+    """
+
+    # Initialize and assume new point is non-dominated (nd)
+    (M, N) = F.shape
+    N = int(N - 1)
+    ndf_count = len(ndf_index)
+    ndf_index.append(N)
+    ndf_count += 1
+    j = 1
+
+    # Traverse through F to update indices of dominated and nd points
+    while j < ndf_count:
+        if domination(F[:, N], F[:, ndf_index[j-1]]):
+            df_index.append(ndf_index[j-1])
+            ndf_index.remove(ndf_index[j-1])
+            ndf_count -= 1
+        elif domination(F[:, ndf_index[j-1]], F[:, N]):
+            df_index.append(N)
+            ndf_index.remove(N)
+            ndf_count -= 1
+            break
+        else:
+            j += 1
+    return (ndf_index, df_index)
+
+
+def nd_front(F):
+    """ Find indices of dominated and nd points in F
+
+    :param F: 2D array (MxN) containing a set of N vectors of M objectives
+    :type F: 2D numpy array
+    :return: 1) ndf_index --> indices of nd points in F,
+             2) df_index --> indices of dominated points in F
+    :rtype: lists of integers
+    """
+
+    (M, N) = F.shape
+    df_index = []
+    ndf_index = [int(0)]
+    for i in range(1, N):
+        (ndf_index, df_index) = nd_add(F[:, 0:i+1], df_index, ndf_index)
+    return (ndf_index, df_index)
+
+
+def nd_sorting(F, nmax):
+    """ Computes the non-domination rank of each row vector in F
+
+    This function sorts the objective functions vectors according to
+    non-domination rank. If F is too large, sorting is only done for
+    the first nmax points
+
+    :param F: 2D array (MxN) containing a set of N vectors of M objectives
+    :type F: numpy array
+    :param nmax: maximum number of points ranked via nd_sorting
+    :type nmax: int
+    :return: list of N integers indicating rank of each row vector in F
+    :rtype: list of size N
+    """
+
+    (M, N) = F.shape
+    nd_ranks = np.ones((N, ), dtype=np.int)*POSITIVE_INFINITY
+    P = np.ones((N, ), dtype=np.int)
+    for i in range(0, N):
+        P[i] = i
+    i = 1
+    count = 0
+    while count < nmax and len(P) > 0:
+        (ndf_index, df_index) = nd_front(F[:, P])
+        for j in range(0, len(ndf_index)):
+            nd_ranks[P[ndf_index[j]]] = i
+        count = count + len(ndf_index)
+        P_new = np.ones((len(df_index), ), dtype=np.int)
+        for j in range(0, len(df_index)):
+            P_new[j] = P[df_index[j]]
+        P = P_new
+        i = i+1
+    return nd_ranks
+
+
+def check_radius_rule(X, X_c, sigma, dim, nc, d_thresh=1.0):
+    """ Function that implements the Radius Rule of SOP
+
+    This function implements the radius-rule (MODIFIED) for SOP algorithm
+    by checking if a new potential center is within a threshold radius of
+    previously selected centers or not.
+
+    :param X: A vector/point being considered to be selected as a center
+    :type X: numpy 1D array
+    :param X_c: Set of already selected centers
+    :type X_c: 2D numpy array
+    :param sigma: Candidate search radius
+    :type sigma: Float
+    :param dim: number of decision variables in X
+    :type dim: int
+    :param nc: number of centers (i.e., rows) in X_c
+    :type nc: int
+    :param d_thresh: An adaptive multiplier that allows points close to each
+        other to be selected as center points, simultaneously
+    :type d_thresh: float
+    :return: A flag with value = 0 if X is within a distance sigma*d_thresh
+        of any point in X_c and 1 otherwise
+    :rtype: Bool
+    """
+
+    flag = 1
+    for i in range(nc):
+        if X_c[i, dim+4] == 0:
+            sigma_new = sigma
+        else:
+            sigma_new = np.power(1/2, X_c[i, dim+4])*sigma
+        d = scp.distance.euclidean(X, X_c[i, 0:dim])
+        if d < sigma_new*d_thresh/np.sqrt(len(X)):
+            flag = 0
+            break
+    return flag

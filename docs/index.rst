@@ -23,7 +23,7 @@ any bugs, please feel free to either submit a bug report on GitHub (recommended)
 or to contact me at the email address: dme65@cornell.edu. Keep an eye on the
 GitHub repository for updates and changes to both the toolbox and the documentation.
 
-The toolbox is based on the following published papers: [1_], [2_], [3_]
+The toolbox is based on the following published papers: [1_], [2_], [3_] [4_]
 
 .. toctree::
    :maxdepth: 4
@@ -51,3 +51,7 @@ The toolbox is based on the following published papers: [1_], [2_], [3_]
 .. [3] Rommel G Regis and Christine A Shoemaker.
     Combining radial basis function surrogates and dynamic coordinate search in high-dimensional expensive black-box optimization.
     Engineering Optimization, 45(5): 529–555, 2013.
+
+.. [4] Tipaluck Krityakierne, Taimoor Akhtar and Christine A. Shoemaker.
+    SOP: parallel surrogate global optimization with Pareto center selection for computationally expensive single objective problems.
+    Journal of Global Optimization, 66(3): 417–437, 2016.
