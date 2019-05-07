@@ -169,8 +169,11 @@ def progress_plot(controller, title="", interactive=False):  # pragma: no cover
         import matplotlib.pyplot as plt
         plotting_on = True
     finally:
-        plotting_on = False
-        pass
+        if 'matplotlib.pyplot' not in sys.modules:
+            plotting_on = False
+            pass
+        else:
+            plotting_on = True
 
     if not plotting_on:
         print("Failed to import matplotlib.pyplot, aborting....")
