@@ -7,3 +7,4 @@ Developed and maintained by:
 with contributions by:
 
 - Yi Shen <ys623@cornell.edu>
+- Taimoor Akhtar <erita@nus.edu.sg>

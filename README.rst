@@ -10,9 +10,10 @@ which is an event-driven framework for building and combining asynchronous optim
 strategies. POAP has support for both threads and MPI.
 
 pySOT implements many popular surrogate optimization algorithms such as the
-Stochastic RBF (SRBF) and DYCORS methods by Regis and Shoemaker. We also support
-Expected Improvement (EI) and Lower Confidence Bounds (LCB), which are popular in Bayesian
-optimization. All optimization algorithms can be used in serial, synchronous parallel, and
+Stochastic RBF (SRBF) and DYCORS methods by Regis and Shoemaker, and the SOP
+method by Krityakierne et. al. We also support Expected Improvement (EI) and
+Lower Confidence Bounds (LCB), which are popular in Bayesian optimization. All
+optimization algorithms can be used in serial, synchronous parallel, and
 asynchronous parallel and we support both continuous and integer variables.
 
 The toolbox is hosted on GitHub: https://github.com/dme65/pySOT
