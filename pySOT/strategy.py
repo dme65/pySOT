@@ -125,10 +125,12 @@ class SurrogateBaseStrategy(BaseStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
+    :param restart: Whether or not to restart after convergence
+    :type reset_surrogate: bool
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True):
+                 extra_vals=None, reset_surrogate=True, restart=False):
         self.asynchronous = asynchronous
         self.batch_size = batch_size
 
@@ -163,11 +165,25 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.Xpend = np.empty([0, opt_prob.dim])
         self.fevals = []
 
+        # Completed evaluations in the current run
+        self._X = np.empty([0, opt_prob.dim])
+        self._fX = np.empty([0, 1])
+
+        # Event indices to keep track of if points where proposed before a restart
+        self.ev_restart = 0
+        self.ev_next = 1
+
         # Check inputs (implemented by each strategy)
         self.check_input()
 
         # Start with first experimental design
         self.sample_initial()
+
+    def get_ev(self):
+        """Return event index and increase the counter."""
+        ev = self.ev_next
+        self.ev_next += 1
+        return ev
 
     @abc.abstractmethod  # pragma: no cover
     def generate_evals(self, num_pts):
@@ -216,6 +232,24 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.pending_evals = 0
         self.Xpend = np.empty([0, self.opt_prob.dim])
 
+    def restart(self):
+        """Restart a run after convergence."""
+
+        self.ev_restart = self.ev_next
+        self.ev_next += 1
+
+        # Reset data in current run
+        self._X = np.empty([0, self.opt_prob.dim])
+        self._fX = np.empty([0, 1])
+
+        # Reset params
+        self.phase = 1
+        self.terminate = False
+
+        # Generate new initial design
+        self.sample_initial()
+
+
     def log_completion(self, record):
         """Record a completed evaluation to the log.
 
@@ -243,7 +277,8 @@ class SurrogateBaseStrategy(BaseStrategy):
         for j in range(self.exp_design.num_pts):
             self.batch_queue.append(start_sample[j, :])
 
-        if self.extra_points is not None:
+        # We only evaluate these points before the first restart
+        if self.extra_points is not None and len(self.X) == 0:
             for i in range(self.extra_points.shape[0]):
                 if self.extra_vals is None or \
                         np.all(np.isnan(self.extra_vals[i])):  # Unknown value
@@ -343,7 +378,9 @@ class SurrogateBaseStrategy(BaseStrategy):
 
         xx, fx = np.copy(record.params[0]), record.value
         self.X = np.vstack((self.X, np.atleast_2d(xx)))
+        self._X = np.vstack((self._X, np.atleast_2d(xx)))
         self.fX = np.vstack((self.fX, fx))
+        self._fX = np.vstack((self._fX, fx))
 
         self.surrogate.add_points(xx, fx)
         self.remove_pending(xx)
@@ -403,7 +440,9 @@ class SurrogateBaseStrategy(BaseStrategy):
 
         xx, fx = np.copy(record.params[0]), record.value
         self.X = np.vstack((self.X, np.atleast_2d(xx)))
+        self._X = np.vstack((self._X, np.atleast_2d(xx)))
         self.fX = np.vstack((self.fX, fx))
+        self._fX = np.vstack((self._fX, fx))
         self.surrogate.add_points(xx, fx)
         self.remove_pending(xx)
 
