@@ -241,8 +241,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         if self.num_evals + self.pending_evals >= self.max_evals:  # Budget exhausted
             self.terminate = True
 
-    def sample_restart(self):Thank you for making changes to the paper! I’m currently at ICML and will take a couple of days of vacation right after, so I won’t be back at my desk for another 10 days or so. I should have plenty of time to work on this once I’m back, so please remind me if you haven’t heard from me by the end of June.
-
+    def sample_restart(self):
         """Restart a run after convergence."""
         self.ev_restart = self.ev_next
         self.ev_next += 1
@@ -394,12 +393,16 @@ class SurrogateBaseStrategy(BaseStrategy):
 
         xx, fx = np.copy(record.params[0]), record.value
         self.X = np.vstack((self.X, np.atleast_2d(xx)))
-        self._X = np.vstack((self._X, np.atleast_2d(xx)))
         self.fX = np.vstack((self.fX, fx))
-        self._fX = np.vstack((self._fX, fx))
+        self.remove_pending(xx)
+
+        # Only count point if it was proposed after the last restart
+        if record.ev_id > self.ev_restart:
+            self._X = np.vstack((self._X, np.atleast_2d(xx)))
+            self._fX = np.vstack((self._fX, fx))
+            self.surrogate.add_points(xx, fx)
 
         self.surrogate.add_points(xx, fx)
-        self.remove_pending(xx)
 
         self.log_completion(record)
         self.fevals.append(record)
@@ -540,6 +543,8 @@ class SRBFStrategy(SurrogateBaseStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
+    :param use_restarts: Whether or not to restart after convergence
+    :type use_restarts: bool
     :param weights: Weights for merit function, default = [0.3, 0.5, 0.8, 0.95]
     :type weights: list of np.array
     :param num_cand: Number of candidate points, default = 100*dim
@@ -597,12 +602,14 @@ class SRBFStrategy(SurrogateBaseStrategy):
     def on_adapt_completed(self, record):
         """Handle completed evaluation."""
         super().on_adapt_completed(record)
-        self.record_queue.append(record)
 
-        if self.asynchronous:  # Process immediately
-            self.adjust_step()
-        elif (not self.batch_queue) and self.pending_evals == 0:  # Batch
-            self.adjust_step()
+        if record.ev_id < self.ev_restart:  # Only process fresh records
+            self.record_queue.append(record)
+
+            if self.asynchronous:  # Process immediately
+                self.adjust_step()
+            elif (not self.batch_queue) and self.pending_evals == 0:  # Batch
+                self.adjust_step()
 
     def get_weights(self, num_pts):
         """Generate the nextw weights."""
@@ -695,6 +702,8 @@ class DYCORSStrategy(SRBFStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
+    :param use_restarts: Whether or not to restart after convergence
+    :type use_restarts: bool
     :param weights: Weights for merit function, default = [0.3, 0.5, 0.8, 0.95]
     :type weights: list of np.array
     :param num_cand: Number of candidate points, default = 100*dim
@@ -775,7 +784,9 @@ class EIStrategy(SurrogateBaseStrategy):
     :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
-    :type reset_surrogate: bool
+    :type reset_surrogate: boo
+    :param use_restarts: Whether or not to restart after convergence
+    :type use_restarts: bool
     :param ei_tol: Terminate if the largest EI falls below this threshold
         Default: 1e-6 * (max(fX) -  min(fX))
     :type ei_tol: float
@@ -1074,15 +1085,16 @@ class SOPStrategy(SurrogateBaseStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
+    :param use_restarts: Whether or not to restart after convergence
+    :type use_restarts: bool
     :param num_cand: Number of candidate points, default = 100*dim
     :type num_cand: int
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate, ncenters=4,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True, num_cand=None):
+                 extra_vals=None, reset_surrogate=True, use_restarts=True, num_cand=None):
 
         self.fbest = np.inf  # Current best function value
-
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
 
         if num_cand is None:
@@ -1102,7 +1114,7 @@ class SOPStrategy(SurrogateBaseStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         reset_surrogate=reset_surrogate)
+                         reset_surrogate=reset_surrogate, use_restarts=use_restarts)
 
     def check_input(self):
         """Check inputs."""
@@ -1118,33 +1130,36 @@ class SOPStrategy(SurrogateBaseStrategy):
         """Handle completed evaluation in initial phase"""
         super().on_initial_completed(record)
 
-        srec = _SopRecord(np.copy(record.params[0]), record.value,
-                          self.sampling_radius)
-        self.evals.append(srec)
+        if record.ev_id >= self.ev_restart:
+            srec = _SopRecord(np.copy(record.params[0]), record.value,
+                            self.sampling_radius)
+            self.evals.append(srec)
 
     def on_adapt_completed(self, record):
         """Handle completed evaluation in phase 2."""
         super().on_adapt_completed(record)
-        self.record_queue.append(record)
 
-        # Initiate a new SOP Record for new completed evaluation
-        center_index = None
-        srec = _SopRecord(np.copy(record.params[0]), record.value,
-                          self.sampling_radius)
-        self.evals.append(srec)
+        if record.ev_id >= self.ev_restart:
+            self.record_queue.append(record)
 
-        ncenters = len(self.centers)
-        for i in range(ncenters):  # Update location of new point in center
-            if np.array_equal(np.copy(record.params[0]),
-                              self.centers[i].new_point):
-                self.centers[i].new_index = self.num_evals - 1
-                center_index = i
-                break
+            # Initiate a new SOP Record for new completed evaluation
+            center_index = None
+            srec = _SopRecord(np.copy(record.params[0]), record.value,
+                            self.sampling_radius)
+            self.evals.append(srec)
 
-        if self.asynchronous:  # Process immediately
-            self.adjust_memory(center_index)
-        elif (not self.batch_queue) and self.pending_evals == 0:  # Batch
-            self.adjust_memory()
+            ncenters = len(self.centers)
+            for i in range(ncenters):  # Update location of new point in center
+                if np.array_equal(np.copy(record.params[0]),
+                                self.centers[i].new_point):
+                    self.centers[i].new_index = self.num_evals - 1
+                    center_index = i
+                    break
+
+            if self.asynchronous:  # Process immediately
+                self.adjust_memory(center_index)
+            elif (not self.batch_queue) and self.pending_evals == 0:  # Batch
+                self.adjust_memory()
 
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
