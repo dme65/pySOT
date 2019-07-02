@@ -125,22 +125,18 @@ class SurrogateBaseStrategy(BaseStrategy):
     :type extra_points: numpy.array of size n x dim
     :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
     :type extra_vals: numpy.array of size n x 1
-    :param reset_surrogate: Whether or not to reset surrogate model
-    :type reset_surrogate: bool
     :param use_restarts: Whether or not to restart after convergence
     :type use_restarts: bool
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True, use_restarts=True):
+                 extra_vals=None,use_restarts=True):
         self.asynchronous = asynchronous
         self.batch_size = batch_size
 
         # Save the objects
         self.opt_prob = opt_prob
         self.exp_design = exp_design
-        if reset_surrogate:
-            surrogate.reset()
         self.surrogate = surrogate
 
         # Sampler state
@@ -271,6 +267,8 @@ class SurrogateBaseStrategy(BaseStrategy):
     def sample_initial(self):
         """Generate and queue an initial experimental design."""
         logger.info("=== Start ===")
+
+        # Reset surrogate model
         self.surrogate.reset()
 
         # NB: Experimental designs can now handle the mapping
@@ -335,7 +333,16 @@ class SurrogateBaseStrategy(BaseStrategy):
             elif self.pending_evals == 0:  # Make sure the entire batch is done
                 self.generate_evals(num_pts=self.batch_size)
 
-            # Launch evaluation (the others will be triggered later)
+            # We allow generate_evals to trigger a restart, so check if status has changed
+            if self.converged:
+                if self.use_restarts:  # Start a new run
+                    if self.asynchronous or self.pending_evals == 0:  # We can restart immidiately, else wait
+                        self.sample_restart() # Trigger the restart
+                        return self.init_proposal()  # We are now in phase 1, so make an initial proposal
+                    else:
+                        return  
+
+            # Launch the new evaluations (the others will be triggered later)
             return self.adapt_proposal()        
 
     def make_proposal(self, x):
@@ -552,7 +559,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True, use_restarts=True, 
+                 extra_vals=None, use_restarts=True, 
                  weights=None, num_cand=None):
 
         self.fbest = np.inf  # Current best function value
@@ -585,7 +592,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         reset_surrogate=reset_surrogate, use_restarts=use_restarts)
+                         use_restarts=use_restarts)
 
     def check_input(self):
         """Check inputs."""
@@ -703,8 +710,6 @@ class DYCORSStrategy(SRBFStrategy):
     :type extra_points: numpy.array of size n x dim
     :param extra_vals: Values for extra_points (np.nan/np.inf if unknown)
     :type extra_vals: numpy.array of size n x 1
-    :param reset_surrogate: Whether or not to reset surrogate model
-    :type reset_surrogate: bool
     :param use_restarts: Whether or not to restart after convergence
     :type use_restarts: bool
     :param weights: Weights for merit function, default = [0.3, 0.5, 0.8, 0.95]
@@ -722,7 +727,8 @@ class DYCORSStrategy(SRBFStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         weights=weights, num_cand=num_cand, use_restarts=use_restarts)
+                         use_restarts=use_restarts,  weights=weights, 
+                         num_cand=num_cand)
 
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
@@ -800,8 +806,7 @@ class EIStrategy(SurrogateBaseStrategy):
     def __init__(self, max_evals, opt_prob, exp_design,
                  surrogate, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
-                 reset_surrogate=True, use_restarts=True, 
-                 ei_tol=None, dtol=None):
+                 use_restarts=True, ei_tol=None, dtol=None):
 
         if dtol is None:
             dtol = 1e-3 * np.linalg.norm(opt_prob.ub - opt_prob.lb)
@@ -811,7 +816,8 @@ class EIStrategy(SurrogateBaseStrategy):
         super().__init__(max_evals=max_evals, opt_prob=opt_prob,
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
-                         extra_points=extra_points, extra_vals=extra_vals)
+                         extra_points=extra_points, extra_vals=extra_vals,
+                         use_restarts=use_restarts)
 
     def check_input(self):
         super().check_input()
@@ -888,8 +894,7 @@ class LCBStrategy(SurrogateBaseStrategy):
     def __init__(self, max_evals, opt_prob, exp_design,
                  surrogate, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
-                 reset_surrogate=True, use_restarts=True, 
-                 kappa=2.0, dtol=None, lcb_tol=None):
+                 use_restarts=True, kappa=2.0, dtol=None, lcb_tol=None):
 
         if dtol is None:
             dtol = 1e-3 * np.linalg.norm(opt_prob.ub - opt_prob.lb)
@@ -900,7 +905,8 @@ class LCBStrategy(SurrogateBaseStrategy):
         super().__init__(max_evals=max_evals, opt_prob=opt_prob,
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
-                         extra_points=extra_points, extra_vals=extra_vals)
+                         extra_points=extra_points, extra_vals=extra_vals,
+                         use_restarts=use_restarts)
 
     def check_input(self):
         super().check_input()
@@ -1095,7 +1101,7 @@ class SOPStrategy(SurrogateBaseStrategy):
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate, ncenters=4,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True, use_restarts=True, num_cand=None):
+                 extra_vals=None, use_restarts=True, num_cand=None):
 
         self.fbest = np.inf  # Current best function value
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
@@ -1117,7 +1123,7 @@ class SOPStrategy(SurrogateBaseStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         reset_surrogate=reset_surrogate, use_restarts=use_restarts)
+                         use_restarts=use_restarts)
 
     def check_input(self):
         """Check inputs."""
