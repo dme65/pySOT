@@ -125,12 +125,12 @@ class SurrogateBaseStrategy(BaseStrategy):
     :type extra_vals: numpy.array of size n x 1
     :param reset_surrogate: Whether or not to reset surrogate model
     :type reset_surrogate: bool
-    :param restart: Whether or not to restart after convergence
-    :type reset_surrogate: bool
+    :param use_restarts: Whether or not to restart after convergence
+    :type use_restarts: bool
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True, restart=False):
+                 extra_vals=None, reset_surrogate=True, use_restarts=True):
         self.asynchronous = asynchronous
         self.batch_size = batch_size
 
@@ -142,8 +142,10 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.surrogate = surrogate
 
         # Sampler state
+        self.use_restarts = use_restarts  # Whether we are using restarts
+        self.terminate = False  # Termination criterion (eval count by default) reached
+        self.converged = False  # Current optimization has converged, we restart if possible
         self.proposal_counter = 0
-        self.terminate = False
         self.accepted_count = 0
         self.rejected_count = 0
 
@@ -228,13 +230,17 @@ class SurrogateBaseStrategy(BaseStrategy):
             for x in self.Xpend:
                 self.batch_queue.append(np.copy(x))
 
-        # Remove everything that is pending
+        # Remove everything that was pending
         self.pending_evals = 0
         self.Xpend = np.empty([0, self.opt_prob.dim])
 
-    def restart(self):
-        """Restart a run after convergence."""
+    def check_termination(self):
+        """Check if evaluation based termination criterion has been reached."""
+        if self.num_evals + self.pending_evals >= self.max_evals:  # Budget exhausted
+            self.terminate = True
 
+    def sample_restart(self):
+        """Restart a run after convergence."""
         self.ev_restart = self.ev_next
         self.ev_next += 1
 
@@ -242,13 +248,12 @@ class SurrogateBaseStrategy(BaseStrategy):
         self._X = np.empty([0, self.opt_prob.dim])
         self._fX = np.empty([0, 1])
 
-        # Reset params
+        # Reset flags
+        self.converged = False
         self.phase = 1
-        self.terminate = False
 
         # Generate new initial design
         self.sample_initial()
-
 
     def log_completion(self, record):
         """Record a completed evaluation to the log.
@@ -292,17 +297,28 @@ class SurrogateBaseStrategy(BaseStrategy):
     def propose_action(self):
         """Propose an action.
 
+        We pop points from the initial batch queue if we are still in phase 1, otherwise we make proposals
+        in the adaptive phase. We check two flags:
+            self.converged: We restart if restarts are enabled
+            self.terminate: We terminate the optimization procedure if no evaluations are pending
+
         NB: We allow workers to continue to the adaptive phase if
         the initial queue is empty. This implies that we need enough
         points in the experimental design for us to construct a
         surrogate.
         """
+
+        # Check if termination criterion has been reached
+        self.check_termination()
+
+        # Decide the next action to take
         if self.terminate:  # Check if termination has been triggered
-            if self.pending_evals == 0:
+            if self.pending_evals == 0:  # Only terminate if nothing is pending, otherwise take no action
                 return Proposal('terminate')
-        elif self.num_evals + self.pending_evals >= self.max_evals or \
-                self.terminate:
-            if self.pending_evals == 0:  # Only terminate if nothing is pending
+        elif self.converged:
+            if self.use_restarts:  # Start a new run
+                self.sample_restart()
+            elif self.pending_evals == 0:  # Only terminate if nothing is pending, otherwise take no action
                 return Proposal('terminate')
         elif self.batch_queue:  # Propose point from the batch_queue
             if self.phase == 1:
@@ -316,16 +332,13 @@ class SurrogateBaseStrategy(BaseStrategy):
             elif self.pending_evals == 0:  # Make sure the entire batch is done
                 self.generate_evals(num_pts=self.batch_size)
 
-            if self.terminate:  # Check if termination has been triggered
-                if self.pending_evals == 0:
-                    return Proposal('terminate')
-
             # Launch evaluation (the others will be triggered later)
             return self.adapt_proposal()
 
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
         proposal = Proposal('eval', x)
+        proposal.ev_id = self.get_ev()
         self.pending_evals += 1
         self.Xpend = np.vstack((self.Xpend, np.copy(x)))
         return proposal
