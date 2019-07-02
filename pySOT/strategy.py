@@ -239,7 +239,8 @@ class SurrogateBaseStrategy(BaseStrategy):
         if self.num_evals + self.pending_evals >= self.max_evals:  # Budget exhausted
             self.terminate = True
 
-    def sample_restart(self):
+    def sample_restart(self):Thank you for making changes to the paper! I’m currently at ICML and will take a couple of days of vacation right after, so I won’t be back at my desk for another 10 days or so. I should have plenty of time to work on this once I’m back, so please remind me if you haven’t heard from me by the end of June.
+
         """Restart a run after convergence."""
         self.ev_restart = self.ev_next
         self.ev_next += 1
@@ -544,8 +545,8 @@ class SRBFStrategy(SurrogateBaseStrategy):
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, reset_surrogate=True, weights=None,
-                 num_cand=None):
+                 extra_vals=None, reset_surrogate=True, use_restarts=True, 
+                 weights=None, num_cand=None):
 
         self.fbest = np.inf  # Current best function value
 
@@ -581,7 +582,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         reset_surrogate=reset_surrogate)
+                         reset_surrogate=reset_surrogate, use_restarts=use_restarts)
 
     def check_input(self):
         """Check inputs."""
@@ -648,10 +649,10 @@ class SRBFStrategy(SurrogateBaseStrategy):
                                         self.sampling_radius_max])
             logger.info("Increasing sampling radius")
 
-        # Check if we want to terminate
+        # Check if we have converged
         if self.failcount >= self.maxfailtol or \
                 self.sampling_radius <= self.sampling_radius_min:
-            self.terminate = True
+            self.converged = True
 
         # Empty the queue
         self.record_queue = []
@@ -699,7 +700,7 @@ class DYCORSStrategy(SRBFStrategy):
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, weights=None, num_cand=None):
+                 extra_vals=None, use_restarts=True, weights=None, num_cand=None):
 
         self.num_exp = exp_design.num_pts  # We need this later
 
@@ -707,7 +708,7 @@ class DYCORSStrategy(SRBFStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         weights=weights, num_cand=num_cand)
+                         weights=weights, num_cand=num_cand, use_restarts=use_restarts)
 
     def generate_evals(self, num_pts):
         """Generate the next adaptive sample points."""
@@ -783,7 +784,8 @@ class EIStrategy(SurrogateBaseStrategy):
     def __init__(self, max_evals, opt_prob, exp_design,
                  surrogate, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
-                 reset_surrogate=True, ei_tol=None, dtol=None):
+                 reset_surrogate=True, use_restarts=True, 
+                 ei_tol=None, dtol=None):
 
         if dtol is None:
             dtol = 1e-3 * np.linalg.norm(opt_prob.ub - opt_prob.lb)
@@ -811,7 +813,7 @@ class EIStrategy(SurrogateBaseStrategy):
             ei_tol=ei_tol)
 
         if new_points is None:  # Not enough improvement
-            self.terminate = True
+            self.convereged = True
         else:
             for i in range(num_pts):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
@@ -870,8 +872,8 @@ class LCBStrategy(SurrogateBaseStrategy):
     def __init__(self, max_evals, opt_prob, exp_design,
                  surrogate, asynchronous=True, batch_size=None,
                  extra_points=None, extra_vals=None,
-                 reset_surrogate=True, kappa=2.0, dtol=None,
-                 lcb_tol=None):
+                 reset_surrogate=True, use_restarts=True, 
+                 kappa=2.0, dtol=None, lcb_tol=None):
 
         if dtol is None:
             dtol = 1e-3 * np.linalg.norm(opt_prob.ub - opt_prob.lb)
@@ -901,7 +903,7 @@ class LCBStrategy(SurrogateBaseStrategy):
             dtol=self.dtol, lcb_target=lcb_target)
 
         if new_points is None:  # Not enough improvement
-            self.terminate = True
+            self.converged = True
         else:
             for i in range(num_pts):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
