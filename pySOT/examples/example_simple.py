@@ -23,20 +23,14 @@ def example_simple():
         os.remove("./logfiles/example_simple.log")
     logging.basicConfig(filename="./logfiles/example_simple.log",
                         level=logging.INFO)
-
-    print("\nNumber of threads: 4")
-    print("Maximum number of evaluations: 500")
-    print("Sampling method: CandidateDYCORS")
-    print("Experimental design: Symmetric Latin Hypercube")
-    print("Surrogate: Cubic RBF")
-
+                        
     num_threads = 4
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    rbf = SurrogateUnitBox(RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
-                                          tail=LinearTail(ackley.dim)),
-                           lb=ackley.lb, ub=ackley.ub)
+    rbf = SurrogateUnitBox(
+        RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim)), lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(
         dim=ackley.dim, num_pts=2*(ackley.dim+1))
 
