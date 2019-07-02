@@ -243,8 +243,7 @@ class SurrogateBaseStrategy(BaseStrategy):
 
     def sample_restart(self):
         """Restart a run after convergence."""
-        self.ev_restart = self.ev_next
-        self.ev_next += 1
+        self.ev_restart = self.get_ev()
 
         # Reset data in current run
         self._X = np.empty([0, self.opt_prob.dim])
@@ -319,7 +318,8 @@ class SurrogateBaseStrategy(BaseStrategy):
                 return Proposal('terminate')
         elif self.converged:
             if self.use_restarts:  # Start a new run
-                self.sample_restart()
+                self.sample_restart() # Trigger the restart
+                return self.init_proposal()  # We are now in phase 1, so make a proposal
             elif self.pending_evals == 0:  # Only terminate if nothing is pending, otherwise take no action
                 return Proposal('terminate')
         elif self.batch_queue:  # Propose point from the batch_queue
@@ -340,7 +340,6 @@ class SurrogateBaseStrategy(BaseStrategy):
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
         proposal = Proposal('eval', x)
-        proposal.ev_id = self.get_ev()
         self.pending_evals += 1
         self.Xpend = np.vstack((self.Xpend, np.copy(x)))
         return proposal
@@ -369,6 +368,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         """Handle proposal accept from initial design."""
         self.accepted_count += 1
         proposal.record.add_callback(self.on_initial_update)
+        proposal.record.ev_id = self.get_ev()
 
     def on_initial_rejected(self, proposal):
         """Handle proposal rejection from initial design."""
@@ -435,6 +435,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         """Handle accepted proposal from sampling phase."""
         self.accepted_count += 1
         proposal.record.add_callback(self.on_adapt_update)
+        proposal.record.ev_id = self.get_ev()
 
     def on_adapt_reject(self, proposal):
         """Handle rejected proposal from sampling phase."""
@@ -569,7 +570,6 @@ class SRBFStrategy(SurrogateBaseStrategy):
 
         self.sampling_radius_min = 0.2 * (0.5 ** 6)
         self.sampling_radius_max = 0.2
-        self.sampling_radius = 0.2
 
         if asynchronous:
             d = float(opt_prob.dim)
@@ -579,9 +579,6 @@ class SRBFStrategy(SurrogateBaseStrategy):
             self.failtol = int(max(np.ceil(d / p), np.ceil(4 / p)))
         self.succtol = 3
         self.maxfailtol = 4 * self.failtol
-
-        self.status = 0          # Status counter
-        self.failcount = 0       # Failure counter
 
         self.record_queue = []  # Completed records that haven't been processed
 
@@ -599,11 +596,18 @@ class SRBFStrategy(SurrogateBaseStrategy):
             assert isinstance(w, float) and w >= 0.0 and w <= 1.0
         super().check_input()
 
+    def sample_initial(self):
+        self.status = 0          # Status counter
+        self.failcount = 0       # Failure counter
+        self.sampling_radius = 0.2
+
+        super().sample_initial()
+
     def on_adapt_completed(self, record):
         """Handle completed evaluation."""
         super().on_adapt_completed(record)
 
-        if record.ev_id < self.ev_restart:  # Only process fresh records
+        if record.ev_id > self.ev_restart:  # Only process fresh records
             self.record_queue.append(record)
 
             if self.asynchronous:  # Process immediately
