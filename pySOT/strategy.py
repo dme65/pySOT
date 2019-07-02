@@ -453,11 +453,14 @@ class SurrogateBaseStrategy(BaseStrategy):
 
         xx, fx = np.copy(record.params[0]), record.value
         self.X = np.vstack((self.X, np.atleast_2d(xx)))
-        self._X = np.vstack((self._X, np.atleast_2d(xx)))
         self.fX = np.vstack((self.fX, fx))
-        self._fX = np.vstack((self._fX, fx))
-        self.surrogate.add_points(xx, fx)
         self.remove_pending(xx)
+
+        # Only count point if it was proposed after the last restart
+        if record.ev_id > self.ev_restart:
+            self._X = np.vstack((self._X, np.atleast_2d(xx)))
+            self._fX = np.vstack((self._fX, fx))
+            self.surrogate.add_points(xx, fx)
 
         self.log_completion(record)
         self.fevals.append(record)
