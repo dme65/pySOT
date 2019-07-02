@@ -835,7 +835,7 @@ class EIStrategy(SurrogateBaseStrategy):
             ei_tol=ei_tol)
 
         if new_points is None:  # Not enough improvement
-            self.convereged = True
+            self.converged = True
         else:
             for i in range(num_pts):
                 self.batch_queue.append(np.copy(np.ravel(new_points[i, :])))
