@@ -17,8 +17,7 @@ def check_strategy(controller):
     """Make sure the strategy object is correct."""
 
     # Check the strategy object
-    assert controller.strategy.num_evals <= controller.strategy.max_evals
-    assert controller.strategy.phase == 2
+    assert controller.strategy.num_evals == controller.strategy.max_evals
     assert controller.strategy.init_pending == 0
     assert controller.strategy.pending_evals == 0
     assert controller.strategy.X.shape == \
@@ -26,12 +25,6 @@ def check_strategy(controller):
     assert controller.strategy.fX.shape == (controller.strategy.num_evals, 1)
     assert controller.strategy.Xpend.shape == (0, ackley.dim)
     assert len(controller.strategy.fevals) == controller.strategy.num_evals
-
-    # Check that all evaluations are in the surrogate model
-    assert controller.strategy.surrogate.num_pts == \
-        controller.strategy.num_evals
-    assert np.all(controller.strategy.X == controller.strategy.surrogate.X)
-    assert np.all(controller.strategy.fX == controller.strategy.surrogate.fX)
 
     # Check that the strategy and controller have the same information
     for i in range(controller.strategy.num_evals):
