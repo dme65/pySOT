@@ -1,5 +1,5 @@
 from pySOT.strategy import SRBFStrategy, DYCORSStrategy, \
-    EIStrategy, RandomSampling, LCBStrategy
+    EIStrategy, RandomSampling, LCBStrategy, SOPStrategy
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.surrogate import GPRegressor, \
     RBFInterpolant, CubicKernel, LinearTail
@@ -307,6 +307,70 @@ def test_random_sampling():
         assert np.all(rec.params[0] >= ackley.lb)
 
 
+#######################################################################
+
+
+def test_sop_serial():
+    max_evals = 200
+    rbf = RBFInterpolant(
+        dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+
+    # Create a strategy and a controller
+    controller = SerialController(ackley.eval)
+    controller.strategy = SOPStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=rbf, asynchronous=True, ncenters=4)
+    controller.run()
+
+    check_strategy(controller)
+
+
+def test_sop_sync():
+    max_evals = 200
+    rbf = RBFInterpolant(
+        dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+
+    # Create a strategy and a controller
+    controller = ThreadController()
+    controller.strategy = SOPStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=rbf, asynchronous=False, ncenters=num_threads, batch_size=num_threads)
+
+    for _ in range(num_threads):
+        worker = BasicWorkerThread(controller, ackley.eval)
+        controller.launch_worker(worker)
+    controller.run()
+
+    check_strategy(controller)
+
+
+def test_sop_async():
+    max_evals = 200
+    rbf = RBFInterpolant(
+        dim=ackley.dim, kernel=CubicKernel(),
+        tail=LinearTail(ackley.dim))
+    slhd = SymmetricLatinHypercube(
+        dim=ackley.dim, num_pts=2*(ackley.dim+1))
+
+    # Create a strategy and a controller
+    controller = ThreadController()
+    controller.strategy = SOPStrategy(
+        max_evals=max_evals, opt_prob=ackley, exp_design=slhd,
+        surrogate=rbf, asynchronous=True, ncenters=num_threads)
+
+    for _ in range(num_threads):
+        worker = BasicWorkerThread(controller, ackley.eval)
+        controller.launch_worker(worker)
+    controller.run()
+
+    check_strategy(controller)
+
 if __name__ == '__main__':
     test_srbf_serial()
     test_srbf_sync()
@@ -325,3 +389,7 @@ if __name__ == '__main__':
     test_lcb_async()
 
     test_random_sampling()
+
+    test_sop_serial()
+    test_sop_sync()
+    test_sop_async()

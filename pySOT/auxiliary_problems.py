@@ -136,7 +136,7 @@ def candidate_srbf(num_pts, opt_prob, surrogate, X, fX, weights,
 
 def candidate_dycors(num_pts, opt_prob, surrogate, X, fX, weights,
                      prob_perturb, Xpend=None, sampling_radius=0.2,
-                     subset=None, dtol=1e-3, num_cand=None):
+                     subset=None, dtol=1e-3, num_cand=None, xbest=None):
     """Select new evaluations using DYCORS.
 
     :param num_pts: Number of points to generate
@@ -163,12 +163,15 @@ def candidate_dycors(num_pts, opt_prob, surrogate, X, fX, weights,
     :type dtol: float
     :param num_cand: Number of candidate points
     :type num_cand: int
+    :param xbest: The point around which candidates are generated
+    :type xbest: numpy.array
 
     :return: The num_pts new points to evaluate
     :rtype: numpy.array of size num_pts x dim
     """
     # Find best solution
-    xbest = np.copy(X[np.argmin(fX), :]).ravel()
+    if xbest is None:
+        xbest = np.copy(X[np.argmin(fX), :]).ravel()
 
     # Fix default values
     if num_cand is None:
