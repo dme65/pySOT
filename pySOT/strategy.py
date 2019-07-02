@@ -318,10 +318,11 @@ class SurrogateBaseStrategy(BaseStrategy):
                 return Proposal('terminate')
         elif self.converged:
             if self.use_restarts:  # Start a new run
-                self.sample_restart() # Trigger the restart
-                return self.init_proposal()  # We are now in phase 1, so make a proposal
-            elif self.pending_evals == 0:  # Only terminate if nothing is pending, otherwise take no action
-                return Proposal('terminate')
+                if self.asynchronous or self.pending_evals == 0:  # We can restart immidiately, else wait
+                    self.sample_restart() # Trigger the restart
+                    return self.init_proposal()  # We are now in phase 1, so make an initial proposal
+                else:
+                    return  
         elif self.batch_queue:  # Propose point from the batch_queue
             if self.phase == 1:
                 return self.init_proposal()
@@ -335,7 +336,7 @@ class SurrogateBaseStrategy(BaseStrategy):
                 self.generate_evals(num_pts=self.batch_size)
 
             # Launch evaluation (the others will be triggered later)
-            return self.adapt_proposal()
+            return self.adapt_proposal()        
 
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
@@ -401,8 +402,6 @@ class SurrogateBaseStrategy(BaseStrategy):
             self._X = np.vstack((self._X, np.atleast_2d(xx)))
             self._fX = np.vstack((self._fX, fx))
             self.surrogate.add_points(xx, fx)
-
-        self.surrogate.add_points(xx, fx)
 
         self.log_completion(record)
         self.fevals.append(record)
