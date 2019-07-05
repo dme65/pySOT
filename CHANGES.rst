@@ -1,10 +1,18 @@
+v.0.2.3,  2019-07-04
+--------------------
+
+- Adding SOP (Contributed by drkupi)
+- Re-enabling restarts: Start a fresh run when we stop making progress
+
 v.0.2.2,  2019-02-12
 --------------------
+
 - Experimental designs can now map and round to domains
 - Support for generating multiple experimental designs and picking the best
 
 v.0.2.1,  2019-01-26
 --------------------
+
 - Removing numpy.asmatrix calls, since this is now deprecated
 
 v.0.2.0,  2018-12-06
