@@ -320,7 +320,7 @@ class SurrogateBaseStrategy(BaseStrategy):
                     self.sample_restart() # Trigger the restart
                     return self.init_proposal()  # We are now in phase 1, so make an initial proposal
                 else:
-                    return  
+                    return
         elif self.batch_queue:  # Propose point from the batch_queue
             if self.phase == 1:
                 return self.init_proposal()
@@ -340,10 +340,10 @@ class SurrogateBaseStrategy(BaseStrategy):
                         self.sample_restart() # Trigger the restart
                         return self.init_proposal()  # We are now in phase 1, so make an initial proposal
                     else:
-                        return  
+                        return
 
             # Launch the new evaluations (the others will be triggered later)
-            return self.adapt_proposal()        
+            return self.adapt_proposal()
 
     def make_proposal(self, x):
         """Create proposal and update counters and budgets."""
@@ -559,10 +559,8 @@ class SRBFStrategy(SurrogateBaseStrategy):
     """
     def __init__(self, max_evals, opt_prob, exp_design, surrogate,
                  asynchronous=True, batch_size=None, extra_points=None,
-                 extra_vals=None, use_restarts=True, 
+                 extra_vals=None, use_restarts=True,
                  weights=None, num_cand=None):
-
-        self.fbest = np.inf  # Current best function value
 
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
         if weights is None:
@@ -603,11 +601,11 @@ class SRBFStrategy(SurrogateBaseStrategy):
         super().check_input()
 
     def sample_initial(self):
+        super().sample_initial()
         self.status = 0          # Status counter
         self.failcount = 0       # Failure counter
         self.sampling_radius = 0.2
-
-        super().sample_initial()
+        self._fbest = np.inf  # Current best function value
 
     def on_adapt_completed(self, record):
         """Handle completed evaluation."""
@@ -634,7 +632,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
         weights = self.get_weights(num_pts=num_pts)
         new_points = candidate_srbf(
             opt_prob=self.opt_prob, num_pts=num_pts, surrogate=self.surrogate,
-            X=self.X, fX=self.fX, Xpend=self.Xpend, weights=weights,
+            X=self._X, fX=self._fX, Xpend=self.Xpend, weights=weights,
             sampling_radius=self.sampling_radius, num_cand=self.num_cand)
 
         for i in range(num_pts):
@@ -648,9 +646,8 @@ class SRBFStrategy(SurrogateBaseStrategy):
         """
         # Check if we succeeded at significant improvement
         fbest_new = min([record.value for record in self.record_queue])
-        if fbest_new < self.fbest - 1e-3*math.fabs(self.fbest) or \
-                np.isinf(self.fbest):  # Improvement
-            self.fbest = fbest_new
+        if fbest_new < self._fbest - 1e-3*math.fabs(self._fbest) or np.isinf(self._fbest):  # Improvement
+            self._fbest = fbest_new
             self.status = max(1, self.status + 1)
             self.failcount = 0
         else:
@@ -727,7 +724,7 @@ class DYCORSStrategy(SRBFStrategy):
                          exp_design=exp_design, surrogate=surrogate,
                          asynchronous=asynchronous, batch_size=batch_size,
                          extra_points=extra_points, extra_vals=extra_vals,
-                         use_restarts=use_restarts,  weights=weights, 
+                         use_restarts=use_restarts,  weights=weights,
                          num_cand=num_cand)
 
     def generate_evals(self, num_pts):
@@ -743,7 +740,7 @@ class DYCORSStrategy(SRBFStrategy):
         weights = self.get_weights(num_pts=num_pts)
         new_points = candidate_dycors(
             opt_prob=self.opt_prob, num_pts=num_pts, surrogate=self.surrogate,
-            X=self.X, fX=self.fX, Xpend=self.Xpend, weights=weights,
+            X=self._X, fX=self._fX, Xpend=self.Xpend, weights=weights,
             num_cand=self.num_cand, sampling_radius=self.sampling_radius,
             prob_perturb=prob_perturb)
 
@@ -831,7 +828,7 @@ class EIStrategy(SurrogateBaseStrategy):
 
         new_points = expected_improvement_ga(
             num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
-            X=self.X, fX=self.fX, Xpend=self.Xpend, dtol=self.dtol,
+            X=self._X, fX=self._fX, Xpend=self.Xpend, dtol=self.dtol,
             ei_tol=ei_tol)
 
         if new_points is None:  # Not enough improvement
@@ -921,7 +918,7 @@ class LCBStrategy(SurrogateBaseStrategy):
 
         new_points = lower_confidence_bound_ga(
             num_pts=num_pts, opt_prob=self.opt_prob, surrogate=self.surrogate,
-            X=self.X, fX=self.fX, Xpend=self.Xpend, kappa=self.kappa,
+            X=self._X, fX=self._fX, Xpend=self.Xpend, kappa=self.kappa,
             dtol=self.dtol, lcb_target=lcb_target)
 
         if new_points is None:  # Not enough improvement
@@ -1103,7 +1100,6 @@ class SOPStrategy(SurrogateBaseStrategy):
                  asynchronous=True, batch_size=None, extra_points=None,
                  extra_vals=None, use_restarts=True, num_cand=None):
 
-        self.fbest = np.inf  # Current best function value
         self.dtol = 1e-3 * math.sqrt(opt_prob.dim)
 
         if num_cand is None:
@@ -1203,8 +1199,8 @@ class SOPStrategy(SurrogateBaseStrategy):
                 self.evals[self.centers[center_index].index].sigma
             new_points[i, :] =\
                 candidate_dycors(num_pts=1, opt_prob=self.opt_prob,
-                                 surrogate=self.surrogate, X=self.X,
-                                 fX=self.fX, weights=weights,
+                                 surrogate=self.surrogate, X=self._X,
+                                 fX=self._fX, weights=weights,
                                  sampling_radius=sampling_radius,
                                  num_cand=self.num_cand, Xpend=self.Xpend,
                                  prob_perturb=prob_perturb, xbest=X_c)
