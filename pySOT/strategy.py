@@ -169,8 +169,8 @@ class SurrogateBaseStrategy(BaseStrategy):
         self._X = np.empty([0, opt_prob.dim])
         self._fX = np.empty([0, 1])
 
-        # Event indices to keep track of if points where proposed before a restart
-        self.ev_restart = 0
+        # Event indices to keep track of if points where proposed before an event (restart, parameter change, etc.)
+        self.ev_last = 0
         self.ev_next = 1
 
         # Check inputs (implemented by each strategy)
@@ -239,7 +239,7 @@ class SurrogateBaseStrategy(BaseStrategy):
 
     def sample_restart(self):
         """Restart a run after convergence."""
-        self.ev_restart = self.get_ev()
+        self.ev_last = self.get_ev()
 
         # Reset data in current run
         self._X = np.empty([0, self.opt_prob.dim])
@@ -405,7 +405,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.remove_pending(xx)
 
         # Only count point if it was proposed after the last restart
-        if record.ev_id > self.ev_restart:
+        if record.ev_id > self.ev_last:
             self._X = np.vstack((self._X, np.atleast_2d(xx)))
             self._fX = np.vstack((self._fX, fx))
             self.surrogate.add_points(xx, fx)
@@ -470,7 +470,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         self.remove_pending(xx)
 
         # Only count point if it was proposed after the last restart
-        if record.ev_id > self.ev_restart:
+        if record.ev_id > self.ev_last:
             self._X = np.vstack((self._X, np.atleast_2d(xx)))
             self._fX = np.vstack((self._fX, fx))
             self.surrogate.add_points(xx, fx)
@@ -611,7 +611,7 @@ class SRBFStrategy(SurrogateBaseStrategy):
         """Handle completed evaluation."""
         super().on_adapt_completed(record)
 
-        if record.ev_id > self.ev_restart:  # Only process fresh records
+        if record.ev_id > self.ev_last:  # Only process fresh records
             self.record_queue.append(record)
 
             if self.asynchronous:  # Process immediately
@@ -656,10 +656,12 @@ class SRBFStrategy(SurrogateBaseStrategy):
 
         # Check if step needs adjusting
         if self.status <= -self.failtol:
+            self.ev_last = self.get_ev()  # Update the event id
             self.status = 0
             self.sampling_radius /= 2
             logger.info("Reducing sampling radius")
         if self.status >= self.succtol:
+            self.ev_last = self.get_ev()  # Update the event id
             self.status = 0
             self.sampling_radius = min([2.0 * self.sampling_radius,
                                         self.sampling_radius_max])
@@ -1135,7 +1137,7 @@ class SOPStrategy(SurrogateBaseStrategy):
         """Handle completed evaluation in initial phase"""
         super().on_initial_completed(record)
 
-        if record.ev_id >= self.ev_restart:
+        if record.ev_id >= self.ev_last:
             srec = _SopRecord(np.copy(record.params[0]), record.value,
                             self.sampling_radius)
             self.evals.append(srec)
@@ -1144,7 +1146,7 @@ class SOPStrategy(SurrogateBaseStrategy):
         """Handle completed evaluation in phase 2."""
         super().on_adapt_completed(record)
 
-        if record.ev_id >= self.ev_restart:
+        if record.ev_id >= self.ev_last:
             self.record_queue.append(record)
 
             # Initiate a new SOP Record for new completed evaluation
