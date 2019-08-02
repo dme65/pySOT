@@ -35,10 +35,26 @@ https://github.com/dme65/pySOT/tree/master/pySOT/examples
 https://github.com/dme65/pySOT/tree/master/pySOT/notebooks
 
 
+Citing Us
+---------
+
+If you use pySOT, please cite the following paper:
+`David Eriksson, David Bindel, Christine A. Shoemaker. pySOT and POAP: An event-driven asynchronous framework for surrogate optimization. arXiv preprint arXiv:1908.00420, 2019`_
+
+.. code-block:: html
+
+  @misc{pysot_poap,
+    Author = {David Eriksson and David Bindel and Christine A. Shoemaker},
+    Title = {pySOT and POAP: An event-driven asynchronous framework for surrogate optimization},
+    Year = {2019},
+    Eprint = {arXiv:1908.00420},
+  }
+
 News
 ----
 
 pySOT 0.2.0 has finally been released!
+
 
 FAQ
 ---
@@ -47,9 +63,7 @@ FAQ
 | A: Yes. You need to install mpi4py in order to use the MPIController in POAP.
 |
 | Q: I used pySOT for my research and want to cite it
-| A: There is currently no published paper on pySOT so we recommend
-  citing pySOT like this: *D. Eriksson, D. Bindel, and C. Shoemaker.
-  Surrogate Optimization Toolbox (pySOT). github.com/dme65/pySOT, 2015*
+| A: Please cite our preprint_ which is currently under review!
 |
 | Q: Is there support for Python 2?
 | A: Python 2 support was removed in version 0.2.0
@@ -59,6 +73,8 @@ FAQ
   available here: https://github.com/scikit-learn-contrib/py-earth
 |
 
+.. _`David Eriksson, David Bindel, Christine A. Shoemaker. pySOT and POAP: An event-driven asynchronous framework for surrogate optimization. arXiv preprint arXiv:1908.00420, 2019`: https://arxiv.org/abs/1908.00420
+.. _preprint: https://arxiv.org/abs/1908.00420
 .. |Travis| image:: https://travis-ci.org/dme65/pySOT.svg?branch=master
    :target: https://travis-ci.org/dme65/pySOT
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/pysot/badge/?version=latest
