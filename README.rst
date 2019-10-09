@@ -43,11 +43,11 @@ If you use pySOT, please cite the following paper:
 
 .. code-block:: html
 
-  @misc{pysot_poap,
-    Author = {David Eriksson and David Bindel and Christine A. Shoemaker},
-    Title = {pySOT and POAP: An event-driven asynchronous framework for surrogate optimization},
-    Year = {2019},
-    Eprint = {arXiv:1908.00420},
+  @misc{eriksson2019pysot,
+    title={pySOT and POAP: An event-driven asynchronous framework for surrogate optimization},
+    author={Eriksson, David and Bindel, David and Shoemaker, Christine A},
+    journal={arXiv preprint arXiv:1908.00420},
+    year={2019}
   }
 
 News
