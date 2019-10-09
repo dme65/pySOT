@@ -43,7 +43,7 @@ If you use pySOT, please cite the following paper:
 
 .. code-block:: html
 
-  @misc{eriksson2019pysot,
+  @article{eriksson2019pysot,
     title={pySOT and POAP: An event-driven asynchronous framework for surrogate optimization},
     author={Eriksson, David and Bindel, David and Shoemaker, Christine A},
     journal={arXiv preprint arXiv:1908.00420},
