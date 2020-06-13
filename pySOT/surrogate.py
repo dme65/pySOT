@@ -870,9 +870,9 @@ class SurrogateUnitBox(Surrogate):
     :param model: Original surrogate model (must implement Surrogate)
     :type model: object
     :param lb: Lower variable bounds, of size 1 x dim
-    :type lb: function
+    :type lb: numpy.array
     :param ub: Upper variable bounds, of size 1 x dim
-    :type ub: function
+    :type ub: numpy.array
 
     :ivar dim: Number of dimensions
     :ivar num_pts: Number of points in surrogate model
