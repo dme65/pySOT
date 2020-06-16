@@ -1,2 +1,2 @@
-__version__ = '0.2.3'
-__author__ = 'David Eriksson, David Bindel, Christine Shoemaker'
+__version__ = "0.2.3"
+__author__ = "David Eriksson, David Bindel, Christine Shoemaker"
