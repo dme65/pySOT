@@ -7,3 +7,6 @@ pySOT.egg-info
 *.pysot
 .pytest_cache/*
 *checkpoint.ipynb
+.DS_store
+.coverage
+.vscode/

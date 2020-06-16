@@ -8,9 +8,12 @@
 :Author: David Eriksson <dme65@cornell.edu>
 """
 
-from pySOT.optimization_problems import OptimizationProblem
+import sys
+
 import numpy as np
 import scipy.spatial as scp
+
+from .optimization_problems import OptimizationProblem
 
 POSITIVE_INFINITY = float("inf")
 
@@ -59,7 +62,7 @@ def unit_rescale(x):
     if x_max == x_min:
         return np.ones(x.shape)
     else:
-        return (x - x_min)/(x_max - x_min)
+        return (x - x_min) / (x_max - x_min)
 
 
 def round_vars(x, int_var, lb, ub):
@@ -113,9 +116,9 @@ def check_opt_prob(obj):  # pragma: no cover
         raise ValueError("Numpy array of lower bounds required")
     if not isinstance(obj.ub, np.ndarray):
         raise ValueError("Numpy array of upper bounds required")
-    if not(len(obj.lb) == obj.dim and len(obj.ub) == obj.dim):
+    if not (len(obj.lb) == obj.dim and len(obj.ub) == obj.dim):
         raise AttributeError("Incorrect size for lb and ub")
-    if not(all(obj.lb[i] < obj.ub[i] for i in range(obj.dim))):
+    if not (all(obj.lb[i] < obj.ub[i] for i in range(obj.dim))):
         raise AttributeError("Lower bounds must be smaller than upper bounds.")
 
     contvar = obj.cont_var
@@ -124,31 +127,25 @@ def check_opt_prob(obj):  # pragma: no cover
         if not isinstance(contvar, np.ndarray):
             raise ValueError("Numpy array of continuous variables required")
         else:
-            if not(isinstance(contvar, np.ndarray) or
-                   isinstance(contvar, list)):
+            if not (isinstance(contvar, np.ndarray) or isinstance(contvar, list)):
                 raise AttributeError("Continuous variables must be specified")
     if len(intvar) > 0:
         if not isinstance(intvar, np.ndarray):
             raise ValueError("Numpy array of integer variables required")
         else:
-            if not (isinstance(intvar, np.ndarray) or
-                    isinstance(intvar, list)):
+            if not (isinstance(intvar, np.ndarray) or isinstance(intvar, list)):
                 raise AttributeError("Integer variables must be specified")
 
     if len(contvar) > 0:
-        if not(np.amax(contvar) < obj.dim and np.amin(contvar) >= 0):
-            raise AttributeError("Continuous variable index can't exceed "
-                                 "number of dimensions or be negative")
+        if not (np.amax(contvar) < obj.dim and np.amin(contvar) >= 0):
+            raise AttributeError("Continuous variable index can't exceed " "number of dimensions or be negative")
     if len(intvar) > 0:
-        if not(np.amax(intvar) < obj.dim and np.amin(intvar) >= 0):
-            raise AttributeError("Integer variable index can't exceed "
-                                 "number of dimensions or be negative")
-    if not(len(np.intersect1d(contvar, intvar)) == 0):
-        raise AttributeError("A variable can't be both "
-                             "an integer and continuous")
-    if not(len(contvar) + len(intvar) == obj.dim):
-        raise AttributeError("All variables must be either "
-                             "integer or continuous")
+        if not (np.amax(intvar) < obj.dim and np.amin(intvar) >= 0):
+            raise AttributeError("Integer variable index can't exceed " "number of dimensions or be negative")
+    if not (len(np.intersect1d(contvar, intvar)) == 0):
+        raise AttributeError("A variable can't be both " "an integer and continuous")
+    if not (len(contvar) + len(intvar) == obj.dim):
+        raise AttributeError("All variables must be either " "integer or continuous")
 
 
 def progress_plot(controller, title="", interactive=False):  # pragma: no cover
@@ -167,9 +164,10 @@ def progress_plot(controller, title="", interactive=False):  # pragma: no cover
 
     try:
         import matplotlib.pyplot as plt
+
         plotting_on = True
     finally:
-        if 'matplotlib.pyplot' not in sys.modules:
+        if "matplotlib.pyplot" not in sys.modules:
             plotting_on = False
             pass
         else:
@@ -180,23 +178,21 @@ def progress_plot(controller, title="", interactive=False):  # pragma: no cover
         return
 
     # Extract function values from the controller, ignoring crashed evaluations
-    fvals = np.array(
-        [o.value for o in controller.fevals if o.value is not None])
+    fvals = np.array([o.value for o in controller.fevals if o.value is not None])
 
     plt.figure()
     if interactive:
         plt.ion()
-    plt.plot(np.arange(0, fvals.shape[0]), fvals, 'bo')  # Points
-    plt.plot(np.arange(0, fvals.shape[0]), np.minimum.accumulate(fvals),
-             'r-', linewidth=4.0)  # Best value found
+    plt.plot(np.arange(0, fvals.shape[0]), fvals, "bo")  # Points
+    plt.plot(np.arange(0, fvals.shape[0]), np.minimum.accumulate(fvals), "r-", linewidth=4.0)  # Best value found
 
     # Set limits
     ymin = np.min(fvals)
     ymax = np.max(fvals)
     plt.ylim(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin))
 
-    plt.xlabel('Evaluations')
-    plt.ylabel('Function Value')
+    plt.xlabel("Evaluations")
+    plt.ylabel("Function Value")
     plt.title(title)
     plt.show()
 
@@ -245,8 +241,7 @@ class GeneticAlgorithm:
     :ivar function: Object that can be used to evaluate the objective function
     """
 
-    def __init__(self, function, dim, lb, ub, int_var=None,
-                 pop_size=100, num_gen=100, start="SLHD"):
+    def __init__(self, function, dim, lb, ub, int_var=None, pop_size=100, num_gen=100, start="SLHD"):
 
         self.nvariables = dim
         self.nindividuals = pop_size + (pop_size % 2)  # Make sure this is even
@@ -257,7 +252,7 @@ class GeneticAlgorithm:
             self.integer_variables = np.array(int_var)
         self.start = start
         self.sigma = 0.2
-        self.p_mutation = 1.0/dim
+        self.p_mutation = 1.0 / dim
         self.tournament_size = 5
         self.p_cross = 0.9
         self.ngenerations = num_gen
@@ -271,28 +266,27 @@ class GeneticAlgorithm:
         """
         #  Initialize population
         if isinstance(self.start, np.ndarray):
-            if self.start.shape[0] != self.nindividuals or \
-                    self.start.shape[1] != self.nvariables:
+            if self.start.shape[0] != self.nindividuals or self.start.shape[1] != self.nvariables:
                 raise ValueError("Initial population has incorrect size")
-            if any(np.min(self.start, axis=0) >= self.lower_boundary) or \
-                    any(np.max(self.start, axis=0) <= self.upper_boundary):
+            if any(np.min(self.start, axis=0) >= self.lower_boundary) or any(
+                np.max(self.start, axis=0) <= self.upper_boundary
+            ):
                 raise ValueError("Initial population is outside the domain")
             population = self.start
         elif self.start == "SLHD":
             from pySOT.experimental_design import SymmetricLatinHypercube
-            exp_des = SymmetricLatinHypercube(
-                self.nvariables, self.nindividuals)
-            population = self.lower_boundary + exp_des.generate_points() * \
-                (self.upper_boundary - self.lower_boundary)
+
+            exp_des = SymmetricLatinHypercube(self.nvariables, self.nindividuals)
+            population = self.lower_boundary + exp_des.generate_points() * (self.upper_boundary - self.lower_boundary)
         elif self.start == "LHD":
             from pySOT.experimental_design import LatinHypercube
+
             exp_des = LatinHypercube(self.nvariables, self.nindividuals)
-            population = self.lower_boundary + exp_des.generate_points() * \
-                (self.upper_boundary - self.lower_boundary)
+            population = self.lower_boundary + exp_des.generate_points() * (self.upper_boundary - self.lower_boundary)
         elif self.start == "Random":
-            population = self.lower_boundary + np.random.rand(
-                self.nindividuals, self.nvariables) *\
-                (self.upper_boundary - self.lower_boundary)
+            population = self.lower_boundary + np.random.rand(self.nindividuals, self.nvariables) * (
+                self.upper_boundary - self.lower_boundary
+            )
         else:
             raise ValueError("Unknown argument for initial population")
 
@@ -300,8 +294,7 @@ class GeneticAlgorithm:
         #  Round positions
         if len(self.integer_variables) > 0:
             new_population = np.copy(population)
-            population[:, self.integer_variables] = np.round(
-                population[:, self.integer_variables])
+            population[:, self.integer_variables] = np.round(population[:, self.integer_variables])
             for i in self.integer_variables:
                 ind = np.where(population[:, i] < self.lower_boundary[i])
                 population[ind, i] += 1
@@ -324,59 +317,44 @@ class GeneticAlgorithm:
         # Main loop
         for _ in range(self.ngenerations):
             # Do tournament selection to select the parents
-            competitors = np.random.randint(
-                0, self.nindividuals,
-                (self.nindividuals, self.tournament_size))
+            competitors = np.random.randint(0, self.nindividuals, (self.nindividuals, self.tournament_size))
             ind = np.argmin(function_values[competitors], axis=1)
             winner_indices = np.zeros(self.nindividuals, dtype=int)
             for i in range(self.tournament_size):  # This loop is short
-                winner_indices[np.where(ind == i)] = \
-                    competitors[np.where(ind == i), i]
+                winner_indices[np.where(ind == i)] = competitors[np.where(ind == i), i]
 
-            parent1 = population[
-                winner_indices[0:self.nindividuals//2], :]
-            parent2 = population[
-                winner_indices[self.nindividuals//2:self.nindividuals], :]
+            parent1 = population[winner_indices[0 : self.nindividuals // 2], :]
+            parent2 = population[winner_indices[self.nindividuals // 2 : self.nindividuals], :]
 
             # Averaging Crossover
-            cross = np.where(np.random.rand(
-                self.nindividuals//2) < self.p_cross)[0]
+            cross = np.where(np.random.rand(self.nindividuals // 2) < self.p_cross)[0]
             nn = len(cross)  # Number of crossovers
             alpha = np.random.rand(nn, 1)
 
             # Create the new chromosomes
-            parent1_new = np.multiply(alpha, parent1[cross, :]) + \
-                np.multiply(1 - alpha, parent2[cross, :])
-            parent2_new = np.multiply(alpha, parent2[cross, :]) + \
-                np.multiply(1 - alpha, parent1[cross, :])
+            parent1_new = np.multiply(alpha, parent1[cross, :]) + np.multiply(1 - alpha, parent2[cross, :])
+            parent2_new = np.multiply(alpha, parent2[cross, :]) + np.multiply(1 - alpha, parent1[cross, :])
             parent1[cross, :] = parent1_new
             parent2[cross, :] = parent2_new
             population = np.concatenate((parent1, parent2))
 
             # Apply mutation
-            scale_factors = self.sigma * (
-                self.upper_boundary - self.lower_boundary)  # Scale
-            perturbation = np.random.randn(
-                self.nindividuals, self.nvariables)  # Generate perturbations
+            scale_factors = self.sigma * (self.upper_boundary - self.lower_boundary)  # Scale
+            perturbation = np.random.randn(self.nindividuals, self.nvariables)  # Generate perturbations
+            perturbation = np.multiply(perturbation, scale_factors)  # Scale accordingly
             perturbation = np.multiply(
-                perturbation, scale_factors)  # Scale accordingly
-            perturbation = np.multiply(perturbation, (
-                np.random.rand(self.nindividuals,
-                               self.nvariables) < self.p_mutation))
+                perturbation, (np.random.rand(self.nindividuals, self.nvariables) < self.p_mutation)
+            )
 
             population += perturbation  # Add perturbation
-            population = np.maximum(np.reshape(
-                self.lower_boundary, (1, self.nvariables)), population)
-            population = np.minimum(np.reshape(
-                self.upper_boundary, (1, self.nvariables)), population)
+            population = np.maximum(np.reshape(self.lower_boundary, (1, self.nvariables)), population)
+            population = np.minimum(np.reshape(self.upper_boundary, (1, self.nvariables)), population)
 
             # Round chromosomes
             new_population = []
             if len(self.integer_variables) > 0:
                 new_population = np.copy(population)
-                population = round_vars(population, self.integer_variables,
-                                        self.lower_boundary,
-                                        self.upper_boundary)
+                population = round_vars(population, self.integer_variables, self.lower_boundary, self.upper_boundary)
 
             # Keep the best individual
             population[0, :] = best_individual
@@ -439,11 +417,11 @@ def nd_add(F, df_index, ndf_index):
 
     # Traverse through F to update indices of dominated and nd points
     while j < ndf_count:
-        if domination(F[:, N], F[:, ndf_index[j-1]]):
-            df_index.append(ndf_index[j-1])
-            ndf_index.remove(ndf_index[j-1])
+        if domination(F[:, N], F[:, ndf_index[j - 1]]):
+            df_index.append(ndf_index[j - 1])
+            ndf_index.remove(ndf_index[j - 1])
             ndf_count -= 1
-        elif domination(F[:, ndf_index[j-1]], F[:, N]):
+        elif domination(F[:, ndf_index[j - 1]], F[:, N]):
             df_index.append(N)
             ndf_index.remove(N)
             ndf_count -= 1
@@ -467,7 +445,7 @@ def nd_front(F):
     df_index = []
     ndf_index = [int(0)]
     for i in range(1, N):
-        (ndf_index, df_index) = nd_add(F[:, 0:i+1], df_index, ndf_index)
+        (ndf_index, df_index) = nd_add(F[:, 0 : i + 1], df_index, ndf_index)
     return (ndf_index, df_index)
 
 
@@ -487,8 +465,8 @@ def nd_sorting(F, nmax):
     """
 
     (M, N) = F.shape
-    nd_ranks = np.ones((N, ), dtype=np.int)*POSITIVE_INFINITY
-    P = np.ones((N, ), dtype=np.int)
+    nd_ranks = np.ones((N,), dtype=np.int) * POSITIVE_INFINITY
+    P = np.ones((N,), dtype=np.int)
     for i in range(0, N):
         P[i] = i
     i = 1
@@ -498,11 +476,11 @@ def nd_sorting(F, nmax):
         for j in range(0, len(ndf_index)):
             nd_ranks[P[ndf_index[j]]] = i
         count = count + len(ndf_index)
-        P_new = np.ones((len(df_index), ), dtype=np.int)
+        P_new = np.ones((len(df_index),), dtype=np.int)
         for j in range(0, len(df_index)):
             P_new[j] = P[df_index[j]]
         P = P_new
-        i = i+1
+        i = i + 1
     return nd_ranks
 
 
@@ -533,12 +511,12 @@ def check_radius_rule(X, X_c, sigma, dim, nc, d_thresh=1.0):
 
     flag = 1
     for i in range(nc):
-        if X_c[i, dim+4] == 0:
+        if X_c[i, dim + 4] == 0:
             sigma_new = sigma
         else:
-            sigma_new = np.power(1/2, X_c[i, dim+4])*sigma
+            sigma_new = np.power(1 / 2, X_c[i, dim + 4]) * sigma
         d = scp.distance.euclidean(X, X_c[i, 0:dim])
-        if d < sigma_new*d_thresh/np.sqrt(len(X)):
+        if d < sigma_new * d_thresh / np.sqrt(len(X)):
             flag = 0
             break
     return flag
