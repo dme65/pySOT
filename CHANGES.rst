@@ -1,3 +1,9 @@
+v.0.3.0,  2020-06-16
+--------------------
+
+- Refactoring the code and fixing the docs
+- Adding pre-commit hooks
+
 v.0.2.3,  2019-07-04
 --------------------
 
@@ -115,12 +121,6 @@ v0.1.23, 2016-07-28
 - Updates to support the new MPIController in POAP
 - pySOT now sends copies of key variables in case they are changed by the method
 
-v0.1.23, 2016-07-28
--------------------
-
-- Updates to support the new MPIController in POAP
-- pySOT now sends copies of key variables in case they are changed by the method
-
 v0.1.22, 2016-06-27
 -------------------
 
@@ -197,7 +197,7 @@ v0.1.11, 2015-07-22
 
 - Fixed a bug in the capped response surface
 - pySOT now internally works on the unit hypercube
-- The distance can be passed to the RBF after being computed when generating candidate points so it’s not computed twice anymore
+- The distance can be passed to the RBF after being computed when generating candidate points so it's not computed twice anymore
 - Fixed some bugs in the candidate functions
 - GA and Multi-Search gradient perturb the best solution in the case when the best solution is a previously evaluated point
 - Added an additional test for the multi-search strategy
