@@ -66,7 +66,7 @@ def main_master(num_workers):
     max_evals = 200
 
     sphere = Sphere(dim=10)
-    rbf = RBFInterpolant(dim=sphere.dim, kernel=CubicKernel(), tail=LinearTail(sphere.dim))
+    rbf = RBFInterpolant(dim=sphere.dim, lb=sphere.lb, ub=sphere.ub, kernel=CubicKernel(), tail=LinearTail(sphere.dim))
     slhd = SymmetricLatinHypercube(dim=sphere.dim, num_pts=2 * (sphere.dim + 1))
 
     # Create a strategy and a controller

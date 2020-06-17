@@ -27,7 +27,7 @@ def example_gp_regression():
     max_evals = 50
 
     ackley = Ackley(dim=4)
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller

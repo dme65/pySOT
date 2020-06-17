@@ -47,7 +47,7 @@ def example_matlab_engine():
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Use the serial controller (uses only one thread)

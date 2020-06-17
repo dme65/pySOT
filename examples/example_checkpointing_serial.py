@@ -43,7 +43,7 @@ def example_checkpoint_serial():
 
 def init():
     print("\nInitializing run...")
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller

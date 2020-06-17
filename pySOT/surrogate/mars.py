@@ -2,6 +2,7 @@ import warnings
 
 import numpy as np
 
+from ..utils import to_unit_box
 from .surrogate import Surrogate
 
 
@@ -35,12 +36,8 @@ class MARSInterpolant(Surrogate):
     :ivar model: Earth object
     """
 
-    def __init__(self, dim):
-        self.num_pts = 0
-        self.X = np.empty([0, dim])
-        self.fX = np.empty([0, 1])
-        self.dim = dim
-        self.updated = False
+    def __init__(self, dim, lb, ub, output_transformation=None):
+        super().__init__(dim=dim, lb=lb, ub=ub, output_transformation=output_transformation)
 
         try:
             from pyearth import Earth
@@ -55,7 +52,8 @@ class MARSInterpolant(Surrogate):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # Surpress deprecation warnings
             if self.updated is False:
-                self.model.fit(self.X, self.fX)
+                fX = self.output_transformation(self.fX.copy())
+                self.model.fit(self._X, fX)
                 self.updated = True
 
     def predict(self, xx):
@@ -68,7 +66,7 @@ class MARSInterpolant(Surrogate):
         :rtype: numpy.ndarray
         """
         self._fit()
-        xx = np.atleast_2d(xx)
+        xx = to_unit_box(np.atleast_2d(xx), self.lb, self.ub)
         return np.expand_dims(self.model.predict(xx), axis=1)
 
     def predict_deriv(self, xx):
@@ -81,6 +79,6 @@ class MARSInterpolant(Surrogate):
         :rtype: numpy.array
         """
         self._fit()
-        xx = np.expand_dims(xx, axis=0)
+        xx = to_unit_box(np.atleast_2d(xx), self.lb, self.ub)
         dfx = self.model.predict_deriv(xx, variables=None)
-        return dfx[0]
+        return dfx[0] / (self.ub - self.lb)

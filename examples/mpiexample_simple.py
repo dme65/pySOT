@@ -36,7 +36,9 @@ def main_master(opt_prob, num_workers):
 
     max_evals = 500
 
-    rbf = RBFInterpolant(dim=opt_prob.dim, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim))
+    rbf = RBFInterpolant(
+        dim=opt_prob.dim, lb=opt_prob.lb, ub=opt_prob.ub, kernel=CubicKernel(), tail=LinearTail(opt_prob.dim)
+    )
     slhd = SymmetricLatinHypercube(dim=opt_prob.dim, num_pts=2 * (opt_prob.dim + 1))
 
     # Create a strategy and a controller

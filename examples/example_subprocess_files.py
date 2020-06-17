@@ -63,7 +63,7 @@ def example_subprocess_files():
     max_evals = 200
 
     sphere = Sphere(dim=10)
-    rbf = RBFInterpolant(dim=sphere.dim, kernel=TPSKernel(), tail=LinearTail(sphere.dim))
+    rbf = RBFInterpolant(dim=sphere.dim, lb=sphere.lb, ub=sphere.ub, kernel=TPSKernel(), tail=LinearTail(sphere.dim))
     slhd = SymmetricLatinHypercube(dim=sphere.dim, num_pts=2 * (sphere.dim + 1))
 
     # Create a strategy and a controller

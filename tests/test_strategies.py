@@ -33,7 +33,7 @@ def check_strategy(controller):
 
 def test_srbf_serial():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -48,7 +48,7 @@ def test_srbf_serial():
 
 def test_srbf_sync():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -67,7 +67,7 @@ def test_srbf_sync():
 
 def test_srbf_async():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -89,7 +89,7 @@ def test_srbf_async():
 
 def test_dycors_serial():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -104,7 +104,7 @@ def test_dycors_serial():
 
 def test_dycors_sync():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -123,7 +123,7 @@ def test_dycors_sync():
 
 def test_dycors_async():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -145,7 +145,7 @@ def test_dycors_async():
 
 def test_ei_serial():
     max_evals = 50
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -160,7 +160,7 @@ def test_ei_serial():
 
 def test_ei_sync():
     max_evals = 50
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -179,7 +179,7 @@ def test_ei_sync():
 
 def test_ei_async():
     max_evals = 50
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -201,7 +201,7 @@ def test_ei_async():
 
 def test_lcb_serial():
     max_evals = 50
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -216,7 +216,7 @@ def test_lcb_serial():
 
 def test_lcb_sync():
     max_evals = 50
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -235,7 +235,7 @@ def test_lcb_sync():
 
 def test_lcb_async():
     max_evals = 50
-    gp = GPRegressor(dim=ackley.dim)
+    gp = GPRegressor(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub)
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -276,7 +276,7 @@ def test_random_sampling():
 
 def test_sop_serial():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -291,7 +291,7 @@ def test_sop_serial():
 
 def test_sop_sync():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller
@@ -316,7 +316,7 @@ def test_sop_sync():
 
 def test_sop_async():
     max_evals = 200
-    rbf = RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller

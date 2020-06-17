@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg as scplinalg
 import scipy.spatial as scpspatial
 
+from ..utils import to_unit_box
 from .kernels import CubicKernel, Kernel
 from .surrogate import Surrogate
 from .tails import LinearTail, Tail
@@ -37,6 +38,10 @@ class RBFInterpolant(Surrogate):
 
     :param dim: Number of dimensions
     :type dim: int
+    :param lb: Lower variable bounds
+    :type lb: numpy.array
+    :param ub: Upper variable bounds
+    :type ub: numpy.array
     :param kernel: RBF kernel object
     :type kernel: Kernel
     :param tail: RBF polynomial tail object
@@ -45,6 +50,8 @@ class RBFInterpolant(Surrogate):
     :type eta: float
 
     :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
     :ivar num_pts: Number of points in surrogate model
     :ivar X: Point incorporated in surrogate model (num_pts x dim)
     :ivar fX: Function values in surrogate model (num_pts x 1)
@@ -54,12 +61,8 @@ class RBFInterpolant(Surrogate):
     :ivar eta: Regularization parameter
     """
 
-    def __init__(self, dim, kernel=None, tail=None, eta=1e-6):
-        self.num_pts = 0
-        self.dim = dim
-        self.X = np.empty([0, dim])  # pylint: disable=invalid-name
-        self.fX = np.empty([0, 1])
-        self.updated = False
+    def __init__(self, dim, lb, ub, output_transformation=None, kernel=None, tail=None, eta=1e-6):
+        super().__init__(dim=dim, lb=lb, ub=ub, output_transformation=output_transformation)
 
         if kernel is None or tail is None:
             kernel = CubicKernel()
@@ -104,7 +107,7 @@ class RBFInterpolant(Surrogate):
             if self.c is None:  # Initial fit
                 assert self.num_pts >= ntail
 
-                X = self.X[0:n, :]
+                X = self._X[0:n, :]
                 D = scpspatial.distance.cdist(X, X)
                 Phi = self.kernel.eval(D) + self.eta * np.eye(n)
                 P = self.tail.eval(X)
@@ -128,8 +131,8 @@ class RBFInterpolant(Surrogate):
                 numnew = n - k
                 kact = ntail + k
 
-                X = self.X[:n, :]
-                XX = self.X[k:n, :]
+                X = self._X[:n, :]
+                XX = self._X[k:n, :]
                 D = scpspatial.distance.cdist(X, XX)
                 Pnew = np.vstack((self.tail.eval(XX).T, self.kernel.eval(D[:k, :])))
                 Phinew = self.kernel.eval(D[k:, :]) + self.eta * np.eye(numnew)
@@ -155,7 +158,8 @@ class RBFInterpolant(Surrogate):
                 self.U = np.vstack((self.U, U2))
 
             # Update coefficients
-            rhs = np.vstack((np.zeros((ntail, 1)), self.fX))
+            fX = self.output_transformation(self.fX.copy())
+            rhs = np.vstack((np.zeros((ntail, 1)), fX))
             self.c = scplinalg.solve_triangular(a=self.L, b=rhs[self.piv], lower=True)
             self.c = scplinalg.solve_triangular(a=self.U, b=self.c, lower=False)
             self.updated = True
@@ -170,8 +174,8 @@ class RBFInterpolant(Surrogate):
         :rtype: numpy.ndarray
         """
         self._fit()
-        xx = np.atleast_2d(xx)
-        ds = scpspatial.distance.cdist(xx, self.X)
+        xx = to_unit_box(np.atleast_2d(xx), self.lb, self.ub)
+        ds = scpspatial.distance.cdist(xx, self._X)
         ntail = self.ntail
         return np.dot(self.kernel.eval(ds), self.c[ntail : ntail + self.num_pts]) + np.dot(
             self.tail.eval(xx), self.c[:ntail]
@@ -187,10 +191,10 @@ class RBFInterpolant(Surrogate):
         :rtype: numpy.array
         """
         self._fit()
-        xx = np.atleast_2d(xx)
+        xx = to_unit_box(np.atleast_2d(xx), self.lb, self.ub)
         if xx.shape[1] != self.dim:
             raise ValueError("Input has incorrect number of dimensions")
-        ds = scpspatial.distance.cdist(self.X, xx)
+        ds = scpspatial.distance.cdist(self._X, xx)
         ds[ds < np.finfo(float).eps] = np.finfo(float).eps  # Avoid 0*inf
 
         dfxx = np.zeros((xx.shape[0], self.dim))
@@ -199,10 +203,10 @@ class RBFInterpolant(Surrogate):
             ntail = self.ntail
             dpx = self.tail.deriv(x)
             dfx = np.dot(dpx, self.c[:ntail]).transpose()
-            dsx = -(self.X.copy())
+            dsx = -(self._X.copy())
             dsx += x
             dss = np.atleast_2d(ds[:, i]).T
             dsx *= np.multiply(self.kernel.deriv(dss), self.c[ntail:]) / dss
             dfx += np.sum(dsx, 0)
             dfxx[i, :] = dfx
-        return dfxx
+        return dfxx / (self.ub - self.lb)

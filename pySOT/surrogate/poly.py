@@ -3,6 +3,7 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
 
+from ..utils import to_unit_box
 from .surrogate import Surrogate
 
 
@@ -22,18 +23,15 @@ class PolyRegressor(Surrogate):
     :ivar model: scikit-learn pipeline for polynomial regression
     """
 
-    def __init__(self, dim, degree=2):
-        self.num_pts = 0
-        self.X = np.empty([0, dim])
-        self.fX = np.empty([0, 1])
-        self.dim = dim
-        self.updated = False
+    def __init__(self, dim, lb, ub, output_transformation=None, degree=2):
+        super().__init__(dim=dim, lb=lb, ub=ub, output_transformation=output_transformation)
         self.model = make_pipeline(PolynomialFeatures(degree), Ridge())
 
     def _fit(self):
         """Update the polynomial regression model."""
         if not self.updated:
-            self.model.fit(self.X, self.fX)
+            fX = self.output_transformation(self.fX.copy())
+            self.model.fit(self._X, fX)
             self.updated = True
 
     def predict(self, xx):
@@ -46,7 +44,7 @@ class PolyRegressor(Surrogate):
         :rtype: numpy.ndarray
         """
         self._fit()
-        xx = np.atleast_2d(xx)
+        xx = to_unit_box(np.atleast_2d(xx), self.lb, self.ub)
         return self.model.predict(xx)
 
     def predict_deriv(self, xx):

@@ -27,7 +27,7 @@ def example_expected_improvement():
     max_evals = 100
 
     hart6 = Hartmann6()
-    gp = GPRegressor(dim=hart6.dim)
+    gp = GPRegressor(dim=hart6.dim, lb=hart6.lb, ub=hart6.ub)
     slhd = SymmetricLatinHypercube(dim=hart6.dim, num_pts=2 * (hart6.dim + 1))
 
     # Create a strategy and a controller

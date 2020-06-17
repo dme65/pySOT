@@ -80,7 +80,7 @@ def example_subprocess_partial_info():
     max_evals = 200
 
     sumfun = SumfunExt(dim=10)
-    rbf = RBFInterpolant(dim=sumfun.dim, kernel=CubicKernel(), tail=LinearTail(sumfun.dim))
+    rbf = RBFInterpolant(dim=sumfun.dim, lb=sumfun.lb, ub=sumfun.ub, kernel=CubicKernel(), tail=LinearTail(sumfun.dim))
     slhd = SymmetricLatinHypercube(dim=sumfun.dim, num_pts=2 * (sumfun.dim + 1))
 
     # Create a strategy and a controller

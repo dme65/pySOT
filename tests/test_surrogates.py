@@ -13,10 +13,9 @@ from pySOT.surrogate import (
     PolyRegressor,
     RBFInterpolant,
     Surrogate,
-    SurrogateCapped,
-    SurrogateUnitBox,
     Tail,
     TPSKernel,
+    median_capping,
 )
 
 
@@ -121,7 +120,7 @@ def make_grid(n):
 
 def test_rbf():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    rbf = RBFInterpolant(dim=2, eta=1e-6)
+    rbf = RBFInterpolant(dim=2, lb=np.zeros(2), ub=np.ones(2), eta=1e-6)
     assert isinstance(rbf, Surrogate)
     fX = f(X)
     rbf.add_points(X, fX)
@@ -166,7 +165,7 @@ def test_rbf():
 
 def test_gp():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    gp = GPRegressor(dim=2)
+    gp = GPRegressor(dim=2, lb=np.zeros(2), ub=np.ones(2))
     assert isinstance(gp, Surrogate)
     fX = f(X)
     gp.add_points(X, fX)
@@ -186,7 +185,7 @@ def test_gp():
 
 def test_poly():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
-    poly = PolyRegressor(dim=2, degree=2)
+    poly = PolyRegressor(dim=2, lb=np.zeros(2), ub=np.ones(2), degree=2)
     assert isinstance(poly, Surrogate)
     fX = f(X)
     poly.add_points(X, fX)
@@ -206,7 +205,7 @@ def test_poly():
 def test_mars():
     X = make_grid(30)  # Make uniform grid with 30 x 30 points
     try:
-        mars = MARSInterpolant(dim=2)
+        mars = MARSInterpolant(dim=2, lb=np.zeros(2), ub=np.ones(2))
     except Exception as e:
         print(str(e))
         return
@@ -238,13 +237,13 @@ def test_capped():
     xx = np.expand_dims(np.linspace(0, 1, 100), axis=1)
 
     # RBF with capping adapter
-    rbf1 = SurrogateCapped(RBFInterpolant(dim=1, eta=1e-6))
+    rbf1 = RBFInterpolant(dim=1, lb=np.zeros(1), ub=np.ones(1), output_transformation=median_capping, eta=1e-6)
     rbf1.add_points(x, fX)
 
     # RBF fitted to capped value
     fX_capped = fX.copy()
     fX_capped[fX > np.median(fX)] = np.median(fX)
-    rbf2 = RBFInterpolant(dim=1, eta=1e-6)
+    rbf2 = RBFInterpolant(dim=1, lb=np.zeros(1), ub=np.ones(1), eta=1e-6)
     rbf2.add_points(x, fX_capped)
 
     assert np.max(np.abs(rbf1.predict(xx) - rbf2.predict(xx))) < 1e-10
@@ -264,11 +263,11 @@ def test_unit_box():
     xx = np.expand_dims(np.linspace(0, 1, 100), axis=1)
 
     # RBF with internal scaling to unit hypercube
-    rbf1 = SurrogateUnitBox(RBFInterpolant(dim=1, eta=1e-6), lb=np.array([0.0]), ub=np.array([1.0]))
+    rbf1 = RBFInterpolant(dim=1, lb=np.zeros(1), ub=100 * np.ones(1), eta=1e-6)
     rbf1.add_points(x, fX)
 
     # Normal RBF
-    rbf2 = RBFInterpolant(dim=1, eta=1e-6)
+    rbf2 = RBFInterpolant(dim=1, lb=np.zeros(1), ub=100 * np.ones(1), eta=1e-6)
     rbf2.add_points(x, fX)
 
     assert np.max(np.abs(rbf1.predict(xx) - rbf2.predict(xx))) < 1e-10

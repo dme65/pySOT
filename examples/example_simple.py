@@ -13,7 +13,7 @@ from poap.controller import BasicWorkerThread, ThreadController
 from pySOT.experimental_design import SymmetricLatinHypercube
 from pySOT.optimization_problems import Ackley
 from pySOT.strategy import SRBFStrategy
-from pySOT.surrogate import CubicKernel, LinearTail, RBFInterpolant, SurrogateUnitBox
+from pySOT.surrogate import CubicKernel, LinearTail, RBFInterpolant
 
 
 def example_simple():
@@ -27,9 +27,7 @@ def example_simple():
     max_evals = 500
 
     ackley = Ackley(dim=10)
-    rbf = SurrogateUnitBox(
-        RBFInterpolant(dim=ackley.dim, kernel=CubicKernel(), tail=LinearTail(ackley.dim)), lb=ackley.lb, ub=ackley.ub
-    )
+    rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
 
     # Create a strategy and a controller

@@ -10,3 +10,4 @@ pySOT.egg-info
 .DS_store
 .coverage
 .vscode/
+.coverage*
