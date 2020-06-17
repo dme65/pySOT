@@ -30,9 +30,9 @@ Examples
 
 Several pySOT examples and notebooks can be found at:
 
-https://github.com/dme65/pySOT/tree/master/pySOT/examples
+https://github.com/dme65/pySOT/tree/master/examples
 
-https://github.com/dme65/pySOT/tree/master/pySOT/notebooks
+https://github.com/dme65/pySOT/tree/master/notebooks
 
 
 Citing Us
@@ -49,12 +49,6 @@ If you use pySOT, please cite the following paper:
     journal={arXiv preprint arXiv:1908.00420},
     year={2019}
   }
-
-News
-----
-
-pySOT 0.2.0 has finally been released!
-
 
 FAQ
 ---
