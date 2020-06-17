@@ -25,11 +25,11 @@ This is an implementation of the SRBF strategy by Regis and Shoemaker:
 
 | Rommel G Regis and Christine A Shoemaker.
 | A stochastic radial basis function method for the global optimization of expensive functions.
-| INFORMS Journal on Computing, 19(4): 497–509, 2007.
+| INFORMS Journal on Computing, 19(4): 497-509, 2007.
 
-Rommel G Regis and Christine A Shoemaker.
-Parallel stochastic global optimization using radial basis functions.
-INFORMS Journal on Computing, 21(3):411–426, 2009.
+| Rommel G Regis and Christine A Shoemaker.
+| Parallel stochastic global optimization using radial basis functions.
+| INFORMS Journal on Computing, 21(3):411-426, 2009.
 
 The main idea is to pick the new evaluations from a set of candidate
 points where each candidate point is generated as an N(0, sigma^2)
@@ -79,7 +79,7 @@ This is an implementation of the DYCORS strategy by Regis and Shoemaker:
 | Rommel G Regis and Christine A Shoemaker.
 | Combining radial basis function surrogates and dynamic coordinate search in
   high-dimensional expensive black-box optimization.
-| Engineering Optimization, 45(5): 529–555, 2013.
+| Engineering Optimization, 45(5): 529-555, 2013.
 
 This is an extension of the SRBF strategy that changes how the candidate
 points are generated. The main idea is that many objective functions depend
@@ -98,14 +98,14 @@ This is an implementation of the SOP strategy by Krityakierne, Akhtar and Shoema
 | Tipaluck Krityakierne, Taimoor Akhtar and Christine A. Shoemaker.
 | SOP: parallel surrogate global optimization with Pareto center selection
   for computationally expensive single objective problems.
-| Journal of Global Optimization, 66(3): 417–437, 2016.
+| Journal of Global Optimization, 66(3): 417-437, 2016.
 
 The core idea of SOP is to maintain a ranked archive of all previously evaluated points,
 as per non-dominated sorting between two objectives, i.e., i) Objective function value(minimize)
 and ii) Minimum distance from other evaluated points(maximize). A sub-archive of center points
 is subsequently maintained via selection from the ranked evaluated points. The number of points
 in the sub-archive of centers should be equal to (or greater than) the number of parallel threads.
-Candidate points are generated around each ‘center point’ via the DYCORS sampling strategy, i.e.,
+Candidate points are generated around each 'center point' via the DYCORS sampling strategy, i.e.,
 an N(0, sigma^2) distributed perturbation of a subset of decision variables. A separate value of
 sigma is maintained for each center point, where  sigma is decreased if no progress is registered
 in the bi-objective objective value and distance criterion trade-off. One point is selected for
@@ -236,8 +236,8 @@ Example:
 
 .. code-block:: python
 
-    from pySOT import LatinHypercube
-    exp_des = LatinHypercube(dim=3, num_pts=10)
+    from pySOT.experimental_design import LatinHypercube
+    lhd = LatinHypercube(dim=3, num_pts=10)
 
 creates a Latin hypercube design with 10 points in 3 dimensions
 
@@ -255,8 +255,8 @@ Example:
 
 .. code-block:: python
 
-    from pySOT import SymmetricLatinHypercube
-    exp_des = SymmetricLatinHypercube(dim=3, num_pts=10)
+    from pySOT.experimental_design import SymmetricLatinHypercube
+    slhd = SymmetricLatinHypercube(dim=3, num_pts=10)
 
 creates a symmetric Latin hypercube design with 10 points in 3 dimensions
 
@@ -272,8 +272,8 @@ Example:
 
 .. code-block:: python
 
-    from pySOT import TwoFactorial
-    exp_des = TwoFactorial(dim=3)
+    from pySOT.experimental_design import TwoFactorial
+    two_factorial = TwoFactorial(dim=3)
 
 creates a two factorial design with 8 points in 3 dimensions
 
@@ -336,7 +336,7 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-    fhat = RBFInterpolant(dim=dim, kernel=CubicKernel(), tail=LinearTail(dim=dim))
+    rbf = RBFInterpolant(dim=dim, kernel=CubicKernel(), tail=LinearTail(dim=dim))
 
 creates a cubic RBF with a linear tail in dim dimensions.
 
@@ -355,7 +355,7 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import GPRegressor
-    surrogate = GPRegressor(dim=dim)
+    gp = GPRegressor(dim=dim)
 
 creates a GPRegressor object in dim dimensions.
 
@@ -385,7 +385,7 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import MARSInterpolant
-    surrogate = MARSInterpolant(dim=dim)
+    mars = MARSInterpolant(dim=dim)
 
 creates a MARS interpolant in dim dimensions.
 
@@ -403,7 +403,7 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import PolyRegressor
-    surrogate = PolyRegressor(dim=dim, degree=2)
+    poly = PolyRegressor(dim=dim, degree=2)
 
 creates a polynomial regressor of degree 2.
 
