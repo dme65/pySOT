@@ -12,10 +12,19 @@ class PolyRegressor(Surrogate):
 
     :param dim: Number of dimensions
     :type dim: int
+    :param lb: Lower variable bounds
+    :type lb: numpy.array
+    :param ub: Upper variable bounds
+    :type ub: numpy.array
+    :param output_transformation: Transformation applied to values before fitting
+    :type output_transformation: Callable
     :param degree: Polynomial degree
     :type degree: int
 
     :ivar dim: Number of dimensions
+    :ivar lb: Lower variable bounds
+    :ivar ub: Upper variable bounds
+    :ivar output_transformation: Transformation to apply to function values before fitting
     :ivar num_pts: Number of points in surrogate model
     :ivar X: Point incorporated in surrogate model (num_pts x dim)
     :ivar fX: Function values in surrogate model (num_pts x 1)
