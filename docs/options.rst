@@ -286,8 +286,12 @@ have the following attributes and methods
 
 - Attributes:
     * dim: Number of dimensions
+    * lb: Lower variable bounds
+    * ub: Upper variable bounds
+    * output_transformation: Transformation to apply to function values before fitting (for example median capping)
     * num_pts: Number of points in the surrogate model
     * X: Data points, of size num_pts x dim, currently incorporated in the model
+    * _X: Data points scaled to the unit hypercube. We use these internally to for conditioning reasons
     * fX: Function values at the data points
     * updated: True if all information is incorporated in the model, else a new fit will be triggered
 - Required methods
@@ -327,6 +331,9 @@ computing the RBF coefficients from scratch, which costs :math:`O(n^3)` flops.
 
 - Parameters:
     * dim: Number of dimensions (int)
+    * lb: Lower variable bounds (numpy.array)
+    * ub: Upper variable bounds (numpy.array)
+    * output_transformation: Transformation to apply to function values before fitting (callable)
     * kernel: RBF kernel object, must implement Kernel. Default: CubicKernel()
     * tail: RBF polynomial tail object, must implement Tail. Default: LinearTail(dim)
     * eta: Regularization parameter. Use something small like 1e-6 if the domain is [0, 1]^dim
@@ -336,9 +343,22 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail
-    rbf = RBFInterpolant(dim=dim, kernel=CubicKernel(), tail=LinearTail(dim=dim))
+    lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
+    rbf = RBFInterpolant(dim=5, lb=lb, ub=ub, kernel=CubicKernel(), tail=LinearTail(dim=dim))
 
 creates a cubic RBF with a linear tail in dim dimensions.
+
+Example:
+
+.. code-block:: python
+
+    from pySOT.surrogate import RBFInterpolant, CubicKernel, LinearTail, median_capping
+    lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
+    rbf = RBFInterpolant(
+        dim=5, lb=lb, ub=ub, output_transformation=median_capping, kernel=CubicKernel(), tail=LinearTail(dim=5))
+
+will apply median capping (replace values above median by the median) to the function values before fitting.
+This is useful for minimization problems where we do not want large values to influence the fit of the model.
 
 GPRegressor
 ^^^^^^^^^^^
@@ -347,6 +367,9 @@ Generate a Gaussian process regression object. This is just a wrapper around the
 
 - Parameters:
     * dim: Number of dimensions (int)
+    * lb: Lower variable bounds (numpy.array)
+    * ub: Upper variable bounds (numpy.array)
+    * output_transformation: Transformation to apply to function values before fitting (callable)
     * gp: GPRegressor model in scikit-learn. Uses the SE/RBF/Gaussian kernel as a default if None is passed.
     * n_restarts_optimizer: Number of restarts in hyperparamater fitting (int)
 
@@ -355,7 +378,8 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import GPRegressor
-    gp = GPRegressor(dim=dim)
+    lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
+    gp = GPRegressor(dim=5, lb=lb, ub=ub)
 
 creates a GPRegressor object in dim dimensions.
 
@@ -377,6 +401,9 @@ function :math:`B_i(x)` takes one of the following three forms:
 
 - Parameters:
     * dim: Number of dimensions (int)
+    * lb: Lower variable bounds (numpy.array)
+    * ub: Upper variable bounds (numpy.array)
+    * output_transformation: Transformation to apply to function values before fitting (callable)
 
 .. note:: This implementation depends on the py-earth module (see :ref:`quickstart-label`)
 
@@ -385,7 +412,8 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import MARSInterpolant
-    mars = MARSInterpolant(dim=dim)
+    lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
+    mars = MARSInterpolant(dim=dim, lb=lb, ub=ub)
 
 creates a MARS interpolant in dim dimensions.
 
@@ -396,6 +424,9 @@ Multivariate polynomial regression with cross-terms. This is just a wrapper arou
 
 - Parameters:
     * dim: Number of dimensions (int)
+    * lb: Lower variable bounds (numpy.array)
+    * ub: Upper variable bounds (numpy.array)
+    * output_transformation: Transformation to apply to function values before fitting (callable)
     * degree: Polynomial degree (int)
 
 Example:
@@ -403,7 +434,8 @@ Example:
 .. code-block:: python
 
     from pySOT.surrogate import PolyRegressor
-    poly = PolyRegressor(dim=dim, degree=2)
+    lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
+    poly = PolyRegressor(dim=dim, lb=lb, ub=ub, degree=2)
 
 creates a polynomial regressor of degree 2.
 
