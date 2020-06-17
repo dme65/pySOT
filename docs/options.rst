@@ -413,7 +413,7 @@ Example:
 
     from pySOT.surrogate import MARSInterpolant
     lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
-    mars = MARSInterpolant(dim=dim, lb=lb, ub=ub)
+    mars = MARSInterpolant(dim=5, lb=lb, ub=ub)
 
 creates a MARS interpolant in dim dimensions.
 
@@ -435,7 +435,7 @@ Example:
 
     from pySOT.surrogate import PolyRegressor
     lb, ub = np.zeros(5), np.ones(5)  # Domain is [0, 1]^5
-    poly = PolyRegressor(dim=dim, lb=lb, ub=ub, degree=2)
+    poly = PolyRegressor(dim=5, lb=lb, ub=ub, degree=2)
 
 creates a polynomial regressor of degree 2.
 
