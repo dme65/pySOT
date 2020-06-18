@@ -1,3 +1,9 @@
+v.0.3.1,  2020-06-17
+--------------------
+
+- Automatically scale domain to the unit hypercube for the surrogates
+- Add output transformations (like median capping) to the surrogates
+
 v.0.3.0,  2020-06-16
 --------------------
 
