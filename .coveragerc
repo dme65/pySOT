@@ -1,5 +1,6 @@
 [run]
 omit =
+    pySOT/docs/*
     pySOT/examples/*
+    pySOT/notebooks/*
     pySOT/tests/*
-    pySOT/gui.py
