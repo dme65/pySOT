@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 long_description = open("README.rst").read()
 
 setup(
     name="pySOT",
     version="0.3.2",
-    packages=["pySOT"],
+    packages=find_packages(),
     url="https://github.com/dme65/pySOT",
     license="LICENSE.rst",
     author="David Eriksson, David Bindel, Christine Shoemaker",

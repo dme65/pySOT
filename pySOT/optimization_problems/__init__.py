@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from .ackley import Ackley
 from .branin import Branin
 from .exponential import Exponential

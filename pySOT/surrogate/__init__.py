@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from .gp import GPRegressor
 from .kernels import CubicKernel, Kernel, LinearKernel, TPSKernel
 from .mars import MARSInterpolant

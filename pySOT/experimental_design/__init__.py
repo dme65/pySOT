@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from .experimental_design import ExperimentalDesign
 from .lhd import LatinHypercube
 from .slhd import SymmetricLatinHypercube

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from .candidate_dycors import candidate_dycors
 from .candidate_srbf import candidate_srbf
 from .candidate_uniform import candidate_uniform
