@@ -1,4 +1,9 @@
-v.0.3.1,  2020-06-18
+v.0.3.3,  2020-06-22
+--------------------
+
+- Exclude examples and tests from the package
+
+v.0.3.2,  2020-06-18
 --------------------
 
 - Fix import error
