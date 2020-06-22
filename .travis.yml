@@ -26,7 +26,7 @@ install:
 
   # Install py-earth and code coverage
   - pip install --upgrade pip
-  - pip install six http://github.com/scikit-learn-contrib/py-earth/tarball/master
+  - pip install six http://github.com/scikit-learn-contrib/py-earth/tarball/master --install-option="--cythonize"
   - pip install codecov
   - pip install pytest-cov
 
