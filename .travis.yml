@@ -2,7 +2,6 @@ sudo: true
 
 language: python
 python:
-  - "3.5"
   - "3.6"
   - "3.7"
 
@@ -26,6 +25,7 @@ install:
 
   # Install py-earth and code coverage
   - pip install --upgrade pip
+  - pip install nose six
   - pip install --editable git+https://github.com/scikit-learn-contrib/py-earth@issue191#egg=pyearth
   - pip install codecov
   - pip install pytest-cov
