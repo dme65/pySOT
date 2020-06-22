@@ -26,7 +26,7 @@ repos:
     -   id: isort
         language_version: python3
         exclude: ^(build/*)|(docs/*)|(notebooks/*)
-        args: [-w 120, -m 3, -tc, --project=gpytorch]
+        args: [-w 120, -m 3, -tc, --project=pySOT]
 -   repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 1.11.0
     hooks:
