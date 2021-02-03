@@ -150,7 +150,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         pass
 
     def check_input(self):
-        """Check the inputs to the optimization strategt. """
+        """Check the inputs to the optimization strategy. """
         if not isinstance(self.surrogate, Surrogate):
             raise ValueError("surrogate must implement Surrogate")
         if not isinstance(self.exp_design, ExperimentalDesign):
@@ -160,7 +160,7 @@ class SurrogateBaseStrategy(BaseStrategy):
         check_opt_prob(self.opt_prob)
         if not self.asynchronous and self.batch_size is None:
             raise ValueError("You must specify batch size in synchronous mode " "(use 1 for serial)")
-        if not isinstance(self.max_evals, int) and self.max_evals > 0 and self.max_evals >= self.exp_design.num_pts:
+        if not (isinstance(self.max_evals, int) and self.max_evals > 0 and self.max_evals >= self.exp_design.num_pts):
             raise ValueError("max_evals must be an integer >= exp_des.num_pts")
 
     def save(self, fname):
