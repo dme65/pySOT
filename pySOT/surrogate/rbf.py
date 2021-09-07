@@ -148,7 +148,7 @@ class RBFInterpolant(Surrogate):
                 L21 = L21.T
                 try:  # Compute Cholesky factorization of the Schur complement
                     C = scplinalg.cholesky(a=Phinew - np.dot(L21, U12), lower=True)
-                finally:  # Compute a new LU factorization if Cholesky fails
+                except:  # Compute a new LU factorization if Cholesky fails
                     self.c = None
                     return self._fit()
 
